@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
+import { Inter as interFont } from "next/font/google";
+import Script from "next/script";
 import { ClerkProvider, SignedIn, SignedOut } from "@clerk/nextjs";
 
 import "./globals.css";
 
+import Footer from "./components/layout/footer";
 import Navbar from "./components/layout/navbar";
+
+const inter = interFont({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "AI Traveller - Personalized Travel Planner",
@@ -46,48 +51,23 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <ClerkProvider>
       <html lang="en">
         <head>
-          {/* Primary Meta Tags */}
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <meta name="robots" content="index, follow" />
-          <meta
-            name="description"
-            content="Plan your next adventure with AI Traveller. Get personalized itineraries based on your preferences, budget, and companions."
-          />
-          <link rel="canonical" href="https://aitraveller.com" />
-
-          {/* Open Graph Meta Tags */}
-          <meta property="og:title" content="AI Traveller - Personalized Travel Planner" />
-          <meta
-            property="og:description"
-            content="Plan your next adventure with AI Traveller. Get personalized itineraries based on your preferences, budget, and companions."
-          />
-          <meta property="og:url" content="https://aitraveller.com" />
-          <meta property="og:site_name" content="AI Traveller" />
-          <meta property="og:image" content="https://aitraveller.com/og-image.jpg" />
-          <meta property="og:image:width" content="1200" />
-          <meta property="og:image:height" content="630" />
-          <meta property="og:type" content="website" />
-
-          {/* Twitter Meta Tags */}
-          <meta name="twitter:card" content="summary_large_image" />
-          <meta name="twitter:site" content="@aitraveller" />
-          <meta name="twitter:title" content="AI Traveller - Personalized Travel Planner" />
-          <meta
-            name="twitter:description"
-            content="Plan your next adventure with AI Traveller. Get personalized itineraries based on your preferences, budget, and companions."
-          />
-          <meta name="twitter:image" content="https://aitraveller.com/twitter-image.jpg" />
-
-          {/* Favicon */}
           <link rel="icon" href="/favicon.ico" />
         </head>
-        <body>
+        <body className={inter.className}>
           <header>
-            <SignedOut></SignedOut>
-            <Navbar />
-            <SignedIn></SignedIn>
+            <SignedOut>
+              <Navbar />
+            </SignedOut>
+            <SignedIn>
+              <Navbar />
+            </SignedIn>
           </header>
           <main>{children}</main>
+          <Footer />
+          <Script
+            src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY}&libraries=places`}
+            strategy="afterInteractive"
+          />
         </body>
       </html>
     </ClerkProvider>
