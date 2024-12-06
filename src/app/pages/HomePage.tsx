@@ -18,75 +18,23 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import dayjs from "dayjs";
 import {
-  Crown as CrownIcon,
-  DollarSign,
+  Crown as 
   MapPin,
-  Tent,
   User as UserIcon,
   UserPlus2 as UserPlus2Icon,
-  Users,
-  Wallet,
 } from "lucide-react";
+import { useAuth, useUser } from '@clerk/nextjs';
 
 import { theme } from "../../theme";
 import { usePlaces, type Place } from "../hooks/usePlaces";
 import { TravelFormState } from "../types/travel";
 
 import "dayjs/locale/tr";
-
-const commonIconStyle = { width: "2.5rem", height: "2.5rem", strokeWidth: 1.5 };
-
-const companionOptions = [
-  {
-    title: "Tek Başına",
-    description: "Özgür bir keşif deneyimi",
-    icon: <UserIcon style={{ ...commonIconStyle, color: "#3B82F6" }} />,
-    value: "solo",
-    people: "1 Kişi",
-  },
-  {
-    title: "Çift",
-    description: "Romantik bir kaçamak",
-    icon: <Users style={{ ...commonIconStyle, color: "#EC4899" }} />,
-    value: "couple",
-    people: "2 Kişi",
-  },
-  {
-    title: "Aile",
-    description: "Unutulmaz aile macerası",
-    icon: <UserPlus2Icon style={{ ...commonIconStyle, color: "#10B981" }} />,
-    value: "family",
-    people: "3-5 Kişi",
-  },
-  {
-    title: "Arkadaşlar",
-    description: "Eğlenceli grup seyahati",
-    icon: <Tent style={{ ...commonIconStyle, color: "#F59E0B" }} />,
-    value: "friends",
-    people: "5-10 Kişi",
-  },
-];
-
-const budgetOptions = [
-  {
-    title: "Ekonomik",
-    description: "Bütçe dostu seyahat",
-    icon: <Wallet style={{ ...commonIconStyle, color: "#10B981" }} />,
-    value: "cheap",
-  },
-  {
-    title: "Standart",
-    description: "Dengeli harcama",
-    icon: <DollarSign style={{ ...commonIconStyle, color: "#F59E0B" }} />,
-    value: "moderate",
-  },
-  {
-    title: "Lüks",
-    description: "Premium deneyim",
-    icon: <CrownIcon style={{ ...commonIconStyle, color: "#6366F1" }} />,
-    value: "luxury",
-  },
-];
+import { AI_PROMPT, budgetOptions, commonIconStyle, companionOptions } from "../constants/options";
+import { chatSession } from "../Service/AIService";
+import { collection, doc, getDocs, query, setDoc, where } from "firebase/firestore";
+import { db } from "../Service/firebaseConfig";
+import { useTravelPlan } from "../hooks/useTravelPlan";
 
 export default function Home(): JSX.Element {
   const { isLoaded, predictions, inputValue, setInput, getPlaceDetails, handleSelect } = usePlaces({
@@ -94,6 +42,8 @@ export default function Home(): JSX.Element {
     types: ["(cities)"],
     debounceMs: 300,
   });
+  const { user, isLoaded: isUserLoaded } = useUser();
+  const { saveTravelPlan, isLoading: isSaving, error: saveError } = useTravelPlan();
 
   const [formState, setFormState] = useState<TravelFormState>({
     city: null,
@@ -235,21 +185,73 @@ export default function Home(): JSX.Element {
     }
   };
 
-  const handleCreatePlan = () => {
+  const handleCreatePlan = async () => {
     const errors = validateForm();
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
     }
-    console.log("Final Travel Plan:", {
-      destination: formState.city ? `${formState.city.mainText}, ${formState.city.secondaryText}` : "Not selected",
-      duration: `${formState.days} days`,
-      startDate: formState.startDate ? dayjs(formState.startDate).format("DD/MM/YYYY") : "Not selected",
-      budget: formState.budget?.title || "Not selected",
-      groupType: formState.companion?.title || "Not selected",
-      numberOfPeople: formState.companion?.people || "Not specified",
-    });
+
+    if (!user) {
+      alert('Please sign in to create a travel plan');
+      return;
+    }
+
+    try {
+      // Get AI response first
+      const FINAL_PROMPT = AI_PROMPT
+        .replace("{location}", formState.city ? `${formState.city.mainText}, ${formState.city.secondaryText}` : "Belirtilmedi")
+        .replace("{totalDays}", `${formState.days}` || "1")
+        .replace("{traveller}", formState.companion?.title || "Belirtilmedi")
+        .replace("{budget}", formState.budget?.title || "Belirtilmedi");
+
+      const aiResponse = await chatSession.sendMessage(FINAL_PROMPT);
+      const aiItinerary = await aiResponse?.response?.text();
+
+      // Prepare travel plan data
+      const travelPlanData = {
+        destination: formState.city ? `${formState.city.mainText}, ${formState.city.secondaryText}` : "Not selected",
+        duration: `${formState.days} days`,
+        startDate: formState.startDate ? dayjs(formState.startDate).format("DD/MM/YYYY") : "Not selected",
+        budget: formState.budget?.title || "Not selected",
+        groupType: formState.companion?.title || "Not selected",
+        numberOfPeople: formState.companion?.people || "Not specified",
+        itinerary: aiItinerary
+      };
+
+      // Save to Firebase
+      const savedPlanId = await saveTravelPlan(travelPlanData);
+      
+      if (savedPlanId) {
+        alert('Travel plan saved successfully!');
+      }
+    } catch (error) {
+      console.error('Error creating travel plan:', error);
+      alert('Failed to create travel plan. Please try again.');
+    }
   };
+
+  const saveTripToFirestore = async (tripData: Record<string, any>) => {
+    try {
+      const tripId = new Date().getTime(); // Unique ID için timestamp kullanabilirsiniz.
+      const { userId } = useAuth();
+  
+      if (!userId) {
+        throw new Error("Kullanıcı oturumu açmamış!");
+      }
+  
+      // Kullanıcıya özel trip verisi kaydetme
+      await setDoc(doc(db, "users", userId, "trips", tripId.toString()), {
+        ...tripData,
+        createdAt: new Date(),
+      });
+  
+      console.log("Trip başarıyla kaydedildi!");
+    } catch (error) {
+      console.error("Trip kaydedilirken bir hata oluştu:", error);
+    }
+  };
+  
 
   if (!isLoaded) {
     return (

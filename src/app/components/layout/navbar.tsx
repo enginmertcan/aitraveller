@@ -61,7 +61,7 @@ const Navbar = (): React.ReactElement => {
 
   const navItems = [
     { label: "Gezi Oluştur", path: "/" },
-    { label: "Gezilerim", path: "/" },
+    { label: "Gezilerim", path: "/my-trips" },
   ];
 
   const navContent = (
