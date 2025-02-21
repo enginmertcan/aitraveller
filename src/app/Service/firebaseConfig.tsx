@@ -1,6 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -13,7 +14,7 @@ const firebaseConfig = {
   storageBucket: "ai-traveller-67214.firebasestorage.app",
   messagingSenderId: "151291844199",
   appId: "1:151291844199:web:45fcc2574f5c1d3453a6c2",
-  measurementId: "G-W93HDHGMR1"
+  measurementId: "G-W93HDHGMR1",
 };
 
 // Initialize Firebase
