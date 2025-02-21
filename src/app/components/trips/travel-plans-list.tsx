@@ -1,24 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Box, Card, CardContent, Tabs, Tab } from "@mui/material";
-import { TravelPlan } from "../../types/travel";
-import { ItineraryView } from "./itinerary-view";
-import { HotelList } from "./hotel-list";
-import { TravelOverview } from "./travel-overview";
 import { TabPanelProps } from "@/app/types/TabPanelProps";
+import { Box, Card, CardContent, Tab, Tabs } from "@mui/material";
+
+import { TravelPlan } from "../../types/travel";
+import { HotelList } from "./hotel-list";
+import { ItineraryView } from "./itinerary-view";
+import { TravelOverview } from "./travel-overview";
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
 
   return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`tabpanel-${index}`}
-      aria-labelledby={`tab-${index}`}
-      {...other}
-    >
+    <div role="tabpanel" hidden={value !== index} id={`tabpanel-${index}`} aria-labelledby={`tab-${index}`} {...other}>
       {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
     </div>
   );
@@ -36,11 +31,11 @@ export function TravelPlansList({ plans }: TravelPlansListProps) {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {plans.map((plan) => (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      {plans.map(plan => (
         <Card key={plan.id}>
           <CardContent>
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+            <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
               <Tabs value={selectedTab} onChange={handleTabChange}>
                 <Tab label="Overview" />
                 <Tab label="Hotels" />

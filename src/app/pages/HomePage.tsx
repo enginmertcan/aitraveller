@@ -1,51 +1,48 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useAuth, useUser } from "@clerk/nextjs";
 import {
+  Alert,
+  Backdrop,
   Box,
   Button,
   Card,
   CardContent,
+  CircularProgress,
   Container,
   Grid,
   Paper,
+  Snackbar,
   TextField,
   ThemeProvider,
   Typography,
-  Backdrop,
-  CircularProgress,
-  Snackbar,
-  Alert,
 } from "@mui/material";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import dayjs from "dayjs";
-import {
-  Crown as MapPin,
-  User as UserIcon,
-  UserPlus2 as UserPlus2Icon,
-  Loader2
-} from "lucide-react";
-import { useAuth, useUser } from '@clerk/nextjs';
+import { Loader2, Crown as MapPin, User as UserIcon, UserPlus2 as UserPlus2Icon } from "lucide-react";
 
 import { theme } from "../../theme";
 import { usePlaces, type Place } from "../hooks/usePlaces";
 
 import "dayjs/locale/tr";
-import { AI_PROMPT, budgetOptions, commonIconStyle, companionOptions } from "../constants/options";
-import { chatSession } from "../Service/AIService";
+
 import { collection, doc, getDocs, query, setDoc, where } from "firebase/firestore";
-import { db } from "../Service/firebaseConfig";
+
+import { AI_PROMPT, budgetOptions, commonIconStyle, companionOptions } from "../constants/options";
 import { useTravelPlan } from "../hooks/useTravelPlan";
+import { chatSession } from "../Service/AIService";
+import { db } from "../Service/firebaseConfig";
 import { TravelFormState } from "../types/TravelFormState";
 
 export default function Home(): JSX.Element {
   const [isCreatingPlan, setIsCreatingPlan] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
-    message: '',
-    severity: 'success' as 'success' | 'error'
+    message: "",
+    severity: "success" as "success" | "error",
   });
 
   const { isLoaded, predictions, inputValue, setInput, getPlaceDetails, handleSelect } = usePlaces({
@@ -206,8 +203,8 @@ export default function Home(): JSX.Element {
     if (!user) {
       setSnackbar({
         open: true,
-        message: 'Lütfen seyahat planı oluşturmak için giriş yapın',
-        severity: 'error'
+        message: "Lütfen seyahat planı oluşturmak için giriş yapın",
+        severity: "error",
       });
       return;
     }
@@ -215,8 +212,10 @@ export default function Home(): JSX.Element {
     setIsCreatingPlan(true);
 
     try {
-      const FINAL_PROMPT = AI_PROMPT
-        .replace("{location}", formState.city ? `${formState.city.mainText}, ${formState.city.secondaryText}` : "Belirtilmedi")
+      const FINAL_PROMPT = AI_PROMPT.replace(
+        "{location}",
+        formState.city ? `${formState.city.mainText}, ${formState.city.secondaryText}` : "Belirtilmedi"
+      )
         .replace("{totalDays}", `${formState.days}` || "1")
         .replace("{traveller}", formState.companion?.title || "Belirtilmedi")
         .replace("{budget}", formState.budget?.title || "Belirtilmedi");
@@ -234,24 +233,24 @@ export default function Home(): JSX.Element {
         numberOfPeople: formState.companion?.people || "Not specified",
         itinerary: aiItinerary,
         bestTimeToVisit: "Not specified",
-        hotelOptions: []
+        hotelOptions: [],
       };
 
       const savedPlanId = await saveTravelPlan(travelPlanData);
-      
+
       if (savedPlanId) {
         setSnackbar({
           open: true,
-          message: 'Seyahat planınız başarıyla oluşturuldu!',
-          severity: 'success'
+          message: "Seyahat planınız başarıyla oluşturuldu!",
+          severity: "success",
         });
       }
     } catch (error) {
-      console.error('Error creating travel plan:', error);
+      console.error("Error creating travel plan:", error);
       setSnackbar({
         open: true,
-        message: 'Seyahat planı oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.',
-        severity: 'error'
+        message: "Seyahat planı oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.",
+        severity: "error",
       });
     } finally {
       setIsCreatingPlan(false);
@@ -502,7 +501,7 @@ export default function Home(): JSX.Element {
                   py: 3,
                   fontSize: "1.25rem",
                   fontWeight: 600,
-                  position: 'relative',
+                  position: "relative",
                 }}
               >
                 {isCreatingPlan ? (
@@ -511,7 +510,7 @@ export default function Home(): JSX.Element {
                     Seyahat Planı Oluşturuluyor...
                   </>
                 ) : (
-                  'Seyahat Planını Oluştur'
+                  "Seyahat Planını Oluştur"
                 )}
               </Button>
             </Grid>
@@ -522,11 +521,11 @@ export default function Home(): JSX.Element {
       {/* Loading Backdrop */}
       <Backdrop
         sx={{
-          color: '#fff',
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 2
+          color: "#fff",
+          zIndex: theme => theme.zIndex.drawer + 1,
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
         }}
         open={isCreatingPlan}
       >
@@ -544,14 +543,9 @@ export default function Home(): JSX.Element {
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert
-          onClose={handleSnackbarClose}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} variant="filled" sx={{ width: "100%" }}>
           {snackbar.message}
         </Alert>
       </Snackbar>
