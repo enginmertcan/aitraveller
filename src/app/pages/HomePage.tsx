@@ -12,22 +12,25 @@ import {
   TextField,
   ThemeProvider,
   Typography,
+  Backdrop,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import dayjs from "dayjs";
 import {
-  Crown as 
-  MapPin,
+  Crown as MapPin,
   User as UserIcon,
   UserPlus2 as UserPlus2Icon,
+  Loader2
 } from "lucide-react";
 import { useAuth, useUser } from '@clerk/nextjs';
 
 import { theme } from "../../theme";
 import { usePlaces, type Place } from "../hooks/usePlaces";
-import { TravelFormState } from "../types/travel";
 
 import "dayjs/locale/tr";
 import { AI_PROMPT, budgetOptions, commonIconStyle, companionOptions } from "../constants/options";
@@ -35,8 +38,16 @@ import { chatSession } from "../Service/AIService";
 import { collection, doc, getDocs, query, setDoc, where } from "firebase/firestore";
 import { db } from "../Service/firebaseConfig";
 import { useTravelPlan } from "../hooks/useTravelPlan";
+import { TravelFormState } from "../types/TravelFormState";
 
 export default function Home(): JSX.Element {
+  const [isCreatingPlan, setIsCreatingPlan] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success' as 'success' | 'error'
+  });
+
   const { isLoaded, predictions, inputValue, setInput, getPlaceDetails, handleSelect } = usePlaces({
     country: "TR",
     types: ["(cities)"],
@@ -61,6 +72,10 @@ export default function Home(): JSX.Element {
     companion?: string;
   }>({});
 
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
   const validateForm = () => {
     const errors: {
       city?: string;
@@ -70,29 +85,24 @@ export default function Home(): JSX.Element {
       companion?: string;
     } = {};
 
-    // Validate city selection
     if (!formState.city) {
       errors.city = "Lütfen bir şehir seçin";
     }
 
-    // Validate days
     if (formState.days < 1) {
       errors.days = "Gün sayısı en az 1 olmalıdır";
     }
 
-    // Validate start date
     if (!formState.startDate) {
       errors.startDate = "Lütfen bir tarih seçin";
     } else if (dayjs(formState.startDate).isBefore(dayjs(), "day")) {
       errors.startDate = "Geçmiş bir tarih seçemezsiniz";
     }
 
-    // Validate budget
     if (!formState.budget) {
       errors.budget = "Lütfen bir bütçe seçin";
     }
 
-    // Validate companion
     if (!formState.companion) {
       errors.companion = "Lütfen seyahat arkadaşınızı seçin";
     }
@@ -100,7 +110,6 @@ export default function Home(): JSX.Element {
     return errors;
   };
 
-  // Log state changes
   useEffect(() => {
     console.log("Current Travel Plan:", {
       city: formState.city ? `${formState.city.mainText}, ${formState.city.secondaryText}` : null,
@@ -109,8 +118,8 @@ export default function Home(): JSX.Element {
       budget: formState.budget?.title,
       companion: formState.companion
         ? {
-        type: formState.companion.title,
-        people: formState.companion.people,
+            type: formState.companion.title,
+            people: formState.companion.people,
           }
         : null,
     });
@@ -127,7 +136,7 @@ export default function Home(): JSX.Element {
         placeId: place.placeId,
       },
     }));
-    setFormErrors(prev => ({ ...prev, city: undefined })); // Hata mesajını temizler
+    setFormErrors(prev => ({ ...prev, city: undefined }));
   };
 
   const handleBudgetSelect = (option: (typeof budgetOptions)[0]) => {
@@ -139,7 +148,7 @@ export default function Home(): JSX.Element {
         description: option.description,
       },
     }));
-    setFormErrors(prev => ({ ...prev, budget: undefined })); // Hata mesajını temizler
+    setFormErrors(prev => ({ ...prev, budget: undefined }));
   };
 
   const handleCompanionSelect = (option: (typeof companionOptions)[0]) => {
@@ -152,8 +161,9 @@ export default function Home(): JSX.Element {
         people: option.people,
       },
     }));
-    setFormErrors(prev => ({ ...prev, companion: undefined })); // Hata mesajını temizler
+    setFormErrors(prev => ({ ...prev, companion: undefined }));
   };
+
   const handleDaysChange = (newDays: number) => {
     if (newDays < 1) {
       setFormErrors(prev => ({ ...prev, days: "Gün sayısı en az 1 olmalıdır" }));
@@ -167,8 +177,9 @@ export default function Home(): JSX.Element {
       ...prev,
       days: newDays,
     }));
-    setFormErrors(prev => ({ ...prev, days: undefined })); // Hata mesajını temizler
+    setFormErrors(prev => ({ ...prev, days: undefined }));
   };
+
   useEffect(() => {
     if (formState.startDate && dayjs(formState.startDate).isBefore(dayjs(), "day")) {
       setFormErrors(prev => ({ ...prev, startDate: "Geçmiş bir tarih seçemezsiniz" }));
@@ -181,7 +192,7 @@ export default function Home(): JSX.Element {
       startDate: date ? date.toDate() : null,
     }));
     if (date && !dayjs(date).isBefore(dayjs(), "day")) {
-      setFormErrors(prev => ({ ...prev, startDate: undefined })); // Hata mesajını temizler
+      setFormErrors(prev => ({ ...prev, startDate: undefined }));
     }
   };
 
@@ -193,12 +204,17 @@ export default function Home(): JSX.Element {
     }
 
     if (!user) {
-      alert('Please sign in to create a travel plan');
+      setSnackbar({
+        open: true,
+        message: 'Lütfen seyahat planı oluşturmak için giriş yapın',
+        severity: 'error'
+      });
       return;
     }
 
+    setIsCreatingPlan(true);
+
     try {
-      // Get AI response first
       const FINAL_PROMPT = AI_PROMPT
         .replace("{location}", formState.city ? `${formState.city.mainText}, ${formState.city.secondaryText}` : "Belirtilmedi")
         .replace("{totalDays}", `${formState.days}` || "1")
@@ -208,55 +224,44 @@ export default function Home(): JSX.Element {
       const aiResponse = await chatSession.sendMessage(FINAL_PROMPT);
       const aiItinerary = await aiResponse?.response?.text();
 
-      // Prepare travel plan data
       const travelPlanData = {
+        id: new Date().getTime().toString(),
         destination: formState.city ? `${formState.city.mainText}, ${formState.city.secondaryText}` : "Not selected",
         duration: `${formState.days} days`,
         startDate: formState.startDate ? dayjs(formState.startDate).format("DD/MM/YYYY") : "Not selected",
         budget: formState.budget?.title || "Not selected",
         groupType: formState.companion?.title || "Not selected",
         numberOfPeople: formState.companion?.people || "Not specified",
-        itinerary: aiItinerary
+        itinerary: aiItinerary,
+        bestTimeToVisit: "Not specified",
+        hotelOptions: []
       };
 
-      // Save to Firebase
       const savedPlanId = await saveTravelPlan(travelPlanData);
       
       if (savedPlanId) {
-        alert('Travel plan saved successfully!');
+        setSnackbar({
+          open: true,
+          message: 'Seyahat planınız başarıyla oluşturuldu!',
+          severity: 'success'
+        });
       }
     } catch (error) {
       console.error('Error creating travel plan:', error);
-      alert('Failed to create travel plan. Please try again.');
-    }
-  };
-
-  const saveTripToFirestore = async (tripData: Record<string, any>) => {
-    try {
-      const tripId = new Date().getTime(); // Unique ID için timestamp kullanabilirsiniz.
-      const { userId } = useAuth();
-  
-      if (!userId) {
-        throw new Error("Kullanıcı oturumu açmamış!");
-      }
-  
-      // Kullanıcıya özel trip verisi kaydetme
-      await setDoc(doc(db, "users", userId, "trips", tripId.toString()), {
-        ...tripData,
-        createdAt: new Date(),
+      setSnackbar({
+        open: true,
+        message: 'Seyahat planı oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.',
+        severity: 'error'
       });
-  
-      console.log("Trip başarıyla kaydedildi!");
-    } catch (error) {
-      console.error("Trip kaydedilirken bir hata oluştu:", error);
+    } finally {
+      setIsCreatingPlan(false);
     }
   };
-  
 
   if (!isLoaded) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
-        <Typography>Loading...</Typography>
+        <CircularProgress />
       </Box>
     );
   }
@@ -492,18 +497,64 @@ export default function Home(): JSX.Element {
                 fullWidth
                 size="large"
                 onClick={handleCreatePlan}
+                disabled={isCreatingPlan}
                 sx={{
                   py: 3,
                   fontSize: "1.25rem",
                   fontWeight: 600,
+                  position: 'relative',
                 }}
               >
-                Seyahat Planını Oluştur
+                {isCreatingPlan ? (
+                  <>
+                    <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                    Seyahat Planı Oluşturuluyor...
+                  </>
+                ) : (
+                  'Seyahat Planını Oluştur'
+                )}
               </Button>
             </Grid>
           </Grid>
         </Container>
       </Box>
+
+      {/* Loading Backdrop */}
+      <Backdrop
+        sx={{
+          color: '#fff',
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2
+        }}
+        open={isCreatingPlan}
+      >
+        <CircularProgress color="inherit" />
+        <Typography variant="h6" component="div">
+          Seyahat Planınız Oluşturuluyor...
+        </Typography>
+        <Typography variant="body2" color="inherit">
+          Bu işlem birkaç saniye sürebilir
+        </Typography>
+      </Backdrop>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </ThemeProvider>
   );
 }

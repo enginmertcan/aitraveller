@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { collection, addDoc, getDocs, query, where, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { useUser } from '@clerk/nextjs';
-import { TravelPlan } from '../types/TravelPlan';
 import { db } from '../Service/firebaseConfig';
+import { TravelPlan } from '../types/travel';
 
 
 export function useTravelPlan() {
@@ -23,7 +23,6 @@ export function useTravelPlan() {
       const travelPlan: TravelPlan = {
         ...planData,
         userId: user.id,
-        createdAt: new Date(),
       };
 
       // First, ensure the user document exists
