@@ -1,268 +1,208 @@
 "use client";
 
 import { useState } from "react";
-import { format, parse } from "date-fns";
+import { useRouter } from "next/navigation";
 import {
   Box,
   Card,
   CardContent,
-  Typography,
-  Tabs,
-  Tab,
   Grid,
-  Paper,
-  Rating,
+  Typography,
+  IconButton,
   Chip,
-  Stack,
-  Divider,
-  Alert
+  Menu,
+  MenuItem,
+  Fade,
 } from "@mui/material";
-import {
-  CalendarToday,
-  People,
-  AccessTime,
-  AccountBalance,
-  LocationOn,
-  AttachMoney
-} from "@mui/icons-material";
-import { TravelPlan, Hotel, Activity, DayPlan } from "@/app/types/travel";
+import { MoreVertical, MapPin, Calendar, Users, Wallet } from "lucide-react";
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`tabpanel-${index}`}
-      aria-labelledby={`tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
-    </div>
-  );
-}
+import { TravelPlan } from "../../types/travel";
 
 interface TravelPlansListProps {
   plans: TravelPlan[];
 }
 
 export function TravelPlansList({ plans }: TravelPlansListProps) {
-  const [selectedTabs, setSelectedTabs] = useState<{ [key: string]: number }>({});
+  const router = useRouter();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedPlan, setSelectedPlan] = useState<TravelPlan | null>(null);
 
-  const handleTabChange = (planId: string) => (event: React.SyntheticEvent, newValue: number) => {
-    setSelectedTabs(prev => ({
-      ...prev,
-      [planId]: newValue
-    }));
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, plan: TravelPlan) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedPlan(plan);
   };
 
-  const formatDate = (dateString: string) => {
-    try {
-      const date = parse(dateString, "dd/MM/yyyy", new Date());
-      return format(date, "dd MMM yyyy");
-    } catch (error) {
-      return dateString;
-    }
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedPlan(null);
   };
 
-  const normalizeItineraryData = (plan: TravelPlan) => {
-    if (typeof plan.itinerary === 'string') {
-      try {
-        const parsedData = JSON.parse(plan.itinerary);
-        let normalizedItinerary = [];
-
-        // İstanbul formatı - Array içinde day ve plan
-        if (Array.isArray(parsedData.itinerary)) {
-          normalizedItinerary = parsedData.itinerary;
-        }
-        // Kars formatı - itinerary içinde day1, day2 şeklinde
-        else if (parsedData.itinerary && typeof parsedData.itinerary === 'object') {
-          normalizedItinerary = Object.entries(parsedData.itinerary).map(([dayKey, dayData]: [string, any]) => ({
-            day: dayKey.charAt(0).toUpperCase() + dayKey.slice(1).replace(/(\d+)/, ' $1'),
-            plan: dayData.map((activity: any) => ({
-              time: activity.timeToSpend || activity.timeEstimate || "Flexible",
-              placeName: activity.placeName,
-              placeDetails: activity.placeDetails,
-              placeImageUrl: activity.placeImageUrl || "",
-              geoCoordinates: activity.geoCoordinates || { latitude: 0, longitude: 0 },
-              ticketPricing: activity.ticketPricing || "Contact for pricing"
-            }))
-          }));
-        }
-        // Giresun formatı - doğrudan day1, day2 şeklinde ve theme içeren
-        else if (parsedData.day1 || parsedData.day2 || parsedData.day3) {
-          normalizedItinerary = Object.entries(parsedData)
-            .filter(([key]) => key.startsWith('day'))
-            .map(([dayKey, dayData]: [string, any]) => ({
-              day: `${dayKey.charAt(0).toUpperCase() + dayKey.slice(1).replace(/(\d+)/, ' $1')}${dayData.theme ? ` - ${dayData.theme}` : ''}`,
-              plan: (dayData.activities || []).map((activity: any) => ({
-                time: activity.timeEstimate || "Flexible",
-                placeName: activity.name,
-                placeDetails: activity.description,
-                placeImageUrl: activity.imageUrl || "",
-                geoCoordinates: activity.geoCoordinates || { latitude: 0, longitude: 0 },
-                ticketPricing: activity.ticketPricing || "Contact for pricing"
-              }))
-            }));
-        }
-
-        return {
-          ...plan,
-          bestTimeToVisit: parsedData.bestTimeToVisit || plan.bestTimeToVisit,
-          hotelOptions: parsedData.hotelOptions || [],
-          itinerary: normalizedItinerary
-        };
-      } catch (error) {
-        console.error('Error parsing itinerary:', error);
-        return {
-          ...plan,
-          hotelOptions: [],
-          itinerary: []
-        };
-      }
+  const handleViewDetails = () => {
+    if (selectedPlan) {
+      router.push(`/trips/${selectedPlan.id}`);
     }
-    return plan;
+    handleMenuClose();
+  };
+
+  const handleDelete = () => {
+    // Silme işlemi burada yapılacak
+    handleMenuClose();
   };
 
   return (
-    <Stack spacing={3}>
-      {plans.map((originalPlan: TravelPlan) => {
-        const plan = normalizeItineraryData(originalPlan);
-        const currentTab = selectedTabs[plan.id] || 0;
-
-        return (
-          <Card key={plan.id} elevation={2}>
-            <CardContent>
-              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
-                <Box>
-                  <Typography variant="h5" component="h2" gutterBottom>
+    <Grid container spacing={3}>
+      {plans.map((plan, index) => (
+        <Grid item xs={12} md={6} key={plan.id}>
+          <Fade in timeout={500 + index * 100}>
+            <Card
+              elevation={0}
+              sx={{
+                height: "100%",
+                background: "rgba(255, 255, 255, 0.8)",
+                backdropFilter: "blur(10px)",
+                borderRadius: "16px",
+                border: "1px solid rgba(0, 0, 0, 0.1)",
+                transition: "all 0.3s ease",
+                '&:hover': {
+                  transform: "translateY(-4px)",
+                  boxShadow: "0 20px 40px rgba(0, 0, 0, 0.1)",
+                }
+              }}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      fontWeight: 600,
+                      background: "linear-gradient(45deg, #2563eb, #7c3aed)",
+                      backgroundClip: "text",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                    }}
+                  >
                     {plan.destination}
                   </Typography>
-                  <Typography color="text.secondary">{plan.groupType}</Typography>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => handleMenuClick(e, plan)}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: "rgba(37, 99, 235, 0.1)",
+                      }
+                    }}
+                  >
+                    <MoreVertical size={20} />
+                  </IconButton>
                 </Box>
-                <Chip label={plan.duration} color="primary" />
-              </Box>
 
-              <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-                <Tabs 
-                  value={currentTab} 
-                  onChange={handleTabChange(plan.id)} 
-                  aria-label="travel plan tabs"
-                >
-                  <Tab label="Overview" />
-                  <Tab label="Hotels" />
-                  <Tab label="Itinerary" />
-                </Tabs>
-              </Box>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                    <MapPin size={18} style={{ color: "#2563eb" }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {plan.destination}
+                    </Typography>
+                  </Box>
 
-              <TabPanel value={currentTab} index={0}>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <CalendarToday fontSize="small" color="action" />
-                      <Typography>
-                        {formatDate(plan.startDate)}
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <People fontSize="small" color="action" />
-                      <Typography>{plan.numberOfPeople}</Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <AccessTime fontSize="small" color="action" />
-                      <Typography>{plan.bestTimeToVisit}</Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <AccountBalance fontSize="small" color="action" />
-                      <Typography>{plan.budget}</Typography>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </TabPanel>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                    <Calendar size={18} style={{ color: "#7c3aed" }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {new Date(plan.startDate).toLocaleDateString("tr-TR", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                      {" - "}
+                      {plan.days} gün
+                    </Typography>
+                  </Box>
 
-              <TabPanel value={currentTab} index={1}>
-                <Stack spacing={2}>
-                  {plan.hotelOptions && plan.hotelOptions.length > 0 ? (
-                    plan.hotelOptions.map((hotel: Hotel, index: number) => (
-                      <Paper key={index} elevation={1} sx={{ p: 2 }}>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-                          <Typography variant="h6">{hotel.hotelName}</Typography>
-                          <Rating value={hotel.rating} readOnly precision={0.1} />
-                        </Box>
-                        <Typography color="text.secondary" paragraph>
-                          {hotel.description}
-                        </Typography>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-                          <LocationOn fontSize="small" color="action" />
-                          <Typography variant="body2">{hotel.hotelAddress}</Typography>
-                        </Box>
-                        <Typography color="primary" variant="subtitle2">
-                          {hotel.priceRange}
-                        </Typography>
-                      </Paper>
-                    ))
-                  ) : (
-                    <Alert severity="info">No hotel options available</Alert>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                    <Users size={18} style={{ color: "#2563eb" }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {plan.companion}
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                    <Wallet size={18} style={{ color: "#7c3aed" }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {new Intl.NumberFormat("tr-TR", {
+                        style: "currency",
+                        currency: "TRY",
+                      }).format(plan.budget)}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Box sx={{ mt: 3, display: "flex", gap: 1, flexWrap: "wrap" }}>
+                  {plan.activities?.slice(0, 3).map((activity, index) => (
+                    <Chip
+                      key={index}
+                      label={activity}
+                      size="small"
+                      sx={{
+                        backgroundColor: "rgba(37, 99, 235, 0.1)",
+                        color: "#2563eb",
+                        borderRadius: "8px",
+                        '&:hover': {
+                          backgroundColor: "rgba(37, 99, 235, 0.2)",
+                        }
+                      }}
+                    />
+                  ))}
+                  {plan.activities?.length > 3 && (
+                    <Chip
+                      label={`+${plan.activities.length - 3}`}
+                      size="small"
+                      sx={{
+                        backgroundColor: "rgba(124, 58, 237, 0.1)",
+                        color: "#7c3aed",
+                        borderRadius: "8px",
+                        '&:hover': {
+                          backgroundColor: "rgba(124, 58, 237, 0.2)",
+                        }
+                      }}
+                    />
                   )}
-                </Stack>
-              </TabPanel>
+                </Box>
+              </CardContent>
+            </Card>
+          </Fade>
+        </Grid>
+      ))}
 
-              <TabPanel value={currentTab} index={2}>
-                <Stack spacing={3}>
-                  {Array.isArray(plan.itinerary) && plan.itinerary.length > 0 ? (
-                    plan.itinerary.map((day: DayPlan, index: number) => (
-                      <Box key={index}>
-                        <Typography variant="h6" gutterBottom>
-                          {day.day}
-                        </Typography>
-                        <Stack spacing={2}>
-                          {day.plan?.map((activity: Activity, actIndex: number) => (
-                            <Paper key={actIndex} elevation={1} sx={{ p: 2 }}>
-                              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-                                <Typography variant="subtitle1" fontWeight="medium">
-                                  {activity.placeName}
-                                </Typography>
-                                <Typography color="text.secondary">
-                                  {activity.time}
-                                </Typography>
-                              </Box>
-                              <Typography color="text.secondary" paragraph>
-                                {activity.placeDetails}
-                              </Typography>
-                              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                <AttachMoney fontSize="small" color="action" />
-                                <Typography variant="body2">
-                                  {activity.ticketPricing || activity.cost || "Price not specified"}
-                                </Typography>
-                              </Box>
-                            </Paper>
-                          ))}
-                        </Stack>
-                        {index < (plan.itinerary?.length || 0) - 1 && <Divider sx={{ my: 2 }} />}
-                      </Box>
-                    ))
-                  ) : (
-                    <Alert severity="info">No itinerary available</Alert>
-                  )}
-                </Stack>
-              </TabPanel>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </Stack>
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        TransitionComponent={Fade}
+        PaperProps={{
+          elevation: 0,
+          sx: {
+            borderRadius: "12px",
+            border: "1px solid rgba(0, 0, 0, 0.1)",
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            backdropFilter: "blur(10px)",
+            overflow: "visible",
+            mt: 1.5,
+            "& .MuiMenuItem-root": {
+              px: 2,
+              py: 1.5,
+              borderRadius: "8px",
+              mx: 0.5,
+              my: 0.25,
+              fontSize: "0.9rem",
+              "&:hover": {
+                backgroundColor: "rgba(37, 99, 235, 0.1)",
+              },
+            },
+          },
+        }}
+      >
+        <MenuItem onClick={handleViewDetails}>Detayları Görüntüle</MenuItem>
+        <MenuItem onClick={handleDelete} sx={{ color: "error.main" }}>Seyahati Sil</MenuItem>
+      </Menu>
+    </Grid>
   );
 }
