@@ -17,6 +17,7 @@ import {
   useTheme
 } from "@mui/material";
 import { Map, PlusCircle, MapPin, Calendar } from "lucide-react";
+import { useThemeContext } from "../context/ThemeContext";
 
 import { TravelPlansList } from "../components/trips/travel-plans-list";
 import { LoadingSpinner } from "../components/ui/loading-spinner";
@@ -31,6 +32,7 @@ export default function TripsPage() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
   const theme = useTheme();
+  const { isDarkMode } = useThemeContext();
 
   const cityOptions = Array.from(new Set(plans.map(plan => plan.destination)));
 
@@ -70,10 +72,10 @@ export default function TripsPage() {
           sx={{
             p: 4,
             textAlign: "center",
-            background: "rgba(255, 255, 255, 0.8)",
+            background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
             backdropFilter: "blur(10px)",
             borderRadius: "16px",
-            border: "1px solid rgba(0, 0, 0, 0.1)",
+            border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
           }}
         >
           <Typography color="error" variant="h6" sx={{ mb: 3 }}>
@@ -103,7 +105,9 @@ export default function TripsPage() {
     <Box
       sx={{
         minHeight: "calc(100vh - 64px)", // Navbar height
-        background: "linear-gradient(135deg, #e0f2fe 0%, #ddd6fe 100%)",
+        background: isDarkMode 
+          ? 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)'
+          : 'linear-gradient(135deg, #e0f2fe 0%, #ddd6fe 100%)',
         py: 6,
       }}
     >
@@ -115,10 +119,10 @@ export default function TripsPage() {
               sx={{
                 p: 4,
                 mb: 4,
-                background: "rgba(255, 255, 255, 0.8)",
+                background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
                 backdropFilter: "blur(10px)",
                 borderRadius: "16px",
-                border: "1px solid rgba(0, 0, 0, 0.1)",
+                border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
               }}
             >
               <Box sx={{ 
@@ -142,7 +146,12 @@ export default function TripsPage() {
                   >
                     Seyahatlerim
                   </Typography>
-                  <Typography color="text.secondary" sx={{ fontSize: "1.1rem" }}>
+                  <Typography 
+                    sx={{ 
+                      fontSize: "1.1rem",
+                      color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'
+                    }}
+                  >
                     Seyahat planlarınızı yönetin ve görüntüleyin
                   </Typography>
                 </Box>
@@ -174,13 +183,13 @@ export default function TripsPage() {
                 sx={{
                   p: 8,
                   textAlign: "center",
-                  background: "rgba(255, 255, 255, 0.8)",
+                  background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
                   backdropFilter: "blur(10px)",
                   borderRadius: "16px",
-                  border: "1px solid rgba(0, 0, 0, 0.1)",
+                  border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
                 }}
               >
-                <Map size={64} className="mx-auto mb-4" style={{ color: theme.palette.text.secondary }} />
+                <Map size={64} className="mx-auto mb-4" style={{ color: isDarkMode ? '#fff' : theme.palette.text.secondary }} />
                 <Typography
                   variant="h4"
                   sx={{
@@ -194,7 +203,13 @@ export default function TripsPage() {
                 >
                   Henüz planlanmış seyahat yok
                 </Typography>
-                <Typography color="text.secondary" sx={{ mb: 4, fontSize: "1.1rem" }}>
+                <Typography 
+                  sx={{ 
+                    mb: 4, 
+                    fontSize: "1.1rem",
+                    color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'
+                  }}
+                >
                   Yeni bir maceraya hazır mısın?
                 </Typography>
                 <Button
@@ -222,10 +237,10 @@ export default function TripsPage() {
                 elevation={0}
                 sx={{
                   p: 4,
-                  background: "rgba(255, 255, 255, 0.8)",
+                  background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
                   backdropFilter: "blur(10px)",
                   borderRadius: "16px",
-                  border: "1px solid rgba(0, 0, 0, 0.1)",
+                  border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
                 }}
               >
                 <FormControl
@@ -234,32 +249,45 @@ export default function TripsPage() {
                     mb: 4,
                     '& .MuiOutlinedInput-root': {
                       borderRadius: "12px",
-                      backgroundColor: "white",
+                      backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'white',
                       '&:hover': {
-                        backgroundColor: "#f8fafc"
+                        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#f8fafc'
                       }
                     }
                   }}
                 >
-                  <InputLabel id="city-select-label">Şehir Seçin</InputLabel>
+                  <InputLabel 
+                    id="city-select-label"
+                    sx={{
+                      color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : undefined
+                    }}
+                  >
+                    Şehir Seçin
+                  </InputLabel>
                   <Select
                     labelId="city-select-label"
                     value={selectedCity}
                     onChange={e => setSelectedCity(e.target.value)}
                     label="Şehir Seçin"
-                    startAdornment={<MapPin size={20} style={{ marginRight: 8, color: theme.palette.primary.main }} />}
+                    startAdornment={
+                      <MapPin 
+                        size={20} 
+                        style={{ 
+                          marginRight: 8, 
+                          color: isDarkMode ? '#fff' : theme.palette.primary.main 
+                        }} 
+                      />
+                    }
                   >
-                    <MenuItem value="">Tüm Şehirler</MenuItem>
+                    <MenuItem value="">Tümü</MenuItem>
                     {cityOptions.map(city => (
-                      <MenuItem key={city} value={city}>
-                        {city}
-                      </MenuItem>
+                      <MenuItem key={city} value={city}>{city}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
 
-                <TravelPlansList
-                  plans={selectedCity ? plans.filter(plan => plan.destination === selectedCity) : plans}
+                <TravelPlansList 
+                  plans={selectedCity ? plans.filter(plan => plan.destination === selectedCity) : plans} 
                 />
               </Paper>
             )}
