@@ -1,7 +1,7 @@
 import { TravelPlan } from "@/app/types/travel";
 
 const fetchTravelPlans = async (userId: string): Promise<TravelPlan[]> => {
-  try { 
+  try {
     const response = await fetch(`/api/travel-plans?userId=${userId}`);
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -12,6 +12,5 @@ const fetchTravelPlans = async (userId: string): Promise<TravelPlan[]> => {
     console.error("Error fetching travel plans:", error);
     throw error;
   }
-}
+};
 export { fetchTravelPlans };
-

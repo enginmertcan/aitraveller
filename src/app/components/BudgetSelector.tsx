@@ -27,7 +27,7 @@ const budgetOptions = [
 
 interface BudgetSelectorProps {
   selectedBudget: string | null;
-  onBudgetSelect: (budget: number) => void;
+  onBudgetSelect: (budget: any) => void;
   error?: string;
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
 import {
   Alert,
   Backdrop,
@@ -29,12 +29,9 @@ import { usePlaces, type Place } from "../hooks/usePlaces";
 
 import "dayjs/locale/tr";
 
-import { collection, doc, getDocs, query, setDoc, where } from "firebase/firestore";
-
 import { AI_PROMPT, budgetOptions, commonIconStyle, companionOptions } from "../constants/options";
 import { useTravelPlan } from "../hooks/useTravelPlan";
 import { chatSession } from "../Service/AIService";
-import { db } from "../Service/firebaseConfig";
 import { TravelFormState } from "../types/TravelFormState";
 
 export default function Home(): JSX.Element {

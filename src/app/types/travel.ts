@@ -19,13 +19,13 @@ export interface Activity {
   placeDetails: string;
   placeImageUrl: string;
   geoCoordinates: GeoCoordinates;
-  ticketPricing: string;
-  timeToTravel: string;
+  cost?: string;
+  ticketPricing?: string;
 }
 
 export interface DayPlan {
   day: string;
-  activities: Activity[];
+  plan: Activity[];
 }
 
 export interface TravelPlan {
@@ -37,7 +37,7 @@ export interface TravelPlan {
   startDate: string;
   userId: string;
   bestTimeToVisit: string;
-  hotelOptions: Hotel[];
-  itinerary: DayPlan[];
+  hotelOptions?: Hotel[];
+  itinerary?: DayPlan[] | string;
   budget?: string;
 }
