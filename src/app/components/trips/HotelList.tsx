@@ -1,8 +1,9 @@
 "use client";
 
-import { Grid } from "@mui/material";
-import { HotelCard } from "./HotelCard";
 import { Hotel } from "@/app/types/travel";
+import { Grid } from "@mui/material";
+
+import { HotelCard } from "./HotelCard";
 
 interface HotelListProps {
   hotels: Hotel[];

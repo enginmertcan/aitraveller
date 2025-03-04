@@ -1,33 +1,34 @@
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { TravelPlan } from '../types/travel';
-import { db } from '../Service/firebaseConfig';
+import { collection, getDocs, query, where } from "firebase/firestore";
+
+import { db } from "../Service/firebaseConfig";
+import { TravelPlan } from "../types/travel";
 
 export async function fetchUserTravelPlans(userId: string): Promise<TravelPlan[]> {
   try {
     if (!userId) {
-      throw new Error('User ID is required');
+      throw new Error("User ID is required");
     }
 
-    const travelPlansRef = collection(db, 'travelPlans');
-    const q = query(travelPlansRef, where('userId', '==', userId));
-    
-    console.log('Fetching plans for user:', userId);
-    
+    const travelPlansRef = collection(db, "travelPlans");
+    const q = query(travelPlansRef, where("userId", "==", userId));
+
+    console.log("Fetching plans for user:", userId);
+
     const querySnapshot = await getDocs(q);
-    console.log('Found documents:', querySnapshot.size);
-    
+    console.log("Found documents:", querySnapshot.size);
+
     const plans: TravelPlan[] = [];
-    querySnapshot.forEach((doc) => {
+    querySnapshot.forEach(doc => {
       const data = doc.data();
-      console.log('Document data:', data);
-      
+      console.log("Document data:", data);
+
       // Parse the itinerary string if it exists
       let parsedItinerary = data.itinerary;
-      if (typeof data.itinerary === 'string') {
+      if (typeof data.itinerary === "string") {
         try {
           parsedItinerary = JSON.parse(data.itinerary);
         } catch (e) {
-          console.error('Error parsing itinerary:', e);
+          console.error("Error parsing itinerary:", e);
           parsedItinerary = { hotelOptions: [], itinerary: [] };
         }
       }
@@ -41,15 +42,15 @@ export async function fetchUserTravelPlans(userId: string): Promise<TravelPlan[]
         startDate: data.startDate,
         userId: data.userId,
         budget: data.budget,
-        bestTimeToVisit: parsedItinerary.bestTimeToVisit || '',
+        bestTimeToVisit: parsedItinerary.bestTimeToVisit || "",
         hotelOptions: parsedItinerary.hotelOptions || [],
-        itinerary: parsedItinerary.itinerary || []
+        itinerary: parsedItinerary.itinerary || [],
       });
     });
-    
+
     return plans;
   } catch (error) {
-    console.error('Error fetching travel plans:', error);
+    console.error("Error fetching travel plans:", error);
     throw error;
   }
 }
