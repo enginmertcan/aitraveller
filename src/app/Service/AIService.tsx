@@ -22,20 +22,46 @@ export const chatSession = model.startChat({
       role: "user",
       parts: [
         {
-          text: `Aşağıdaki seyahat planını Türkçe'ye çevir ve aşağıdaki kurallara uy:
+          text: `Aşağıdaki seyahat planını oluştur ve şu kurallara uy:
 
-1. Tüm metinleri Türkçe'ye çevir
-2. Para birimlerini TL'ye çevir (yaklaşık dolar kuru: 1$ = 30 TL)
-3. Mesafe ve süre birimlerini metrik sisteme çevir
-4. Koordinatları aynı bırak
-5. URL'leri aynı bırak
-6. JSON yapısını koru
-7. Yerel isimleri (Las Vegas, Fremont Street gibi) çevirme
-8. Otel ve mekan isimlerini orijinal haliyle bırak
-9. Zamanları 24 saat formatında göster
-10. Türkçe karakterleri doğru kullan (ğ, ü, ş, ı, ö, ç)
+1. Tüm metinler Türkçe olmalı
+2. Para birimleri TL olmalı
+3. Mesafe ve süre birimleri metrik sistemde olmalı
+4. Her aktivite için aşağıdaki bilgiler olmalı:
+   - Aktivite adı (placeName)
+   - Detaylı açıklama (placeDetails)
+   - Görsel URL (placeImageUrl)
+   - Konum bilgisi (geoCoordinates)
+   - Bilet/giriş ücreti (ticketPricing)
+   - Ulaşım süresi (timeToTravel)
+   - Önerilen ziyaret zamanı (time)
+   - Tavsiyeler (tips) - En az 3 madde
+   - Dikkat edilmesi gerekenler (warnings) - Varsa
+   - Alternatif aktiviteler (alternatives) - Varsa
 
-Generate Travel Plan for Location : Las Vegas, for 3 Days for Couple with a Cheap budget ,Give me a Hotels options list with HotelName, Hotel address, Price, hotel image url, geo coordinates, rating, descriptions and suggest itinerary with placeName, Place Details, Place Image Url, Geo Coordinates, ticket Pricing, Time t travel each of the location for 3 days with each day plan with best time to visit in JSON format.`,
+5. Her otel için aşağıdaki bilgiler olmalı:
+   - Otel adı (hotelName)
+   - Adres (hotelAddress)
+   - Fiyat aralığı (price)
+   - Görsel URL (hotelImageUrl)
+   - Konum (geoCoordinates)
+   - Puan (rating)
+   - Açıklama (description)
+   - En iyi ziyaret zamanı (bestTimeToVisit)
+   - Öne çıkan özellikler (features) - En az 3 madde
+   - Yakın çevre bilgisi (surroundings)
+
+6. Her gün için aktiviteler mantıklı bir sırayla planlanmalı
+7. Aktiviteler arası ulaşım süreleri ve dinlenme molaları hesaba katılmalı
+8. Her aktivite için pratik tavsiyeler ve ipuçları eklenmeli
+9. Yerel deneyimler ve kültürel öğeler vurgulanmalı
+10. Bütçeye uygun alternatifler sunulmalı
+
+Lütfen bu seyahat planını JSON formatında oluştur:
+Konum: {destination}
+Süre: {duration} gün
+Kişi: {groupType}
+Bütçe: {budget}`
         },
       ],
     },

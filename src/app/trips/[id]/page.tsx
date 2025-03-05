@@ -595,7 +595,7 @@ export default function TripDetailsPage() {
                                       color: isDarkMode ? '#93c5fd' : '#2563eb',
                                     }}
                                   >
-                                    {activity.placeName || activity.name || activity.title}
+                                    {activity.placeName || activity.activity}
                                   </Typography>
                                   <Typography
                                     variant="body2"
@@ -606,8 +606,105 @@ export default function TripDetailsPage() {
                                       lineHeight: 1.6,
                                     }}
                                   >
-                                    {activity.description || "Açıklama bulunmuyor."}
+                                    {activity.placeDetails || activity.description}
                                   </Typography>
+
+                                  {/* Tavsiyeler */}
+                                  {activity.tips && activity.tips.length > 0 && (
+                                    <Box sx={{ mb: 2 }}>
+                                      <Typography
+                                        variant="subtitle2"
+                                        sx={{
+                                          color: isDarkMode ? '#93c5fd' : '#2563eb',
+                                          fontWeight: 600,
+                                          mb: 1,
+                                        }}
+                                      >
+                                        Tavsiyeler
+                                      </Typography>
+                                      <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                                        {activity.tips.map((tip: string, index: number) => (
+                                          <Typography
+                                            key={index}
+                                            component="li"
+                                            variant="body2"
+                                            sx={{
+                                              color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                              fontSize: '0.875rem',
+                                              mb: 0.5,
+                                            }}
+                                          >
+                                            {tip}
+                                          </Typography>
+                                        ))}
+                                      </Box>
+                                    </Box>
+                                  )}
+
+                                  {/* Uyarılar */}
+                                  {activity.warnings && activity.warnings.length > 0 && (
+                                    <Box sx={{ mb: 2 }}>
+                                      <Typography
+                                        variant="subtitle2"
+                                        sx={{
+                                          color: theme.palette.warning.main,
+                                          fontWeight: 600,
+                                          mb: 1,
+                                        }}
+                                      >
+                                        Dikkat Edilmesi Gerekenler
+                                      </Typography>
+                                      <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                                        {activity.warnings.map((warning: string, index: number) => (
+                                          <Typography
+                                            key={index}
+                                            component="li"
+                                            variant="body2"
+                                            sx={{
+                                              color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                              fontSize: '0.875rem',
+                                              mb: 0.5,
+                                            }}
+                                          >
+                                            {warning}
+                                          </Typography>
+                                        ))}
+                                      </Box>
+                                    </Box>
+                                  )}
+
+                                  {/* Alternatifler */}
+                                  {activity.alternatives && activity.alternatives.length > 0 && (
+                                    <Box sx={{ mb: 2 }}>
+                                      <Typography
+                                        variant="subtitle2"
+                                        sx={{
+                                          color: isDarkMode ? '#93c5fd' : '#2563eb',
+                                          fontWeight: 600,
+                                          mb: 1,
+                                        }}
+                                      >
+                                        Alternatif Aktiviteler
+                                      </Typography>
+                                      <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                                        {activity.alternatives.map((alternative: string, index: number) => (
+                                          <Typography
+                                            key={index}
+                                            component="li"
+                                            variant="body2"
+                                            sx={{
+                                              color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                              fontSize: '0.875rem',
+                                              mb: 0.5,
+                                            }}
+                                          >
+                                            {alternative}
+                                          </Typography>
+                                        ))}
+                                      </Box>
+                                    </Box>
+                                  )}
+
                                   <Stack spacing={1} sx={{ mt: 'auto' }}>
                                     {activity.time && (
                                       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -619,25 +716,11 @@ export default function TripDetailsPage() {
                                             fontWeight: 500,
                                           }}
                                         >
-                                          Saat: {activity.time}
+                                          {activity.time}
                                         </Typography>
                                       </Box>
                                     )}
-                                    {activity.timeRange && (
-                                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                        <Clock size={16} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
-                                        <Typography
-                                          variant="body2"
-                                          sx={{
-                                            color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
-                                            fontWeight: 500,
-                                          }}
-                                        >
-                                          {activity.timeRange.start} - {activity.timeRange.end}
-                                        </Typography>
-                                      </Box>
-                                    )}
-                                    {activity.budget && (
+                                    {(activity.cost || activity.ticketPricing) && (
                                       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                                         <Wallet size={16} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
                                         <Typography
@@ -646,27 +729,20 @@ export default function TripDetailsPage() {
                                             color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
                                           }}
                                         >
-                                          {typeof activity.budget === 'number'
-                                            ? new Intl.NumberFormat('tr-TR', {
-                                                style: 'currency',
-                                                currency: 'TRY',
-                                                minimumFractionDigits: 0,
-                                                maximumFractionDigits: 0
-                                              }).format(activity.budget)
-                                            : activity.budget}
+                                          {activity.cost || activity.ticketPricing}
                                         </Typography>
                                       </Box>
                                     )}
-                                    {activity.bestTimeToVisit && (
+                                    {activity.timeToTravel && (
                                       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                        <Sun size={16} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
+                                        <Navigation size={16} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
                                         <Typography
                                           variant="body2"
                                           sx={{
                                             color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
                                           }}
                                         >
-                                          {activity.bestTimeToVisit}
+                                          Ulaşım: {activity.timeToTravel}
                                         </Typography>
                                       </Box>
                                     )}
