@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import {
@@ -36,6 +36,7 @@ import {
   Wind,
   Thermometer,
   Sun,
+  Download,
 } from "lucide-react";
 import { useThemeContext } from '../../context/ThemeContext';
 
@@ -44,6 +45,8 @@ import { TravelPlan } from "../../types/travel";
 import { fetchTravelPlanById } from "../../Services/travel-plans";
 import { getWeatherForecast, WeatherData } from "../../Services/weather-service";
 import dayjs from "dayjs";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 function formatItineraryItem(item: any) {
   if (typeof item === "string") return item;
@@ -99,6 +102,7 @@ export default function TripDetailsPage() {
   const { user, isLoaded } = useUser();
   const theme = useTheme();
   const { isDarkMode } = useThemeContext();
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function loadTravelPlan() {
@@ -140,6 +144,62 @@ export default function TripDetailsPage() {
 
     loadTravelPlan();
   }, [user, isLoaded, router, params.id]);
+
+  // PDF oluşturma fonksiyonu
+  const generatePDF = async () => {
+    if (!contentRef.current || !plan) return;
+
+    try {
+      setIsLoading(true);
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const content = contentRef.current;
+
+      // PDF sayfa boyutları
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10; // kenar boşluğu (mm)
+
+      // Canvas oluştur
+      const canvas = await html2canvas(content, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        windowWidth: content.scrollWidth,
+        windowHeight: content.scrollHeight
+      });
+
+      // Canvas'ı PDF boyutuna uygun hale getir
+      const imgWidth = pageWidth - (2 * margin);
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const imgData = canvas.toDataURL('image/png');
+
+      // İçeriği sayfalara böl
+      let heightLeft = imgHeight;
+      let position = 0;
+      let pageNumber = 1;
+
+      // İlk sayfayı ekle
+      pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
+
+      // Gerekli sayıda yeni sayfa ekle
+      while (heightLeft > pageHeight) {
+        position = heightLeft - pageHeight;
+        pdf.addPage();
+        pageNumber++;
+        pdf.addImage(imgData, 'PNG', margin, -(pageHeight * (pageNumber - 1)) + margin, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // PDF'i indir
+      pdf.save(`${plan.destination}-seyahat-plani.pdf`);
+    } catch (error) {
+      console.error('PDF oluşturma hatası:', error);
+      setError('PDF oluşturulurken bir hata oluştu.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!isLoaded || isLoading) {
     return <LoadingSpinner />;
@@ -283,519 +343,617 @@ export default function TripDetailsPage() {
       <Container maxWidth="lg">
         <Fade in timeout={800}>
           <Box>
-            <Button
-              onClick={() => router.back()}
-              startIcon={<ArrowLeft />}
-              sx={{
-                mb: 3,
-                color: "text.primary",
-                "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.05)" },
-              }}
-            >
-              Seyahatlerime Dön
-            </Button>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Button
+                onClick={() => router.back()}
+                startIcon={<ArrowLeft />}
+                sx={{
+                  color: "text.primary",
+                  "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.05)" },
+                }}
+              >
+                Seyahatlerime Dön
+              </Button>
 
-            <Paper
-              elevation={0}
-              sx={{
-                p: 4,
-                background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-                backdropFilter: "blur(10px)",
-                borderRadius: "16px",
-                border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
-              }}
-            >
-              <Grid container spacing={4}>
-                <Grid item xs={12}>
-                  <Typography
-                    variant="h3"
-                    sx={{
-                      fontWeight: 800,
-                      mb: 1,
-                      fontSize: { xs: '2rem', md: '2.5rem' },
-                      letterSpacing: '-0.02em',
-                      lineHeight: 1.2,
-                      background: "linear-gradient(45deg, #2563eb, #7c3aed)",
-                      backgroundClip: "text",
-                      WebkitBackgroundClip: "text",
-                      WebkitTextFillColor: "transparent",
-                    }}
-                  >
-                    {plan.destination}
-                  </Typography>
-                </Grid>
+              <Button
+                onClick={generatePDF}
+                startIcon={<Download />}
+                variant="contained"
+                disabled={isLoading}
+                sx={{
+                  background: "linear-gradient(45deg, #2563eb, #7c3aed)",
+                  borderRadius: "12px",
+                  px: 3,
+                  py: 1,
+                  "&:hover": {
+                    background: "linear-gradient(45deg, #1d4ed8, #6d28d9)",
+                  },
+                }}
+              >
+                {isLoading ? 'PDF Oluşturuluyor...' : 'PDF Olarak İndir'}
+              </Button>
+            </Box>
 
-                <Grid item xs={12} md={6}>
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <MapPin size={24} style={{ color: "#2563eb" }} />
-                      <Box>
-                        <Typography variant="subtitle2" 
-                          sx={{ 
-                            color: "text.secondary",
-                            fontWeight: 600,
-                            fontSize: '0.875rem',
-                            letterSpacing: '0.01em',
-                          }}
-                        >
-                          Konum
-                        </Typography>
-                        <Typography variant="h6" 
-                          sx={{ 
-                            fontWeight: 700,
-                            fontSize: '1.25rem',
-                            letterSpacing: '-0.01em',
-                          }}
-                        >
-                          {plan.destination}
-                        </Typography>
-                      </Box>
-                    </Box>
+            <div ref={contentRef}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 4,
+                  background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                  backdropFilter: "blur(10px)",
+                  borderRadius: "16px",
+                  border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                }}
+              >
+                <Grid container spacing={4}>
+                  <Grid item xs={12}>
+                    <Typography
+                      variant="h3"
+                      sx={{
+                        fontWeight: 800,
+                        mb: 1,
+                        fontSize: { xs: '2rem', md: '2.5rem' },
+                        letterSpacing: '-0.02em',
+                        lineHeight: 1.2,
+                        background: "linear-gradient(45deg, #2563eb, #7c3aed)",
+                        backgroundClip: "text",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                      }}
+                    >
+                      {plan.destination}
+                    </Typography>
+                  </Grid>
 
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <Calendar size={24} style={{ color: "#7c3aed" }} />
-                      <Box>
-                        <Typography variant="subtitle2" 
-                          sx={{ 
-                            color: "text.secondary",
-                            fontWeight: 600,
-                            fontSize: '0.875rem',
-                            letterSpacing: '0.01em',
-                          }}
-                        >
-                          Tarih
-                        </Typography>
-                        <Typography variant="h6" 
-                          sx={{ 
-                            fontWeight: 700,
-                            fontSize: '1.25rem',
-                            letterSpacing: '-0.01em',
-                          }}
-                        >
-                          {new Date(plan.startDate).toLocaleDateString("tr-TR", {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                          })}
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <Clock size={24} style={{ color: "#2563eb" }} />
-                      <Box>
-                        <Typography variant="subtitle2" 
-                          sx={{ 
-                            color: "text.secondary",
-                            fontWeight: 600,
-                            fontSize: '0.875rem',
-                            letterSpacing: '0.01em',
-                          }}
-                        >
-                          Süre
-                        </Typography>
-                        <Typography variant="h6" 
-                          sx={{ 
-                            fontWeight: 700,
-                            fontSize: '1.25rem',
-                            letterSpacing: '-0.01em',
-                          }}
-                        >
-                          {formattedDuration}
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <Users size={24} style={{ color: "#7c3aed" }} />
-                      <Box>
-                        <Typography variant="subtitle2" 
-                          sx={{ 
-                            color: "text.secondary",
-                            fontWeight: 600,
-                            fontSize: '0.875rem',
-                            letterSpacing: '0.01em',
-                          }}
-                        >
-                          Kiminle
-                        </Typography>
-                        <Typography variant="h6" 
-                          sx={{ 
-                            fontWeight: 700,
-                            fontSize: '1.25rem',
-                            letterSpacing: '-0.01em',
-                          }}
-                        >
-                          {formattedGroupType}
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <Wallet size={24} style={{ color: "#2563eb" }} />
-                      <Box>
-                        <Typography variant="subtitle2" 
-                          sx={{ 
-                            color: "text.secondary",
-                            fontWeight: 600,
-                            fontSize: '0.875rem',
-                            letterSpacing: '0.01em',
-                          }}
-                        >
-                          Bütçe
-                        </Typography>
-                        <Typography variant="h6" 
-                          sx={{ 
-                            fontWeight: 700,
-                            fontSize: '1.25rem',
-                            letterSpacing: '-0.01em',
-                          }}
-                        >
-                          {formattedBudget}
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    {plan.bestTimeToVisit && (
-                      <>
-                        <Divider sx={{ my: 2 }} />
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 2,
-                            color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
-                          }}
-                        >
-                          <Sun size={24} />
-                          <Typography variant="body1" color="text.secondary">
-                            {plan.bestTimeToVisit}
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <MapPin size={24} style={{ color: "#2563eb" }} />
+                        <Box>
+                          <Typography variant="subtitle2" 
+                            sx={{ 
+                              color: "text.secondary",
+                              fontWeight: 600,
+                              fontSize: '0.875rem',
+                              letterSpacing: '0.01em',
+                            }}
+                          >
+                            Konum
+                          </Typography>
+                          <Typography variant="h6" 
+                            sx={{ 
+                              fontWeight: 700,
+                              fontSize: '1.25rem',
+                              letterSpacing: '-0.01em',
+                            }}
+                          >
+                            {plan.destination}
                           </Typography>
                         </Box>
-                      </>
-                    )}
-                  </Box>
-                </Grid>
+                      </Box>
 
-                <Grid item xs={12} md={6}>
-                  <Box
-                    sx={{
-                      height: "100%",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 3,
-                    }}
-                  >
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <Activity size={24} style={{ color: "#7c3aed" }} />
-                      <Typography variant="h6" 
-                        sx={{ 
-                          fontWeight: 700,
-                          fontSize: '1.25rem',
-                          letterSpacing: '-0.01em',
-                        }}
-                      >
-                        Planlanan Aktiviteler
-                      </Typography>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <Calendar size={24} style={{ color: "#7c3aed" }} />
+                        <Box>
+                          <Typography variant="subtitle2" 
+                            sx={{ 
+                              color: "text.secondary",
+                              fontWeight: 600,
+                              fontSize: '0.875rem',
+                              letterSpacing: '0.01em',
+                            }}
+                          >
+                            Tarih
+                          </Typography>
+                          <Typography variant="h6" 
+                            sx={{ 
+                              fontWeight: 700,
+                              fontSize: '1.25rem',
+                              letterSpacing: '-0.01em',
+                            }}
+                          >
+                            {new Date(plan.startDate).toLocaleDateString("tr-TR", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <Clock size={24} style={{ color: "#2563eb" }} />
+                        <Box>
+                          <Typography variant="subtitle2" 
+                            sx={{ 
+                              color: "text.secondary",
+                              fontWeight: 600,
+                              fontSize: '0.875rem',
+                              letterSpacing: '0.01em',
+                            }}
+                          >
+                            Süre
+                          </Typography>
+                          <Typography variant="h6" 
+                            sx={{ 
+                              fontWeight: 700,
+                              fontSize: '1.25rem',
+                              letterSpacing: '-0.01em',
+                            }}
+                          >
+                            {formattedDuration}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <Users size={24} style={{ color: "#7c3aed" }} />
+                        <Box>
+                          <Typography variant="subtitle2" 
+                            sx={{ 
+                              color: "text.secondary",
+                              fontWeight: 600,
+                              fontSize: '0.875rem',
+                              letterSpacing: '0.01em',
+                            }}
+                          >
+                            Kiminle
+                          </Typography>
+                          <Typography variant="h6" 
+                            sx={{ 
+                              fontWeight: 700,
+                              fontSize: '1.25rem',
+                              letterSpacing: '-0.01em',
+                            }}
+                          >
+                            {formattedGroupType}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <Wallet size={24} style={{ color: "#2563eb" }} />
+                        <Box>
+                          <Typography variant="subtitle2" 
+                            sx={{ 
+                              color: "text.secondary",
+                              fontWeight: 600,
+                              fontSize: '0.875rem',
+                              letterSpacing: '0.01em',
+                            }}
+                          >
+                            Bütçe
+                          </Typography>
+                          <Typography variant="h6" 
+                            sx={{ 
+                              fontWeight: 700,
+                              fontSize: '1.25rem',
+                              letterSpacing: '-0.01em',
+                            }}
+                          >
+                            {formattedBudget}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      {plan.bestTimeToVisit && (
+                        <>
+                          <Divider sx={{ my: 2 }} />
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 2,
+                              color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                            }}
+                          >
+                            <Sun size={24} />
+                            <Typography variant="body1" color="text.secondary">
+                              {plan.bestTimeToVisit}
+                            </Typography>
+                          </Box>
+                        </>
+                      )}
                     </Box>
+                  </Grid>
 
-                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                      {plan.itinerary && getItineraryItems(plan.itinerary).map((activity, index) => (
-                        <Chip
-                          key={index}
-                          label={activity}
-                          sx={{
-                            backgroundColor: index % 2 === 0 ? "rgba(37, 99, 235, 0.1)" : "rgba(124, 58, 237, 0.1)",
-                            color: index % 2 === 0 ? "#2563eb" : "#7c3aed",
-                            borderRadius: "8px",
-                            p: 0.5,
-                            "&:hover": {
-                              backgroundColor: index % 2 === 0 ? "rgba(37, 99, 235, 0.2)" : "rgba(124, 58, 237, 0.2)",
-                            },
-                          }}
-                        />
-                      ))}
-                    </Box>
-                  </Box>
-                </Grid>
-              </Grid>
-            </Paper>
-
-            {/* Günlük Gezi Tavsiyeleri */}
-            {plan.itinerary && Object.entries(plan.itinerary).length > 0 && (
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 4,
-                  mt: 4,
-                  background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-                  backdropFilter: "blur(10px)",
-                  borderRadius: "16px",
-                  border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
-                }}
-              >
-                <Box sx={{ mb: 4, display: "flex", alignItems: "center", gap: 2, justifyContent: "center" }}>
-                  <Activity size={28} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
-                  <Typography
-                    variant="h4"
-                    sx={{
-                      fontWeight: 800,
-                      fontSize: { xs: '1.75rem', md: '2rem' },
-                      letterSpacing: '-0.02em',
-                      lineHeight: 1.2,
-                      background: "linear-gradient(45deg, #2563eb, #7c3aed)",
-                      backgroundClip: "text",
-                      WebkitBackgroundClip: "text",
-                      WebkitTextFillColor: "transparent",
-                    }}
-                  >
-                    Günlük Gezi Tavsiyeleri
-                  </Typography>
-                </Box>
-
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  {Object.entries(plan.itinerary).map(([dayKey, day], dayIndex) => {
-                    const activities = formatItineraryDay(day);
-                    return (
-                      <Box key={dayIndex}>
-                        <Typography
-                          variant="h5"
-                          sx={{
-                            mb: 2,
+                  <Grid item xs={12} md={6}>
+                    <Box
+                      sx={{
+                        height: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 3,
+                      }}
+                    >
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <Activity size={24} style={{ color: "#7c3aed" }} />
+                        <Typography variant="h6" 
+                          sx={{ 
                             fontWeight: 700,
-                            color: isDarkMode ? '#93c5fd' : '#2563eb',
-                            borderBottom: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
-                            pb: 1,
+                            fontSize: '1.25rem',
+                            letterSpacing: '-0.01em',
                           }}
                         >
-                          {getDayTitle(dayKey, dayIndex)}
+                          Planlanan Aktiviteler
                         </Typography>
-                        <Grid container spacing={3}>
-                          {activities.map((activity: any, activityIndex: number) => (
-                            <Grid item xs={12} sm={6} md={4} key={activityIndex}>
-                              <Card
-                                sx={{
-                                  height: '100%',
-                                  background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)',
-                                  borderRadius: '12px',
-                                  border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
-                                  transition: 'all 0.2s ease',
-                                  '&:hover': {
-                                    transform: 'translateY(-4px)',
-                                    boxShadow: isDarkMode ? '0 4px 20px rgba(0, 0, 0, 0.4)' : '0 4px 20px rgba(0, 0, 0, 0.1)',
-                                  },
+                      </Box>
+
+                      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                        {plan.itinerary && getItineraryItems(plan.itinerary).map((activity, index) => (
+                          <Chip
+                            key={index}
+                            label={activity}
+                            sx={{
+                              backgroundColor: index % 2 === 0 ? "rgba(37, 99, 235, 0.1)" : "rgba(124, 58, 237, 0.1)",
+                              color: index % 2 === 0 ? "#2563eb" : "#7c3aed",
+                              borderRadius: "8px",
+                              p: 0.5,
+                              "&:hover": {
+                                backgroundColor: index % 2 === 0 ? "rgba(37, 99, 235, 0.2)" : "rgba(124, 58, 237, 0.2)",
+                              },
+                            }}
+                          />
+                        ))}
+                      </Box>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Paper>
+
+              {/* Günlük Gezi Tavsiyeleri */}
+              {plan.itinerary && Object.entries(plan.itinerary).length > 0 && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 4,
+                    mt: 4,
+                    background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                    backdropFilter: "blur(10px)",
+                    borderRadius: "16px",
+                    border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                  }}
+                >
+                  <Box sx={{ mb: 4, display: "flex", alignItems: "center", gap: 2, justifyContent: "center" }}>
+                    <Activity size={28} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
+                    <Typography
+                      variant="h4"
+                      sx={{
+                        fontWeight: 800,
+                        fontSize: { xs: '1.75rem', md: '2rem' },
+                        letterSpacing: '-0.02em',
+                        lineHeight: 1.2,
+                        background: "linear-gradient(45deg, #2563eb, #7c3aed)",
+                        backgroundClip: "text",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                      }}
+                    >
+                      Günlük Gezi Tavsiyeleri
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    {Object.entries(plan.itinerary).map(([dayKey, day], dayIndex) => {
+                      const activities = formatItineraryDay(day);
+                      return (
+                        <Box key={dayIndex}>
+                          <Typography
+                            variant="h5"
+                            sx={{
+                              mb: 2,
+                              fontWeight: 700,
+                              color: isDarkMode ? '#93c5fd' : '#2563eb',
+                              borderBottom: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                              pb: 1,
+                            }}
+                          >
+                            {getDayTitle(dayKey, dayIndex)}
+                          </Typography>
+                          <Grid container spacing={3}>
+                            {activities.map((activity: any, activityIndex: number) => (
+                              <Grid item xs={12} sm={6} md={4} key={activityIndex}>
+                                <Card
+                                  sx={{
+                                    height: '100%',
+                                    background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                                    borderRadius: '12px',
+                                    border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                                    transition: 'all 0.2s ease',
+                                    '&:hover': {
+                                      transform: 'translateY(-4px)',
+                                      boxShadow: isDarkMode ? '0 4px 20px rgba(0, 0, 0, 0.4)' : '0 4px 20px rgba(0, 0, 0, 0.1)',
+                                    },
+                                  }}
+                                >
+                                  <CardContent>
+                                    <Typography
+                                      variant="h6"
+                                      sx={{
+                                        mb: 1,
+                                        fontWeight: 600,
+                                        color: isDarkMode ? '#93c5fd' : '#2563eb',
+                                      }}
+                                    >
+                                      {activity.placeName || activity.activity}
+                                    </Typography>
+                                    <Typography
+                                      variant="body2"
+                                      sx={{
+                                        color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                        mb: 2,
+                                        minHeight: '3em',
+                                        lineHeight: 1.6,
+                                      }}
+                                    >
+                                      {activity.placeDetails || activity.description}
+                                    </Typography>
+
+                                    {/* Tavsiyeler */}
+                                    {activity.tips && activity.tips.length > 0 && (
+                                      <Box sx={{ mb: 2 }}>
+                                        <Typography
+                                          variant="subtitle2"
+                                          sx={{
+                                            color: isDarkMode ? '#93c5fd' : '#2563eb',
+                                            fontWeight: 600,
+                                            mb: 1,
+                                          }}
+                                        >
+                                          Tavsiyeler
+                                        </Typography>
+                                        <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                                          {activity.tips.map((tip: string, index: number) => (
+                                            <Typography
+                                              key={index}
+                                              component="li"
+                                              variant="body2"
+                                              sx={{
+                                                color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                                fontSize: '0.875rem',
+                                                mb: 0.5,
+                                              }}
+                                            >
+                                              {tip}
+                                            </Typography>
+                                          ))}
+                                        </Box>
+                                      </Box>
+                                    )}
+
+                                    {/* Uyarılar */}
+                                    {activity.warnings && activity.warnings.length > 0 && (
+                                      <Box sx={{ mb: 2 }}>
+                                        <Typography
+                                          variant="subtitle2"
+                                          sx={{
+                                            color: theme.palette.warning.main,
+                                            fontWeight: 600,
+                                            mb: 1,
+                                          }}
+                                        >
+                                          Dikkat Edilmesi Gerekenler
+                                        </Typography>
+                                        <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                                          {activity.warnings.map((warning: string, index: number) => (
+                                            <Typography
+                                              key={index}
+                                              component="li"
+                                              variant="body2"
+                                              sx={{
+                                                color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                                fontSize: '0.875rem',
+                                                mb: 0.5,
+                                              }}
+                                            >
+                                              {warning}
+                                            </Typography>
+                                          ))}
+                                        </Box>
+                                      </Box>
+                                    )}
+
+                                    {/* Alternatifler */}
+                                    {activity.alternatives && activity.alternatives.length > 0 && (
+                                      <Box sx={{ mb: 2 }}>
+                                        <Typography
+                                          variant="subtitle2"
+                                          sx={{
+                                            color: isDarkMode ? '#93c5fd' : '#2563eb',
+                                            fontWeight: 600,
+                                            mb: 1,
+                                          }}
+                                        >
+                                          Alternatif Aktiviteler
+                                        </Typography>
+                                        <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                                          {activity.alternatives.map((alternative: string, index: number) => (
+                                            <Typography
+                                              key={index}
+                                              component="li"
+                                              variant="body2"
+                                              sx={{
+                                                color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                                fontSize: '0.875rem',
+                                                mb: 0.5,
+                                              }}
+                                            >
+                                              {alternative}
+                                            </Typography>
+                                          ))}
+                                        </Box>
+                                      </Box>
+                                    )}
+
+                                    <Stack spacing={1} sx={{ mt: 'auto' }}>
+                                      {activity.time && (
+                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                          <Clock size={16} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
+                                          <Typography
+                                            variant="body2"
+                                            sx={{
+                                              color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                              fontWeight: 500,
+                                            }}
+                                          >
+                                            {activity.time}
+                                          </Typography>
+                                        </Box>
+                                      )}
+                                      {(activity.cost || activity.ticketPricing) && (
+                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                          <Wallet size={16} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
+                                          <Typography
+                                            variant="body2"
+                                            sx={{
+                                              color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                            }}
+                                          >
+                                            {activity.cost || activity.ticketPricing}
+                                          </Typography>
+                                        </Box>
+                                      )}
+                                      {activity.timeToTravel && (
+                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                          <Navigation size={16} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
+                                          <Typography
+                                            variant="body2"
+                                            sx={{
+                                              color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                            }}
+                                          >
+                                            Ulaşım: {activity.timeToTravel}
+                                          </Typography>
+                                        </Box>
+                                      )}
+                                    </Stack>
+                                  </CardContent>
+                                </Card>
+                              </Grid>
+                            ))}
+                          </Grid>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                </Paper>
+              )}
+
+              {/* Aktiviteler İçin En İyi Ziyaret Zamanı */}
+              {plan.itinerary && Object.entries(plan.itinerary).length > 0 && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 4,
+                    mt: 4,
+                    background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                    backdropFilter: "blur(10px)",
+                    borderRadius: "16px",
+                    border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                  }}
+                >
+                  <Box sx={{ mb: 4, display: "flex", alignItems: "center", gap: 2, justifyContent: "center" }}>
+                    <Sun size={28} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
+                    <Typography
+                      variant="h4"
+                      sx={{
+                        fontWeight: 800,
+                        fontSize: { xs: '1.75rem', md: '2rem' },
+                        letterSpacing: '-0.02em',
+                        lineHeight: 1.2,
+                        background: "linear-gradient(45deg, #2563eb, #7c3aed)",
+                        backgroundClip: "text",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                      }}
+                    >
+                      Aktiviteler İçin En İyi Ziyaret Zamanı
+                    </Typography>
+                  </Box>
+                  <Grid container spacing={3}>
+                    {Object.entries(plan.itinerary).map(([dayKey, day], dayIndex) => {
+                      const activities = formatItineraryDay(day);
+                      return activities.map((activity: any, activityIndex: number) => (
+                        activity.bestTimeToVisit && (
+                          <Grid item xs={12} sm={6} md={3} key={`${dayIndex}-${activityIndex}`}>
+                            <Card
+                              sx={{
+                                p: 2,
+                                height: '100%',
+                                background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                                borderRadius: '12px',
+                                border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                                transition: 'all 0.2s ease',
+                                '&:hover': {
+                                  transform: 'translateY(-4px)',
+                                  boxShadow: isDarkMode ? '0 4px 20px rgba(0, 0, 0, 0.4)' : '0 4px 20px rgba(0, 0, 0, 0.1)',
+                                },
+                              }}
+                            >
+                              <Typography variant="subtitle1" 
+                                sx={{ 
+                                  color: isDarkMode ? '#93c5fd' : '#2563eb',
+                                  fontWeight: 600,
+                                  fontSize: '1rem',
+                                  letterSpacing: '0.01em',
+                                  mb: 1
                                 }}
                               >
-                                <CardContent>
-                                  <Typography
-                                    variant="h6"
-                                    sx={{
-                                      mb: 1,
-                                      fontWeight: 600,
-                                      color: isDarkMode ? '#93c5fd' : '#2563eb',
-                                    }}
-                                  >
-                                    {activity.placeName || activity.activity}
-                                  </Typography>
-                                  <Typography
-                                    variant="body2"
-                                    sx={{
-                                      color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
-                                      mb: 2,
-                                      minHeight: '3em',
-                                      lineHeight: 1.6,
-                                    }}
-                                  >
-                                    {activity.placeDetails || activity.description}
-                                  </Typography>
+                                {activity.placeName || activity.name || activity.title}
+                              </Typography>
+                              <Typography variant="body2" 
+                                sx={{ 
+                                  color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                  fontSize: '0.875rem',
+                                  lineHeight: 1.5
+                                }}
+                              >
+                                {activity.bestTimeToVisit}
+                              </Typography>
+                            </Card>
+                          </Grid>
+                        )
+                      ));
+                    })}
+                  </Grid>
+                </Paper>
+              )}
 
-                                  {/* Tavsiyeler */}
-                                  {activity.tips && activity.tips.length > 0 && (
-                                    <Box sx={{ mb: 2 }}>
-                                      <Typography
-                                        variant="subtitle2"
-                                        sx={{
-                                          color: isDarkMode ? '#93c5fd' : '#2563eb',
-                                          fontWeight: 600,
-                                          mb: 1,
-                                        }}
-                                      >
-                                        Tavsiyeler
-                                      </Typography>
-                                      <Box component="ul" sx={{ m: 0, pl: 2 }}>
-                                        {activity.tips.map((tip: string, index: number) => (
-                                          <Typography
-                                            key={index}
-                                            component="li"
-                                            variant="body2"
-                                            sx={{
-                                              color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
-                                              fontSize: '0.875rem',
-                                              mb: 0.5,
-                                            }}
-                                          >
-                                            {tip}
-                                          </Typography>
-                                        ))}
-                                      </Box>
-                                    </Box>
-                                  )}
-
-                                  {/* Uyarılar */}
-                                  {activity.warnings && activity.warnings.length > 0 && (
-                                    <Box sx={{ mb: 2 }}>
-                                      <Typography
-                                        variant="subtitle2"
-                                        sx={{
-                                          color: theme.palette.warning.main,
-                                          fontWeight: 600,
-                                          mb: 1,
-                                        }}
-                                      >
-                                        Dikkat Edilmesi Gerekenler
-                                      </Typography>
-                                      <Box component="ul" sx={{ m: 0, pl: 2 }}>
-                                        {activity.warnings.map((warning: string, index: number) => (
-                                          <Typography
-                                            key={index}
-                                            component="li"
-                                            variant="body2"
-                                            sx={{
-                                              color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
-                                              fontSize: '0.875rem',
-                                              mb: 0.5,
-                                            }}
-                                          >
-                                            {warning}
-                                          </Typography>
-                                        ))}
-                                      </Box>
-                                    </Box>
-                                  )}
-
-                                  {/* Alternatifler */}
-                                  {activity.alternatives && activity.alternatives.length > 0 && (
-                                    <Box sx={{ mb: 2 }}>
-                                      <Typography
-                                        variant="subtitle2"
-                                        sx={{
-                                          color: isDarkMode ? '#93c5fd' : '#2563eb',
-                                          fontWeight: 600,
-                                          mb: 1,
-                                        }}
-                                      >
-                                        Alternatif Aktiviteler
-                                      </Typography>
-                                      <Box component="ul" sx={{ m: 0, pl: 2 }}>
-                                        {activity.alternatives.map((alternative: string, index: number) => (
-                                          <Typography
-                                            key={index}
-                                            component="li"
-                                            variant="body2"
-                                            sx={{
-                                              color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
-                                              fontSize: '0.875rem',
-                                              mb: 0.5,
-                                            }}
-                                          >
-                                            {alternative}
-                                          </Typography>
-                                        ))}
-                                      </Box>
-                                    </Box>
-                                  )}
-
-                                  <Stack spacing={1} sx={{ mt: 'auto' }}>
-                                    {activity.time && (
-                                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                        <Clock size={16} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
-                                        <Typography
-                                          variant="body2"
-                                          sx={{
-                                            color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
-                                            fontWeight: 500,
-                                          }}
-                                        >
-                                          {activity.time}
-                                        </Typography>
-                                      </Box>
-                                    )}
-                                    {(activity.cost || activity.ticketPricing) && (
-                                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                        <Wallet size={16} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
-                                        <Typography
-                                          variant="body2"
-                                          sx={{
-                                            color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
-                                          }}
-                                        >
-                                          {activity.cost || activity.ticketPricing}
-                                        </Typography>
-                                      </Box>
-                                    )}
-                                    {activity.timeToTravel && (
-                                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                        <Navigation size={16} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
-                                        <Typography
-                                          variant="body2"
-                                          sx={{
-                                            color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
-                                          }}
-                                        >
-                                          Ulaşım: {activity.timeToTravel}
-                                        </Typography>
-                                      </Box>
-                                    )}
-                                  </Stack>
-                                </CardContent>
-                              </Card>
-                            </Grid>
-                          ))}
-                        </Grid>
-                      </Box>
-                    );
-                  })}
-                </Box>
-              </Paper>
-            )}
-
-            {/* Aktiviteler İçin En İyi Ziyaret Zamanı */}
-            {plan.itinerary && Object.entries(plan.itinerary).length > 0 && (
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 4,
-                  mt: 4,
-                  background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-                  backdropFilter: "blur(10px)",
-                  borderRadius: "16px",
-                  border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
-                }}
-              >
-                <Box sx={{ mb: 4, display: "flex", alignItems: "center", gap: 2, justifyContent: "center" }}>
-                  <Sun size={28} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
-                  <Typography
-                    variant="h4"
-                    sx={{
-                      fontWeight: 800,
-                      fontSize: { xs: '1.75rem', md: '2rem' },
-                      letterSpacing: '-0.02em',
-                      lineHeight: 1.2,
-                      background: "linear-gradient(45deg, #2563eb, #7c3aed)",
-                      backgroundClip: "text",
-                      WebkitBackgroundClip: "text",
-                      WebkitTextFillColor: "transparent",
-                    }}
-                  >
-                    Aktiviteler İçin En İyi Ziyaret Zamanı
-                  </Typography>
-                </Box>
-                <Grid container spacing={3}>
-                  {Object.entries(plan.itinerary).map(([dayKey, day], dayIndex) => {
-                    const activities = formatItineraryDay(day);
-                    return activities.map((activity: any, activityIndex: number) => (
-                      activity.bestTimeToVisit && (
-                        <Grid item xs={12} sm={6} md={3} key={`${dayIndex}-${activityIndex}`}>
+              {/* Oteller İçin En İyi Ziyaret Zamanı */}
+              {plan.hotelOptions && plan.hotelOptions.length > 0 && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 4,
+                    mt: 4,
+                    background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                    backdropFilter: "blur(10px)",
+                    borderRadius: "16px",
+                    border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                  }}
+                >
+                  <Box sx={{ mb: 4, display: "flex", alignItems: "center", gap: 2, justifyContent: "center" }}>
+                    <Sun size={28} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
+                    <Typography
+                      variant="h4"
+                      sx={{
+                        fontWeight: 800,
+                        fontSize: { xs: '1.75rem', md: '2rem' },
+                        letterSpacing: '-0.02em',
+                        lineHeight: 1.2,
+                        background: "linear-gradient(45deg, #2563eb, #7c3aed)",
+                        backgroundClip: "text",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                      }}
+                    >
+                      Oteller İçin En İyi Ziyaret Zamanı
+                    </Typography>
+                  </Box>
+                  <Grid container spacing={3}>
+                    {plan.hotelOptions.map((hotel, index) => (
+                      hotel.bestTimeToVisit && (
+                        <Grid item xs={12} sm={6} md={3} key={index}>
                           <Card
                             sx={{
                               p: 2,
@@ -819,7 +977,7 @@ export default function TripDetailsPage() {
                                 mb: 1
                               }}
                             >
-                              {activity.placeName || activity.name || activity.title}
+                              {hotel.hotelName}
                             </Typography>
                             <Typography variant="body2" 
                               sx={{ 
@@ -828,220 +986,115 @@ export default function TripDetailsPage() {
                                 lineHeight: 1.5
                               }}
                             >
-                              {activity.bestTimeToVisit}
+                              {hotel.bestTimeToVisit}
                             </Typography>
                           </Card>
                         </Grid>
                       )
-                    ));
-                  })}
-                </Grid>
-              </Paper>
-            )}
+                    ))}
+                  </Grid>
+                </Paper>
+              )}
 
-            {/* Oteller İçin En İyi Ziyaret Zamanı */}
-            {plan.hotelOptions && plan.hotelOptions.length > 0 && (
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 4,
-                  mt: 4,
-                  background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-                  backdropFilter: "blur(10px)",
-                  borderRadius: "16px",
-                  border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
-                }}
-              >
-                <Box sx={{ mb: 4, display: "flex", alignItems: "center", gap: 2, justifyContent: "center" }}>
-                  <Sun size={28} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
-                  <Typography
-                    variant="h4"
-                    sx={{
-                      fontWeight: 800,
-                      fontSize: { xs: '1.75rem', md: '2rem' },
-                      letterSpacing: '-0.02em',
-                      lineHeight: 1.2,
-                      background: "linear-gradient(45deg, #2563eb, #7c3aed)",
-                      backgroundClip: "text",
-                      WebkitBackgroundClip: "text",
-                      WebkitTextFillColor: "transparent",
-                    }}
-                  >
-                    Oteller İçin En İyi Ziyaret Zamanı
-                  </Typography>
-                </Box>
-                <Grid container spacing={3}>
-                  {plan.hotelOptions.map((hotel, index) => (
-                    hotel.bestTimeToVisit && (
-                      <Grid item xs={12} sm={6} md={3} key={index}>
+              {plan.hotelOptions && plan.hotelOptions.length > 0 && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 4,
+                    mt: 4,
+                    background: isDarkMode ? 'rgba(18, 18, 18, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                    backdropFilter: "blur(10px)",
+                    borderRadius: "16px",
+                    border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                  }}
+                >
+                  <Box sx={{ mb: 4, display: "flex", alignItems: "center", gap: 2 }}>
+                    <Hotel size={28} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
+                    <Typography
+                      variant="h4"
+                      sx={{
+                        fontWeight: 800,
+                        fontSize: { xs: '1.75rem', md: '2rem' },
+                        letterSpacing: '-0.02em',
+                        lineHeight: 1.2,
+                        color: isDarkMode ? '#fff' : 'inherit',
+                        background: isDarkMode 
+                          ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
+                          : 'linear-gradient(45deg, #2563eb, #7c3aed)',
+                        backgroundClip: "text",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                      }}
+                    >
+                      Önerilen Oteller
+                    </Typography>
+                  </Box>
+
+                  <Grid container spacing={3}>
+                    {plan.hotelOptions.map((hotel, index) => (
+                      <Grid item xs={12} md={6} lg={4} key={index}>
                         <Card
+                          elevation={0}
                           sx={{
-                            p: 2,
-                            height: '100%',
-                            background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)',
-                            borderRadius: '12px',
+                            height: "100%",
+                            background: isDarkMode ? 'rgba(30, 30, 30, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                            borderRadius: "12px",
                             border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
-                            transition: 'all 0.2s ease',
-                            '&:hover': {
-                              transform: 'translateY(-4px)',
-                              boxShadow: isDarkMode ? '0 4px 20px rgba(0, 0, 0, 0.4)' : '0 4px 20px rgba(0, 0, 0, 0.1)',
+                            transition: "all 0.2s ease",
+                            "&:hover": {
+                              transform: "translateY(-4px)",
+                              boxShadow: isDarkMode 
+                                ? '0 4px 20px rgba(0, 0, 0, 0.4)' 
+                                : '0 4px 20px rgba(0, 0, 0, 0.1)',
                             },
+                            display: "flex",
+                            flexDirection: "column",
+                            backdropFilter: "blur(10px)",
                           }}
                         >
-                          <Typography variant="subtitle1" 
-                            sx={{ 
-                              color: isDarkMode ? '#93c5fd' : '#2563eb',
-                              fontWeight: 600,
-                              fontSize: '1rem',
-                              letterSpacing: '0.01em',
-                              mb: 1
-                            }}
-                          >
-                            {hotel.hotelName}
-                          </Typography>
-                          <Typography variant="body2" 
-                            sx={{ 
-                              color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
-                              fontSize: '0.875rem',
-                              lineHeight: 1.5
-                            }}
-                          >
-                            {hotel.bestTimeToVisit}
-                          </Typography>
-                        </Card>
-                      </Grid>
-                    )
-                  ))}
-                </Grid>
-              </Paper>
-            )}
-
-            {plan.hotelOptions && plan.hotelOptions.length > 0 && (
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 4,
-                  mt: 4,
-                  background: isDarkMode ? 'rgba(18, 18, 18, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-                  backdropFilter: "blur(10px)",
-                  borderRadius: "16px",
-                  border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
-                }}
-              >
-                <Box sx={{ mb: 4, display: "flex", alignItems: "center", gap: 2 }}>
-                  <Hotel size={28} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
-                  <Typography
-                    variant="h4"
-                    sx={{
-                      fontWeight: 800,
-                      fontSize: { xs: '1.75rem', md: '2rem' },
-                      letterSpacing: '-0.02em',
-                      lineHeight: 1.2,
-                      color: isDarkMode ? '#fff' : 'inherit',
-                      background: isDarkMode 
-                        ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
-                        : 'linear-gradient(45deg, #2563eb, #7c3aed)',
-                      backgroundClip: "text",
-                      WebkitBackgroundClip: "text",
-                      WebkitTextFillColor: "transparent",
-                    }}
-                  >
-                    Önerilen Oteller
-                  </Typography>
-                </Box>
-
-                <Grid container spacing={3}>
-                  {plan.hotelOptions.map((hotel, index) => (
-                    <Grid item xs={12} md={6} lg={4} key={index}>
-                      <Card
-                        elevation={0}
-                        sx={{
-                          height: "100%",
-                          background: isDarkMode ? 'rgba(30, 30, 30, 0.9)' : 'rgba(255, 255, 255, 0.9)',
-                          borderRadius: "12px",
-                          border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
-                          transition: "all 0.2s ease",
-                          "&:hover": {
-                            transform: "translateY(-4px)",
-                            boxShadow: isDarkMode 
-                              ? '0 4px 20px rgba(0, 0, 0, 0.4)' 
-                              : '0 4px 20px rgba(0, 0, 0, 0.1)',
-                          },
-                          display: "flex",
-                          flexDirection: "column",
-                          backdropFilter: "blur(10px)",
-                        }}
-                      >
-                        {hotel.imageUrl && !hotel.imageUrl.includes("sample-image-url") && (
-                          <Box
-                            sx={{
-                              width: "100%",
-                              height: 200,
-                              backgroundImage: `url(${hotel.imageUrl})`,
-                              backgroundSize: "cover",
-                              backgroundPosition: "center",
-                              borderTopLeftRadius: "12px",
-                              borderTopRightRadius: "12px",
-                              position: "relative",
-                              "&::after": {
-                                content: '""',
-                                position: "absolute",
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
-                                height: "50%",
-                                background: isDarkMode
-                                  ? "linear-gradient(to top, rgba(0,0,0,0.9), transparent)"
-                                  : "linear-gradient(to top, rgba(0,0,0,0.7), transparent)",
-                                borderBottomLeftRadius: "12px",
-                                borderBottomRightRadius: "12px",
-                              },
-                            }}
-                          />
-                        )}
-                        <CardContent sx={{ p: 3, flex: 1, display: "flex", flexDirection: "column" }}>
-                          <Stack spacing={2}>
-                            <Typography
-                              variant="h6"
+                          {hotel.imageUrl && !hotel.imageUrl.includes("sample-image-url") && (
+                            <Box
                               sx={{
-                                fontWeight: 700,
-                                fontSize: '1.25rem',
-                                letterSpacing: '-0.01em',
-                                color: isDarkMode ? '#93c5fd' : '#2563eb',
+                                width: "100%",
+                                height: 200,
+                                backgroundImage: `url(${hotel.imageUrl})`,
+                                backgroundSize: "cover",
+                                backgroundPosition: "center",
+                                borderTopLeftRadius: "12px",
+                                borderTopRightRadius: "12px",
+                                position: "relative",
+                                "&::after": {
+                                  content: '""',
+                                  position: "absolute",
+                                  bottom: 0,
+                                  left: 0,
+                                  right: 0,
+                                  height: "50%",
+                                  background: isDarkMode
+                                    ? "linear-gradient(to top, rgba(0,0,0,0.9), transparent)"
+                                    : "linear-gradient(to top, rgba(0,0,0,0.7), transparent)",
+                                  borderBottomLeftRadius: "12px",
+                                  borderBottomRightRadius: "12px",
+                                },
                               }}
-                            >
-                              {hotel.hotelName}
-                            </Typography>
-
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                              <MapPin size={18} style={{ color: isDarkMode ? '#a78bfa' : '#7c3aed' }} />
-                              <Typography 
-                                variant="body2" 
-                                sx={{ 
-                                  color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
-                                  fontSize: '0.875rem',
-                                  lineHeight: 1.5,
+                            />
+                          )}
+                          <CardContent sx={{ p: 3, flex: 1, display: "flex", flexDirection: "column" }}>
+                            <Stack spacing={2}>
+                              <Typography
+                                variant="h6"
+                                sx={{
+                                  fontWeight: 700,
+                                  fontSize: '1.25rem',
+                                  letterSpacing: '-0.01em',
+                                  color: isDarkMode ? '#93c5fd' : '#2563eb',
                                 }}
                               >
-                                {hotel.hotelAddress}
+                                {hotel.hotelName}
                               </Typography>
-                            </Box>
 
-                            {hotel.rating && (
                               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                <Rating 
-                                  value={hotel.rating} 
-                                  precision={0.1} 
-                                  readOnly 
-                                  sx={{
-                                    '& .MuiRating-iconFilled': {
-                                      color: isDarkMode ? '#93c5fd' : '#2563eb',
-                                    },
-                                    '& .MuiRating-iconEmpty': {
-                                      color: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)',
-                                    },
-                                  }}
-                                />
+                                <MapPin size={18} style={{ color: isDarkMode ? '#a78bfa' : '#7c3aed' }} />
                                 <Typography 
                                   variant="body2" 
                                   sx={{ 
@@ -1050,250 +1103,278 @@ export default function TripDetailsPage() {
                                     lineHeight: 1.5,
                                   }}
                                 >
-                                  {hotel.rating.toFixed(1)}
+                                  {hotel.hotelAddress}
                                 </Typography>
                               </Box>
-                            )}
 
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                p: 1,
-                                borderRadius: "8px",
-                                backgroundColor: isDarkMode ? 'rgba(37, 99, 235, 0.2)' : 'rgba(37, 99, 235, 0.1)',
-                                color: isDarkMode ? '#93c5fd' : '#2563eb',
-                                display: "inline-block",
-                                alignSelf: "flex-start",
-                                border: `1px solid ${isDarkMode ? 'rgba(37, 99, 235, 0.3)' : 'transparent'}`,
-                                fontSize: '0.875rem',
-                                fontWeight: 500,
-                              }}
-                            >
-                              {hotel.priceRange}
-                            </Typography>
+                              {hotel.rating && (
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                  <Rating 
+                                    value={hotel.rating} 
+                                    precision={0.1} 
+                                    readOnly 
+                                    sx={{
+                                      '& .MuiRating-iconFilled': {
+                                        color: isDarkMode ? '#93c5fd' : '#2563eb',
+                                      },
+                                      '& .MuiRating-iconEmpty': {
+                                        color: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)',
+                                      },
+                                    }}
+                                  />
+                                  <Typography 
+                                    variant="body2" 
+                                    sx={{ 
+                                      color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                      fontSize: '0.875rem',
+                                      lineHeight: 1.5,
+                                    }}
+                                  >
+                                    {hotel.rating.toFixed(1)}
+                                  </Typography>
+                                </Box>
+                              )}
 
-                            <Typography 
-                              variant="body2" 
-                              sx={{ 
-                                color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
-                                flex: 1,
-                                fontSize: '0.875rem',
-                                lineHeight: 1.6,
-                              }}
-                            >
-                              {hotel.description}
-                            </Typography>
-
-                            {hotel.geoCoordinates && (
-                              <Button
-                                variant="outlined"
-                                size="small"
-                                startIcon={<Navigation size={16} />}
-                                onClick={() => {
-                                  const url = `https://www.google.com/maps/search/?api=1&query=${hotel.geoCoordinates?.latitude},${hotel.geoCoordinates?.longitude}`;
-                                  window.open(url, "_blank");
-                                }}
+                              <Typography
+                                variant="body2"
                                 sx={{
-                                  mt: 'auto',
-                                  borderColor: isDarkMode ? '#93c5fd' : '#2563eb',
+                                  p: 1,
+                                  borderRadius: "8px",
+                                  backgroundColor: isDarkMode ? 'rgba(37, 99, 235, 0.2)' : 'rgba(37, 99, 235, 0.1)',
                                   color: isDarkMode ? '#93c5fd' : '#2563eb',
-                                  "&:hover": {
-                                    borderColor: isDarkMode ? '#60a5fa' : '#1d4ed8',
-                                    backgroundColor: isDarkMode ? 'rgba(37, 99, 235, 0.2)' : 'rgba(37, 99, 235, 0.1)',
-                                  },
+                                  display: "inline-block",
+                                  alignSelf: "flex-start",
+                                  border: `1px solid ${isDarkMode ? 'rgba(37, 99, 235, 0.3)' : 'transparent'}`,
+                                  fontSize: '0.875rem',
+                                  fontWeight: 500,
                                 }}
                               >
-                                Haritada Göster
-                              </Button>
-                            )}
-                          </Stack>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Paper>
-            )}
+                                {hotel.priceRange}
+                              </Typography>
 
-            {/* Hava Durumu Bölümü */}
-            {weatherData.length > 0 && (
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 4,
-                  mt: 4,
-                  background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-                  backdropFilter: "blur(10px)",
-                  borderRadius: "16px",
-                  border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
-                }}
-              >
-                <Box sx={{ mb: 4, display: "flex", alignItems: "center", gap: 2 }}>
-                  <Cloud size={28} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
-                  <Typography
-                    variant="h4"
-                    sx={{
-                      fontWeight: 800,
-                      fontSize: { xs: '1.75rem', md: '2rem' },
-                      letterSpacing: '-0.02em',
-                      lineHeight: 1.2,
-                      color: isDarkMode ? '#fff' : 'inherit',
-                      background: isDarkMode 
-                        ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
-                        : 'linear-gradient(45deg, #2563eb, #7c3aed)',
-                      backgroundClip: "text",
-                      WebkitBackgroundClip: "text",
-                      WebkitTextFillColor: "transparent",
-                    }}
-                  >
-                    Hava Durumu
-                  </Typography>
-                </Box>
+                              <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                  color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                  flex: 1,
+                                  fontSize: '0.875rem',
+                                  lineHeight: 1.6,
+                                }}
+                              >
+                                {hotel.description}
+                              </Typography>
 
-                <Grid container spacing={3}>
-                  {weatherData.map((weather, index) => (
-                    <Grid item xs={12} sm={6} md={4} key={index}>
-                      <Card
-                        elevation={0}
-                        sx={{
-                          p: 3,
-                          height: "100%",
-                          background: isDarkMode ? 'rgba(18, 18, 18, 0.8)' : 'rgba(255, 255, 255, 0.9)',
-                          borderRadius: "12px",
-                          border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
-                          transition: "all 0.2s ease",
-                          "&:hover": {
-                            transform: "translateY(-4px)",
-                            boxShadow: isDarkMode 
-                              ? '0 4px 20px rgba(0, 0, 0, 0.4)' 
-                              : '0 4px 20px rgba(0, 0, 0, 0.1)',
-                          },
-                        }}
-                      >
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
-                          <Box
-                            component="img"
-                            src={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`}
-                            alt={weather.description}
-                            sx={{
-                              width: 50,
-                              height: 50,
-                              filter: isDarkMode ? 'brightness(1.2)' : 'none',
-                            }}
-                          />
-                          <Box>
-                            <Typography
-                              variant="h6"
+                              {hotel.geoCoordinates && (
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  startIcon={<Navigation size={16} />}
+                                  onClick={() => {
+                                    const url = `https://www.google.com/maps/search/?api=1&query=${hotel.geoCoordinates?.latitude},${hotel.geoCoordinates?.longitude}`;
+                                    window.open(url, "_blank");
+                                  }}
+                                  sx={{
+                                    mt: 'auto',
+                                    borderColor: isDarkMode ? '#93c5fd' : '#2563eb',
+                                    color: isDarkMode ? '#93c5fd' : '#2563eb',
+                                    "&:hover": {
+                                      borderColor: isDarkMode ? '#60a5fa' : '#1d4ed8',
+                                      backgroundColor: isDarkMode ? 'rgba(37, 99, 235, 0.2)' : 'rgba(37, 99, 235, 0.1)',
+                                    },
+                                  }}
+                                >
+                                  Haritada Göster
+                                </Button>
+                              )}
+                            </Stack>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Paper>
+              )}
+
+              {/* Hava Durumu Bölümü */}
+              {weatherData.length > 0 && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 4,
+                    mt: 4,
+                    background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                    backdropFilter: "blur(10px)",
+                    borderRadius: "16px",
+                    border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                  }}
+                >
+                  <Box sx={{ mb: 4, display: "flex", alignItems: "center", gap: 2 }}>
+                    <Cloud size={28} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
+                    <Typography
+                      variant="h4"
+                      sx={{
+                        fontWeight: 800,
+                        fontSize: { xs: '1.75rem', md: '2rem' },
+                        letterSpacing: '-0.02em',
+                        lineHeight: 1.2,
+                        color: isDarkMode ? '#fff' : 'inherit',
+                        background: isDarkMode 
+                          ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
+                          : 'linear-gradient(45deg, #2563eb, #7c3aed)',
+                        backgroundClip: "text",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                      }}
+                    >
+                      Hava Durumu
+                    </Typography>
+                  </Box>
+
+                  <Grid container spacing={3}>
+                    {weatherData.map((weather, index) => (
+                      <Grid item xs={12} sm={6} md={4} key={index}>
+                        <Card
+                          elevation={0}
+                          sx={{
+                            p: 3,
+                            height: "100%",
+                            background: isDarkMode ? 'rgba(18, 18, 18, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                            borderRadius: "12px",
+                            border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                            transition: "all 0.2s ease",
+                            "&:hover": {
+                              transform: "translateY(-4px)",
+                              boxShadow: isDarkMode 
+                                ? '0 4px 20px rgba(0, 0, 0, 0.4)' 
+                                : '0 4px 20px rgba(0, 0, 0, 0.1)',
+                            },
+                          }}
+                        >
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
+                            <Box
+                              component="img"
+                              src={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`}
+                              alt={weather.description}
                               sx={{
-                                color: isDarkMode ? '#93c5fd' : '#2563eb',
-                                fontWeight: 700,
-                                fontSize: '1.25rem',
-                                letterSpacing: '-0.01em',
+                                width: 50,
+                                height: 50,
+                                filter: isDarkMode ? 'brightness(1.2)' : 'none',
                               }}
-                            >
-                              {new Date(weather.date).toLocaleDateString("tr-TR", {
-                                weekday: "long",
-                                day: "numeric",
-                                month: "long",
-                              })}
-                            </Typography>
-                            <Typography
-                              variant="subtitle1"
-                              sx={{
-                                color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
-                                fontSize: '1rem',
-                                lineHeight: 1.5,
-                              }}
-                            >
-                              {weather.description}
-                            </Typography>
+                            />
+                            <Box>
+                              <Typography
+                                variant="h6"
+                                sx={{
+                                  color: isDarkMode ? '#93c5fd' : '#2563eb',
+                                  fontWeight: 700,
+                                  fontSize: '1.25rem',
+                                  letterSpacing: '-0.01em',
+                                }}
+                              >
+                                {new Date(weather.date).toLocaleDateString("tr-TR", {
+                                  weekday: "long",
+                                  day: "numeric",
+                                  month: "long",
+                                })}
+                              </Typography>
+                              <Typography
+                                variant="subtitle1"
+                                sx={{
+                                  color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                  fontSize: '1rem',
+                                  lineHeight: 1.5,
+                                }}
+                              >
+                                {weather.description}
+                              </Typography>
+                            </Box>
                           </Box>
-                        </Box>
 
-                        <Grid container spacing={2}>
-                          <Grid item xs={6}>
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                              <Thermometer size={20} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
-                                  fontSize: '0.875rem',
-                                  lineHeight: 1.5,
-                                }}
-                              >
-                                {Math.round(weather.temperature)}°C
-                              </Typography>
-                            </Box>
+                          <Grid container spacing={2}>
+                            <Grid item xs={6}>
+                              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                <Thermometer size={20} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                    fontSize: '0.875rem',
+                                    lineHeight: 1.5,
+                                  }}
+                                >
+                                  {Math.round(weather.temperature)}°C
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                <Cloud size={20} style={{ color: isDarkMode ? '#a78bfa' : '#7c3aed' }} />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                    fontSize: '0.875rem',
+                                    lineHeight: 1.5,
+                                  }}
+                                >
+                                  Hissedilen: {Math.round(weather.feelsLike)}°C
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                <Droplets size={20} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                    fontSize: '0.875rem',
+                                    lineHeight: 1.5,
+                                  }}
+                                >
+                                  Nem: %{weather.humidity}
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                <Wind size={20} style={{ color: isDarkMode ? '#a78bfa' : '#7c3aed' }} />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                    fontSize: '0.875rem',
+                                    lineHeight: 1.5,
+                                  }}
+                                >
+                                  Rüzgar: {Math.round(weather.windSpeed)} km/s
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                <Cloud size={20} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                    fontSize: '0.875rem',
+                                    lineHeight: 1.5,
+                                  }}
+                                >
+                                  Yağış: %{Math.round(weather.precipitationProbability || 0)}
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            
                           </Grid>
-                          <Grid item xs={6}>
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                              <Cloud size={20} style={{ color: isDarkMode ? '#a78bfa' : '#7c3aed' }} />
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
-                                  fontSize: '0.875rem',
-                                  lineHeight: 1.5,
-                                }}
-                              >
-                                Hissedilen: {Math.round(weather.feelsLike)}°C
-                              </Typography>
-                            </Box>
-                          </Grid>
-                          <Grid item xs={6}>
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                              <Droplets size={20} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
-                                  fontSize: '0.875rem',
-                                  lineHeight: 1.5,
-                                }}
-                              >
-                                Nem: %{weather.humidity}
-                              </Typography>
-                            </Box>
-                          </Grid>
-                          <Grid item xs={6}>
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                              <Wind size={20} style={{ color: isDarkMode ? '#a78bfa' : '#7c3aed' }} />
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
-                                  fontSize: '0.875rem',
-                                  lineHeight: 1.5,
-                                }}
-                              >
-                                Rüzgar: {Math.round(weather.windSpeed)} km/s
-                              </Typography>
-                            </Box>
-                          </Grid>
-                          <Grid item xs={6}>
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                              <Cloud size={20} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb' }} />
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
-                                  fontSize: '0.875rem',
-                                  lineHeight: 1.5,
-                                }}
-                              >
-                                Yağış: %{Math.round(weather.precipitationProbability || 0)}
-                              </Typography>
-                            </Box>
-                          </Grid>
-                          
-                        </Grid>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Paper>
-            )}
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Paper>
+              )}
+            </div>
           </Box>
         </Fade>
       </Container>
