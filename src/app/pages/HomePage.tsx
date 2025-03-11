@@ -293,7 +293,9 @@ export default function Home(): JSX.Element {
       )
         .replace("{totalDays}", `${formState.days}` || "1")
         .replace("{traveller}", formState.companion?.title || "Belirtilmedi")
-        .replace("{budget}", formState.budget?.title || "Belirtilmedi");
+        .replace("{budget}", formState.budget?.title || "Belirtilmedi")
+        .replace("{residenceCountry}", formState.residenceCountry || "Belirtilmedi")
+        .replace("{citizenship}", formState.citizenship || "Belirtilmedi");
 
       const aiResponse = await chatSession.sendMessage(FINAL_PROMPT);
       const aiItinerary = await aiResponse?.response?.text();
@@ -312,7 +314,8 @@ export default function Home(): JSX.Element {
         hotelOptions: [],
         isDomestic: formState.isDomestic,
         country: formState.city?.country || (formState.isDomestic ? "Turkey" : "Not specified"),
-        ethnicity: "Not specified",
+        residenceCountry: formState.residenceCountry || "Not specified",
+        citizenship: formState.citizenship || "Not specified",
       };
 
       const savedPlanId = await saveTravelPlan(travelPlanData);

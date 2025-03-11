@@ -16,7 +16,7 @@ import {
   Fade,
   useTheme
 } from "@mui/material";
-import { Map, PlusCircle, MapPin, Calendar } from "lucide-react";
+import { Map, PlusCircle, MapPin, Calendar, Globe, Passport } from "lucide-react";
 import { useThemeContext } from "../context/ThemeContext";
 
 import { TravelPlansList } from "../components/trips/travel-plans-list";
