@@ -10,14 +10,16 @@ import { useThemeContext } from '../../context/ThemeContext';
 
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
   background: theme.palette.mode === 'dark' 
-    ? "rgba(30, 30, 30, 0.8)" 
-    : "rgba(255, 255, 255, 0.8)",
+    ? "rgba(17, 24, 39, 0.95)" 
+    : "rgba(255, 255, 255, 0.95)",
   backdropFilter: "blur(10px)",
-  boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
+  boxShadow: theme.palette.mode === 'dark'
+    ? "0 4px 30px rgba(0, 0, 0, 0.3)"
+    : "0 4px 30px rgba(0, 0, 0, 0.1)",
   borderBottom: theme.palette.mode === 'dark'
     ? "1px solid rgba(255, 255, 255, 0.1)"
-    : "1px solid rgba(255, 255, 255, 0.3)",
-  color: theme.palette.mode === 'dark' ? "#fff" : "#1976d2",
+    : "1px solid rgba(0, 0, 0, 0.1)",
+  color: theme.palette.text.primary,
   transition: "all 0.3s ease",
   position: "fixed",
   "& .MuiToolbar-root": {
@@ -32,16 +34,21 @@ const NavButton = styled(Button)(({ theme }) => ({
   fontWeight: 600,
   fontSize: "0.95rem",
   transition: "all 0.3s ease",
+  color: theme.palette.text.primary,
   "&:hover": {
     transform: "translateY(-2px)",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+    backgroundColor: theme.palette.mode === 'dark' 
+      ? "rgba(255, 255, 255, 0.1)" 
+      : "rgba(0, 0, 0, 0.05)",
   },
 }));
 
-const LogoText = styled(Typography)({
+const LogoText = styled(Typography)(({ theme }) => ({
   fontSize: "1.5rem",
   fontWeight: 700,
-  background: "linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)",
+  background: theme.palette.mode === 'dark'
+    ? "linear-gradient(45deg, #93c5fd, #a78bfa)"
+    : "linear-gradient(45deg, #2563eb, #7c3aed)",
   WebkitBackgroundClip: "text",
   WebkitTextFillColor: "transparent",
   cursor: "pointer",
@@ -49,11 +56,12 @@ const LogoText = styled(Typography)({
   "&:hover": {
     transform: "scale(1.05)",
   },
-});
+}));
 
 const ThemeToggleButton = styled(IconButton)(({ theme }) => ({
   padding: "8px",
   borderRadius: "12px",
+  color: theme.palette.text.primary,
   background: theme.palette.mode === 'dark'
     ? "rgba(255, 255, 255, 0.05)"
     : "rgba(0, 0, 0, 0.05)",
@@ -162,13 +170,21 @@ const Navbar = (): React.ReactElement => {
             boxSizing: "border-box",
             width: 240,
             backgroundColor: isDarkMode 
-              ? "rgba(30, 30, 30, 0.9)"
-              : "rgba(255, 255, 255, 0.9)",
+              ? "rgba(17, 24, 39, 0.95)"
+              : "rgba(255, 255, 255, 0.95)",
             backdropFilter: "blur(10px)",
+            borderLeft: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
           },
         }}
       >
-        <Box sx={{ p: 2, display: "flex", flexDirection: "column" }}>{navContent}</Box>
+        <Box sx={{ 
+          p: 2, 
+          display: "flex", 
+          flexDirection: "column",
+          color: isDarkMode ? "#fff" : "inherit"
+        }}>
+          {navContent}
+        </Box>
       </Drawer>
 
       <Toolbar />

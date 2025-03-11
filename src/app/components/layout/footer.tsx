@@ -17,7 +17,7 @@ export default function Footer() {
         left: 0,
         right: 0,
         width: '100%',
-        backgroundColor: isDarkMode ? 'rgba(18, 18, 18, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+        backgroundColor: isDarkMode ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)',
         backdropFilter: 'blur(10px)',
         borderTop: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
         py: 2,
@@ -25,6 +25,7 @@ export default function Footer() {
         height: '60px',
         display: 'flex',
         alignItems: 'center',
+        boxShadow: isDarkMode ? '0 -4px 30px rgba(0, 0, 0, 0.3)' : '0 -4px 30px rgba(0, 0, 0, 0.1)',
       }}
     >
       <Container maxWidth="lg" sx={{ height: '100%' }}>
@@ -39,21 +40,22 @@ export default function Footer() {
             <Typography
               variant="body2"
               sx={{
-                color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 0.5,
               }}
             >
-              <Copyright fontSize="small" />
+              <Copyright fontSize="small" sx={{ color: isDarkMode ? '#e5e7eb' : 'text.secondary' }} />
               {new Date().getFullYear()}
               <Link
                 href="/"
                 sx={{
-                  color: isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'primary.main',
+                  color: isDarkMode ? '#93c5fd' : '#2563eb',
                   textDecoration: 'none',
                   '&:hover': {
                     textDecoration: 'underline',
+                    color: isDarkMode ? '#60a5fa' : '#1d4ed8',
                   },
                   ml: 0.5,
                 }}
@@ -67,39 +69,48 @@ export default function Footer() {
             <Link
               href="/privacy-policy"
               sx={{
-                color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                 textDecoration: 'none',
                 fontSize: '0.875rem',
+                transition: 'color 0.2s ease',
                 '&:hover': {
-                  color: isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'text.primary',
+                  color: isDarkMode ? '#93c5fd' : '#2563eb',
                 },
               }}
             >
               Gizlilik Politikası
             </Link>
-            <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+            <Divider orientation="vertical" flexItem sx={{ 
+              mx: 1,
+              borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+            }} />
             <Link
               href="/terms"
               sx={{
-                color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                 textDecoration: 'none',
                 fontSize: '0.875rem',
+                transition: 'color 0.2s ease',
                 '&:hover': {
-                  color: isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'text.primary',
+                  color: isDarkMode ? '#93c5fd' : '#2563eb',
                 },
               }}
             >
               Kullanım Koşulları
             </Link>
-            <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+            <Divider orientation="vertical" flexItem sx={{ 
+              mx: 1,
+              borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+            }} />
             <Link
               href="/contact"
               sx={{
-                color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                 textDecoration: 'none',
                 fontSize: '0.875rem',
+                transition: 'color 0.2s ease',
                 '&:hover': {
-                  color: isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'text.primary',
+                  color: isDarkMode ? '#93c5fd' : '#2563eb',
                 },
               }}
             >

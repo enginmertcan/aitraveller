@@ -364,7 +364,7 @@ export default function TripDetailsPage() {
       sx={{
         minHeight: "calc(100vh - 64px)",
         background: isDarkMode 
-          ? 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)'
+          ? 'linear-gradient(135deg, #111827 0%, #1f2937 100%)'
           : 'linear-gradient(135deg, #e0f2fe 0%, #ddd6fe 100%)',
         py: 6,
       }}
@@ -377,8 +377,8 @@ export default function TripDetailsPage() {
                 onClick={() => router.back()}
                 startIcon={<ArrowLeft />}
                 sx={{
-                  color: "text.primary",
-                  "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.05)" },
+                  color: isDarkMode ? '#e5e7eb' : 'text.primary',
+                  "&:hover": { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' },
                 }}
               >
                 Seyahatlerime Dön
@@ -408,7 +408,7 @@ export default function TripDetailsPage() {
                 elevation={0}
                 sx={{
                   p: 4,
-                  background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                  background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.8)',
                   backdropFilter: "blur(10px)",
                   borderRadius: "16px",
                   border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
@@ -441,7 +441,7 @@ export default function TripDetailsPage() {
                         <Box>
                           <Typography variant="subtitle2" 
                             sx={{ 
-                              color: "text.secondary",
+                              color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                               fontWeight: 600,
                               fontSize: '0.875rem',
                               letterSpacing: '0.01em',
@@ -454,6 +454,7 @@ export default function TripDetailsPage() {
                               fontWeight: 700,
                               fontSize: '1.25rem',
                               letterSpacing: '-0.01em',
+                              color: isDarkMode ? '#f3f4f6' : 'text.primary',
                             }}
                           >
                             {plan.destination}
@@ -466,7 +467,7 @@ export default function TripDetailsPage() {
                         <Box>
                           <Typography variant="subtitle2" 
                             sx={{ 
-                              color: "text.secondary",
+                              color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                               fontWeight: 600,
                               fontSize: '0.875rem',
                               letterSpacing: '0.01em',
@@ -479,6 +480,7 @@ export default function TripDetailsPage() {
                               fontWeight: 700,
                               fontSize: '1.25rem',
                               letterSpacing: '-0.01em',
+                              color: isDarkMode ? '#f3f4f6' : 'text.primary',
                             }}
                           >
                             {new Date(plan.startDate).toLocaleDateString("tr-TR", {
@@ -495,7 +497,7 @@ export default function TripDetailsPage() {
                         <Box>
                           <Typography variant="subtitle2" 
                             sx={{ 
-                              color: "text.secondary",
+                              color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                               fontWeight: 600,
                               fontSize: '0.875rem',
                               letterSpacing: '0.01em',
@@ -508,6 +510,7 @@ export default function TripDetailsPage() {
                               fontWeight: 700,
                               fontSize: '1.25rem',
                               letterSpacing: '-0.01em',
+                              color: isDarkMode ? '#f3f4f6' : 'text.primary',
                             }}
                           >
                             {formattedDuration}
@@ -520,7 +523,7 @@ export default function TripDetailsPage() {
                         <Box>
                           <Typography variant="subtitle2" 
                             sx={{ 
-                              color: "text.secondary",
+                              color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                               fontWeight: 600,
                               fontSize: '0.875rem',
                               letterSpacing: '0.01em',
@@ -533,6 +536,7 @@ export default function TripDetailsPage() {
                               fontWeight: 700,
                               fontSize: '1.25rem',
                               letterSpacing: '-0.01em',
+                              color: isDarkMode ? '#f3f4f6' : 'text.primary',
                             }}
                           >
                             {formattedGroupType}
@@ -545,7 +549,7 @@ export default function TripDetailsPage() {
                         <Box>
                           <Typography variant="subtitle2" 
                             sx={{ 
-                              color: "text.secondary",
+                              color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                               fontWeight: 600,
                               fontSize: '0.875rem',
                               letterSpacing: '0.01em',
@@ -558,6 +562,7 @@ export default function TripDetailsPage() {
                               fontWeight: 700,
                               fontSize: '1.25rem',
                               letterSpacing: '-0.01em',
+                              color: isDarkMode ? '#f3f4f6' : 'text.primary',
                             }}
                           >
                             {formattedBudget}
@@ -573,7 +578,7 @@ export default function TripDetailsPage() {
                               display: "flex",
                               alignItems: "center",
                               gap: 2,
-                              color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                              color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                             }}
                           >
                             <Sun size={24} />
@@ -602,6 +607,7 @@ export default function TripDetailsPage() {
                             fontWeight: 700,
                             fontSize: '1.25rem',
                             letterSpacing: '-0.01em',
+                            color: isDarkMode ? '#f3f4f6' : 'text.primary',
                           }}
                         >
                           Planlanan Aktiviteler
@@ -637,7 +643,7 @@ export default function TripDetailsPage() {
                   sx={{
                     p: 4,
                     mt: 4,
-                    background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                    background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.8)',
                     backdropFilter: "blur(10px)",
                     borderRadius: "16px",
                     border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
@@ -685,13 +691,13 @@ export default function TripDetailsPage() {
                                 <Card
                                   sx={{
                                     height: '100%',
-                                    background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                                    background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.9)',
                                     borderRadius: '12px',
                                     border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
                                     transition: 'all 0.2s ease',
                                     '&:hover': {
                                       transform: 'translateY(-4px)',
-                                      boxShadow: isDarkMode ? '0 4px 20px rgba(0, 0, 0, 0.4)' : '0 4px 20px rgba(0, 0, 0, 0.1)',
+                                      boxShadow: isDarkMode ? '0 4px 20px rgba(0, 0, 0, 0.6)' : '0 4px 20px rgba(0, 0, 0, 0.1)',
                                     },
                                   }}
                                 >
@@ -709,7 +715,7 @@ export default function TripDetailsPage() {
                                     <Typography
                                       variant="body2"
                                       sx={{
-                                        color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                        color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                                         mb: 2,
                                         minHeight: '3em',
                                         lineHeight: 1.6,
@@ -875,7 +881,7 @@ export default function TripDetailsPage() {
                   sx={{
                     p: 4,
                     mt: 4,
-                    background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                    background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.8)',
                     backdropFilter: "blur(10px)",
                     borderRadius: "16px",
                     border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
@@ -907,13 +913,13 @@ export default function TripDetailsPage() {
                             sx={{
                               p: 2,
                               height: '100%',
-                              background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                              background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.9)',
                               borderRadius: '12px',
                               border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
                               transition: 'all 0.2s ease',
                               '&:hover': {
                                 transform: 'translateY(-4px)',
-                                boxShadow: isDarkMode ? '0 4px 20px rgba(0, 0, 0, 0.4)' : '0 4px 20px rgba(0, 0, 0, 0.1)',
+                                boxShadow: isDarkMode ? '0 4px 20px rgba(0, 0, 0, 0.6)' : '0 4px 20px rgba(0, 0, 0, 0.1)',
                               },
                             }}
                           >
@@ -930,7 +936,7 @@ export default function TripDetailsPage() {
                             </Typography>
                             <Typography variant="body2" 
                               sx={{ 
-                                color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                                 fontSize: '0.875rem',
                                 lineHeight: 1.5
                               }}
@@ -952,7 +958,7 @@ export default function TripDetailsPage() {
                   sx={{
                     p: 4,
                     mt: 4,
-                    background: isDarkMode ? 'rgba(18, 18, 18, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                    background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.8)',
                     backdropFilter: "blur(10px)",
                     borderRadius: "16px",
                     border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
@@ -987,14 +993,14 @@ export default function TripDetailsPage() {
                           elevation={0}
                           sx={{
                             height: "100%",
-                            background: isDarkMode ? 'rgba(30, 30, 30, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                            background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.9)',
                             borderRadius: "12px",
                             border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
                             transition: "all 0.2s ease",
                             "&:hover": {
                               transform: "translateY(-4px)",
                               boxShadow: isDarkMode 
-                                ? '0 4px 20px rgba(0, 0, 0, 0.4)' 
+                                ? '0 4px 20px rgba(0, 0, 0, 0.6)' 
                                 : '0 4px 20px rgba(0, 0, 0, 0.1)',
                             },
                             display: "flex",
@@ -1048,7 +1054,7 @@ export default function TripDetailsPage() {
                                 <Typography 
                                   variant="body2" 
                                   sx={{ 
-                                    color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                    color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                                     fontSize: '0.875rem',
                                     lineHeight: 1.5,
                                   }}
@@ -1105,7 +1111,7 @@ export default function TripDetailsPage() {
                               <Typography 
                                 variant="body2" 
                                 sx={{ 
-                                  color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                  color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                                   flex: 1,
                                   fontSize: '0.875rem',
                                   lineHeight: 1.6,
@@ -1152,7 +1158,7 @@ export default function TripDetailsPage() {
                   sx={{
                     p: 4,
                     mt: 4,
-                    background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                    background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.8)',
                     backdropFilter: "blur(10px)",
                     borderRadius: "16px",
                     border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
@@ -1188,14 +1194,14 @@ export default function TripDetailsPage() {
                           sx={{
                             p: 3,
                             height: "100%",
-                            background: isDarkMode ? 'rgba(18, 18, 18, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                            background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.9)',
                             borderRadius: "12px",
                             border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
                             transition: "all 0.2s ease",
                             "&:hover": {
                               transform: "translateY(-4px)",
                               boxShadow: isDarkMode 
-                                ? '0 4px 20px rgba(0, 0, 0, 0.4)' 
+                                ? '0 4px 20px rgba(0, 0, 0, 0.6)' 
                                 : '0 4px 20px rgba(0, 0, 0, 0.1)',
                             },
                           }}
@@ -1230,7 +1236,7 @@ export default function TripDetailsPage() {
                               <Typography
                                 variant="subtitle1"
                                 sx={{
-                                  color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                  color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                                   fontSize: '1rem',
                                   lineHeight: 1.5,
                                 }}
@@ -1247,7 +1253,7 @@ export default function TripDetailsPage() {
                                 <Typography
                                   variant="body2"
                                   sx={{
-                                    color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                    color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                                     fontSize: '0.875rem',
                                     lineHeight: 1.5,
                                   }}
@@ -1262,7 +1268,7 @@ export default function TripDetailsPage() {
                                 <Typography
                                   variant="body2"
                                   sx={{
-                                    color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                    color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                                     fontSize: '0.875rem',
                                     lineHeight: 1.5,
                                   }}
@@ -1277,7 +1283,7 @@ export default function TripDetailsPage() {
                                 <Typography
                                   variant="body2"
                                   sx={{
-                                    color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                    color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                                     fontSize: '0.875rem',
                                     lineHeight: 1.5,
                                   }}
@@ -1292,7 +1298,7 @@ export default function TripDetailsPage() {
                                 <Typography
                                   variant="body2"
                                   sx={{
-                                    color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                    color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                                     fontSize: '0.875rem',
                                     lineHeight: 1.5,
                                   }}
@@ -1307,7 +1313,7 @@ export default function TripDetailsPage() {
                                 <Typography
                                   variant="body2"
                                   sx={{
-                                    color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                    color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                                     fontSize: '0.875rem',
                                     lineHeight: 1.5,
                                   }}
@@ -1332,7 +1338,7 @@ export default function TripDetailsPage() {
                   sx={{
                     p: 4,
                     mt: 4,
-                    background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                    background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.8)',
                     backdropFilter: "blur(10px)",
                     borderRadius: "16px",
                     border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
@@ -1363,7 +1369,7 @@ export default function TripDetailsPage() {
                         <Card
                           sx={{
                             height: '100%',
-                            background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                            background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.9)',
                             borderRadius: '12px',
                             border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
                           }}
@@ -1372,7 +1378,7 @@ export default function TripDetailsPage() {
                             <Typography variant="h6" sx={{ color: isDarkMode ? '#93c5fd' : '#2563eb', mb: 2 }}>
                               Temel Kültürel Farklılıklar
                             </Typography>
-                            <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
+                            <Typography variant="body2" sx={{ color: isDarkMode ? '#e5e7eb' : 'text.secondary' }}>
                               {typeof plan.culturalDifferences === 'string' ? plan.culturalDifferences : ''}
                             </Typography>
                           </CardContent>
@@ -1384,7 +1390,7 @@ export default function TripDetailsPage() {
                         <Card
                           sx={{
                             height: '100%',
-                            background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                            background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.9)',
                             borderRadius: '12px',
                             border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
                           }}
@@ -1393,7 +1399,7 @@ export default function TripDetailsPage() {
                             <Typography variant="h6" sx={{ color: isDarkMode ? '#93c5fd' : '#2563eb', mb: 2 }}>
                               Günlük Yaşam Alışkanlıkları
                             </Typography>
-                            <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
+                            <Typography variant="body2" sx={{ color: isDarkMode ? '#e5e7eb' : 'text.secondary' }}>
                               {typeof plan.lifestyleDifferences === 'string' ? plan.lifestyleDifferences : ''}
                             </Typography>
                           </CardContent>
@@ -1405,7 +1411,7 @@ export default function TripDetailsPage() {
                         <Card
                           sx={{
                             height: '100%',
-                            background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                            background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.9)',
                             borderRadius: '12px',
                             border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
                           }}
@@ -1414,7 +1420,7 @@ export default function TripDetailsPage() {
                             <Typography variant="h6" sx={{ color: isDarkMode ? '#93c5fd' : '#2563eb', mb: 2 }}>
                               Yeme-İçme Kültürü
                             </Typography>
-                            <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
+                            <Typography variant="body2" sx={{ color: isDarkMode ? '#e5e7eb' : 'text.secondary' }}>
                               {typeof plan.foodCultureDifferences === 'string' ? plan.foodCultureDifferences : ''}
                             </Typography>
                           </CardContent>
@@ -1426,7 +1432,7 @@ export default function TripDetailsPage() {
                         <Card
                           sx={{
                             height: '100%',
-                            background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                            background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.9)',
                             borderRadius: '12px',
                             border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
                           }}
@@ -1435,7 +1441,7 @@ export default function TripDetailsPage() {
                             <Typography variant="h6" sx={{ color: isDarkMode ? '#93c5fd' : '#2563eb', mb: 2 }}>
                               Sosyal Davranış Normları
                             </Typography>
-                            <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
+                            <Typography variant="body2" sx={{ color: isDarkMode ? '#e5e7eb' : 'text.secondary' }}>
                               {typeof plan.socialNormsDifferences === 'string' ? plan.socialNormsDifferences : ''}
                             </Typography>
                           </CardContent>
@@ -1453,7 +1459,7 @@ export default function TripDetailsPage() {
                   sx={{
                     p: 4,
                     mt: 4,
-                    background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                    background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.8)',
                     backdropFilter: "blur(10px)",
                     borderRadius: "16px",
                     border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
@@ -1484,7 +1490,7 @@ export default function TripDetailsPage() {
                         <Card
                           sx={{
                             height: '100%',
-                            background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                            background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.9)',
                             borderRadius: '12px',
                             border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
                           }}
@@ -1493,7 +1499,7 @@ export default function TripDetailsPage() {
                             <Typography variant="h6" sx={{ color: isDarkMode ? '#93c5fd' : '#2563eb', mb: 2 }}>
                               Vize Gereklilikleri
                             </Typography>
-                            <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
+                            <Typography variant="body2" sx={{ color: isDarkMode ? '#e5e7eb' : 'text.secondary' }}>
                               {typeof plan.visaRequirements === 'string' ? plan.visaRequirements : ''}
                             </Typography>
                           </CardContent>
@@ -1505,7 +1511,7 @@ export default function TripDetailsPage() {
                         <Card
                           sx={{
                             height: '100%',
-                            background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                            background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.9)',
                             borderRadius: '12px',
                             border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
                           }}
@@ -1514,7 +1520,7 @@ export default function TripDetailsPage() {
                             <Typography variant="h6" sx={{ color: isDarkMode ? '#93c5fd' : '#2563eb', mb: 2 }}>
                               Vize Başvuru Süreci
                             </Typography>
-                            <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
+                            <Typography variant="body2" sx={{ color: isDarkMode ? '#e5e7eb' : 'text.secondary' }}>
                               {typeof plan.visaApplicationProcess === 'string' ? plan.visaApplicationProcess : ''}
                             </Typography>
                             {plan.visaFees && (
@@ -1522,7 +1528,7 @@ export default function TripDetailsPage() {
                                 <Typography variant="subtitle2" sx={{ color: isDarkMode ? '#93c5fd' : '#2563eb', mb: 1 }}>
                                   Vize Ücreti:
                                 </Typography>
-                                <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
+                                <Typography variant="body2" sx={{ color: isDarkMode ? '#e5e7eb' : 'text.secondary' }}>
                                   {typeof plan.visaFees === 'string' ? plan.visaFees : ''}
                                 </Typography>
                               </Box>
@@ -1535,7 +1541,7 @@ export default function TripDetailsPage() {
                       <Grid item xs={12}>
                         <Card
                           sx={{
-                            background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                            background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.9)',
                             borderRadius: '12px',
                             border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
                           }}
@@ -1544,7 +1550,7 @@ export default function TripDetailsPage() {
                             <Typography variant="h6" sx={{ color: isDarkMode ? '#93c5fd' : '#2563eb', mb: 2 }}>
                               Seyahat Belgeleri Kontrol Listesi
                             </Typography>
-                            <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
+                            <Typography variant="body2" sx={{ color: isDarkMode ? '#e5e7eb' : 'text.secondary' }}>
                               {typeof plan.travelDocumentChecklist === 'string' ? plan.travelDocumentChecklist : ''}
                             </Typography>
                           </CardContent>
@@ -1562,7 +1568,7 @@ export default function TripDetailsPage() {
                   sx={{
                     p: 4,
                     mt: 4,
-                    background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                    background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.8)',
                     backdropFilter: "blur(10px)",
                     borderRadius: "16px",
                     border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
@@ -1593,7 +1599,7 @@ export default function TripDetailsPage() {
                         <Card
                           sx={{
                             height: '100%',
-                            background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                            background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.9)',
                             borderRadius: '12px',
                             border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
                           }}
@@ -1605,7 +1611,7 @@ export default function TripDetailsPage() {
                                 Yerel Ulaşım Rehberi
                               </Typography>
                             </Box>
-                            <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
+                            <Typography variant="body2" sx={{ color: isDarkMode ? '#e5e7eb' : 'text.secondary' }}>
                               {typeof plan.localTransportationGuide === 'string' ? plan.localTransportationGuide : ''}
                             </Typography>
                           </CardContent>
@@ -1618,7 +1624,7 @@ export default function TripDetailsPage() {
                         <Card
                           sx={{
                             height: '100%',
-                            background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                            background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.9)',
                             borderRadius: '12px',
                             border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
                           }}
@@ -1630,7 +1636,7 @@ export default function TripDetailsPage() {
                                 Acil Durum Numaraları
                               </Typography>
                             </Box>
-                            <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
+                            <Typography variant="body2" sx={{ color: isDarkMode ? '#e5e7eb' : 'text.secondary' }}>
                               {typeof plan.emergencyContacts === 'string' ? plan.emergencyContacts : ''}
                             </Typography>
                           </CardContent>
@@ -1643,7 +1649,7 @@ export default function TripDetailsPage() {
                         <Card
                           sx={{
                             height: '100%',
-                            background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                            background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.9)',
                             borderRadius: '12px',
                             border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
                           }}
@@ -1655,7 +1661,7 @@ export default function TripDetailsPage() {
                                 Para Birimi ve Ödeme
                               </Typography>
                             </Box>
-                            <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
+                            <Typography variant="body2" sx={{ color: isDarkMode ? '#e5e7eb' : 'text.secondary' }}>
                               {typeof plan.currencyAndPayment === 'string' ? plan.currencyAndPayment : ''}
                             </Typography>
                           </CardContent>
@@ -1668,7 +1674,7 @@ export default function TripDetailsPage() {
                         <Card
                           sx={{
                             height: '100%',
-                            background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                            background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.9)',
                             borderRadius: '12px',
                             border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
                           }}
@@ -1680,7 +1686,7 @@ export default function TripDetailsPage() {
                                 Sağlık Hizmetleri
                               </Typography>
                             </Box>
-                            <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
+                            <Typography variant="body2" sx={{ color: isDarkMode ? '#e5e7eb' : 'text.secondary' }}>
                               {typeof plan.healthcareInfo === 'string' ? plan.healthcareInfo : ''}
                             </Typography>
                           </CardContent>
@@ -1692,7 +1698,7 @@ export default function TripDetailsPage() {
                       <Grid item xs={12}>
                         <Card
                           sx={{
-                            background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                            background: isDarkMode ? 'rgba(17, 24, 39, 0.8)' : 'rgba(255, 255, 255, 0.9)',
                             borderRadius: '12px',
                             border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
                           }}
@@ -1704,7 +1710,7 @@ export default function TripDetailsPage() {
                                 İletişim ve İnternet
                               </Typography>
                             </Box>
-                            <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
+                            <Typography variant="body2" sx={{ color: isDarkMode ? '#e5e7eb' : 'text.secondary' }}>
                               {typeof plan.communicationInfo === 'string' ? plan.communicationInfo : ''}
                             </Typography>
                           </CardContent>
