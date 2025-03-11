@@ -16,6 +16,7 @@ import {
   Snackbar,
   TextField,
   Typography,
+  MenuItem,
 } from "@mui/material";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -32,6 +33,7 @@ import { chatSession } from "../Service/AIService";
 import { TravelFormState } from "../types/TravelFormState";
 import { usePlaces, type Place } from "../hooks/usePlaces";
 import { CitySelector } from "../components/CitySelector";
+import { getCountries } from "../Services/location.service";
 
 export default function Home(): JSX.Element {
   const { isDarkMode } = useThemeContext();
@@ -49,6 +51,8 @@ export default function Home(): JSX.Element {
     startDate: null,
     budget: null,
     companion: null,
+    residenceCountry: null,
+    citizenship: null,
   });
 
   const [formErrors, setFormErrors] = useState<{
@@ -57,6 +61,8 @@ export default function Home(): JSX.Element {
     startDate?: string;
     budget?: string;
     companion?: string;
+    residenceCountry?: string;
+    citizenship?: string;
   }>({});
 
   const { isLoaded, predictions, inputValue, setInput, getPlaceDetails, handleSelect } = usePlaces({
@@ -66,6 +72,18 @@ export default function Home(): JSX.Element {
   });
   const { user, isLoaded: isUserLoaded } = useUser();
   const { saveTravelPlan, isLoading: isSaving, error: saveError } = useTravelPlan();
+
+  const [countries, setCountries] = useState<Array<{
+    name: { common: string; official: string };
+    cca2: string;
+    flags: { png: string; svg: string };
+  }>>([]);
+
+  const [searchText, setSearchText] = useState({ residence: "", citizenship: "" });
+  const [filteredCountries, setFilteredCountries] = useState({ 
+    residence: [] as typeof countries, 
+    citizenship: [] as typeof countries 
+  });
 
   const handleSnackbarClose = () => {
     setSnackbar({ ...snackbar, open: false });
@@ -78,10 +96,20 @@ export default function Home(): JSX.Element {
       startDate?: string;
       budget?: string;
       companion?: string;
+      residenceCountry?: string;
+      citizenship?: string;
     } = {};
 
     if (!formState.city) {
       errors.city = "Lütfen bir şehir seçin";
+    }
+
+    if (!formState.residenceCountry) {
+      errors.residenceCountry = "Lütfen yaşadığınız ülkeyi seçin";
+    }
+
+    if (!formState.citizenship) {
+      errors.citizenship = "Lütfen vatandaşlığınızı seçin";
     }
 
     if (formState.days < 1) {
@@ -196,9 +224,48 @@ export default function Home(): JSX.Element {
     setFormState(prev => ({
       ...prev,
       isDomestic,
-      city: null // Reset city when switching between domestic/international
+      city: null,
+      residenceCountry: isDomestic ? "Turkey" : prev.residenceCountry,
+      citizenship: isDomestic ? "Turkey" : prev.citizenship,
     }));
-    setInput(""); // Reset input when switching
+    setInput("");
+    // Reset search texts when toggling
+    setSearchText({ residence: "", citizenship: "" });
+  };
+
+  const handleResidenceCountrySelect = (country: string) => {
+    setFormState(prev => ({
+      ...prev,
+      residenceCountry: country
+    }));
+    setFormErrors(prev => ({ ...prev, residenceCountry: undefined }));
+    setSearchText(prev => ({ ...prev, residence: "" })); // Reset search text after selection
+  };
+
+  const handleCitizenshipSelect = (country: string) => {
+    setFormState(prev => ({
+      ...prev,
+      citizenship: country
+    }));
+    setFormErrors(prev => ({ ...prev, citizenship: undefined }));
+    setSearchText(prev => ({ ...prev, citizenship: "" })); // Reset search text after selection
+  };
+
+  const handleSearch = (type: "residence" | "citizenship", value: string) => {
+    setSearchText(prev => ({ ...prev, [type]: value }));
+    
+    const searchValue = value.toLowerCase().trim();
+    if (!searchValue) {
+      setFilteredCountries(prev => ({ ...prev, [type]: countries }));
+      return;
+    }
+    
+    const filtered = countries.filter(country => 
+      country.name.common.toLowerCase().includes(searchValue) ||
+      country.name.official.toLowerCase().includes(searchValue)
+    );
+    
+    setFilteredCountries(prev => ({ ...prev, [type]: filtered }));
   };
 
   const handleCreatePlan = async () => {
@@ -245,6 +312,7 @@ export default function Home(): JSX.Element {
         hotelOptions: [],
         isDomestic: formState.isDomestic,
         country: formState.city?.country || (formState.isDomestic ? "Turkey" : "Not specified"),
+        ethnicity: "Not specified",
       };
 
       const savedPlanId = await saveTravelPlan(travelPlanData);
@@ -267,6 +335,18 @@ export default function Home(): JSX.Element {
       setIsCreatingPlan(false);
     }
   };
+
+  useEffect(() => {
+    const fetchCountries = async () => {
+      const fetchedCountries = await getCountries();
+      setCountries(fetchedCountries);
+      setFilteredCountries({
+        residence: fetchedCountries,
+        citizenship: fetchedCountries
+      });
+    };
+    fetchCountries();
+  }, []);
 
   if (!isLoaded) {
     return (
@@ -333,7 +413,7 @@ export default function Home(): JSX.Element {
                       },
                     }}
                   >
-                    TÜRKİYE
+                    TÜRKİYE GEZİSİ
                   </Button>
                   <Button
                     variant={!formState.isDomestic ? "contained" : "outlined"}
@@ -350,8 +430,231 @@ export default function Home(): JSX.Element {
                       },
                     }}
                   >
-                    Yurt Dışı
+                    YURT DıŞı GEZİSİ
                   </Button>
+                </Box>
+
+                <Box sx={{ mb: 2 }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        select
+                        fullWidth
+                        label="Yaşadığınız Ülke"
+                        value={formState.residenceCountry || ''}
+                        onChange={(e) => handleResidenceCountrySelect(e.target.value)}
+                        error={!!formErrors.residenceCountry}
+                        helperText={formErrors.residenceCountry}
+                        SelectProps={{
+                          MenuProps: {
+                            PaperProps: {
+                              style: {
+                                maxHeight: 300,
+                              },
+                            },
+                          },
+                        }}
+                        InputProps={{
+                          startAdornment: !formState.residenceCountry ? (
+                            <Box 
+                              sx={{ 
+                                position: 'sticky',
+                                top: 0,
+                                bgcolor: isDarkMode ? 'rgba(18, 18, 18, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                                p: 1,
+                                width: '100%',
+                                zIndex: 1,
+                                borderBottom: 1,
+                                borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                              }}
+                            >
+                              <input
+                                type="text"
+                                placeholder="Ülke ara..."
+                                value={searchText.residence}
+                                onChange={(e) => handleSearch("residence", e.target.value)}
+                                style={{
+                                  border: 'none',
+                                  padding: '8px',
+                                  width: '100%',
+                                  background: 'transparent',
+                                  color: isDarkMode ? '#fff' : 'inherit',
+                                  outline: 'none',
+                                  fontSize: '0.9rem',
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </Box>
+                          ) : null,
+                        }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            backgroundColor: isDarkMode ? 'rgba(18, 18, 18, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                            '& fieldset': {
+                              borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                            },
+                          },
+                          '& .MuiInputLabel-root': {
+                            color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'inherit',
+                          },
+                          '& .MuiInputBase-input': {
+                            color: isDarkMode ? '#fff' : 'inherit',
+                          },
+                        }}
+                      >
+                        {filteredCountries.residence.length > 0 ? (
+                          filteredCountries.residence.map((country) => (
+                            <MenuItem 
+                              key={country.cca2} 
+                              value={country.name.common}
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 2,
+                                py: 1,
+                              }}
+                            >
+                              <img 
+                                src={country.flags.png} 
+                                alt={`${country.name.common} flag`}
+                                style={{ width: 24, height: 16, objectFit: 'cover', borderRadius: 2 }}
+                              />
+                              {country.name.common}
+                            </MenuItem>
+                          ))
+                        ) : (
+                          countries.map((country) => (
+                            <MenuItem 
+                              key={country.cca2} 
+                              value={country.name.common}
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 2,
+                                py: 1,
+                              }}
+                            >
+                              <img 
+                                src={country.flags.png} 
+                                alt={`${country.name.common} flag`}
+                                style={{ width: 24, height: 16, objectFit: 'cover', borderRadius: 2 }}
+                              />
+                              {country.name.common}
+                            </MenuItem>
+                          ))
+                        )}
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        select
+                        fullWidth
+                        label="Vatandaşlık"
+                        value={formState.citizenship || ''}
+                        onChange={(e) => handleCitizenshipSelect(e.target.value)}
+                        error={!!formErrors.citizenship}
+                        helperText={formErrors.citizenship}
+                        SelectProps={{
+                          MenuProps: {
+                            PaperProps: {
+                              style: {
+                                maxHeight: 300,
+                              },
+                            },
+                          },
+                        }}
+                        InputProps={{
+                          startAdornment: !formState.citizenship ? (
+                            <Box 
+                              sx={{ 
+                                position: 'sticky',
+                                top: 0,
+                                bgcolor: isDarkMode ? 'rgba(18, 18, 18, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                                p: 1,
+                                width: '100%',
+                                zIndex: 1,
+                                borderBottom: 1,
+                                borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                              }}
+                            >
+                              <input
+                                type="text"
+                                placeholder="Ülke ara..."
+                                value={searchText.citizenship}
+                                onChange={(e) => handleSearch("citizenship", e.target.value)}
+                                style={{
+                                  border: 'none',
+                                  padding: '8px',
+                                  width: '100%',
+                                  background: 'transparent',
+                                  color: isDarkMode ? '#fff' : 'inherit',
+                                  outline: 'none',
+                                  fontSize: '0.9rem',
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </Box>
+                          ): null,
+                        }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            backgroundColor: isDarkMode ? 'rgba(18, 18, 18, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                            '& fieldset': {
+                              borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                            },
+                          },
+                          '& .MuiInputLabel-root': {
+                            color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'inherit',
+                          },
+                          '& .MuiInputBase-input': {
+                            color: isDarkMode ? '#fff' : 'inherit',
+                          },
+                        }}
+                      >
+                        {filteredCountries.citizenship.length > 0 ? (
+                          filteredCountries.citizenship.map((country) => (
+                            <MenuItem 
+                              key={country.cca2} 
+                              value={country.name.common}
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 2,
+                                py: 1,
+                              }}
+                            >
+                              <img 
+                                src={country.flags.png} 
+                                alt={`${country.name.common} flag`}
+                                style={{ width: 24, height: 16, objectFit: 'cover', borderRadius: 2 }}
+                              />
+                              {country.name.common}
+                            </MenuItem>
+                          ))
+                        ) : (
+                          countries.map((country) => (
+                            <MenuItem 
+                              key={country.cca2} 
+                              value={country.name.common}
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 2,
+                                py: 1,
+                              }}
+                            >
+                              <img 
+                                src={country.flags.png} 
+                                alt={`${country.name.common} flag`}
+                                style={{ width: 24, height: 16, objectFit: 'cover', borderRadius: 2 }}
+                              />
+                              {country.name.common}
+                            </MenuItem>
+                          ))
+                        )}
+                      </TextField>
+                    </Grid>
+                  </Grid>
                 </Box>
 
                 <CitySelector
