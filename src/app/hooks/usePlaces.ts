@@ -17,6 +17,7 @@ export interface PlaceDetails {
     lat: number;
     lng: number;
   };
+  country?: string;
 }
 
 interface UsePlacesOptions {
@@ -122,12 +123,17 @@ export const usePlaces = (
 
       if (response.results[0]) {
         const { location } = response.results[0].geometry;
+        const country = response.results[0].address_components?.find(
+          component => component.types.includes("country")
+        )?.long_name;
+
         return {
           description: response.results[0].formatted_address,
           coordinates: {
             lat: location.lat(),
             lng: location.lng(),
           },
+          country,
         };
       }
       return null;

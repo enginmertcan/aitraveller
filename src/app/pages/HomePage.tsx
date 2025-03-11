@@ -42,15 +42,8 @@ export default function Home(): JSX.Element {
     severity: "success" as "success" | "error",
   });
 
-  const { isLoaded, predictions, inputValue, setInput, getPlaceDetails, handleSelect } = usePlaces({
-    country: "TR",
-    types: ["(cities)"],
-    debounceMs: 300,
-  });
-  const { user, isLoaded: isUserLoaded } = useUser();
-  const { saveTravelPlan, isLoading: isSaving, error: saveError } = useTravelPlan();
-
   const [formState, setFormState] = useState<TravelFormState>({
+    isDomestic: true,
     city: null,
     days: 1,
     startDate: null,
@@ -65,6 +58,14 @@ export default function Home(): JSX.Element {
     budget?: string;
     companion?: string;
   }>({});
+
+  const { isLoaded, predictions, inputValue, setInput, getPlaceDetails, handleSelect } = usePlaces({
+    country: formState.isDomestic ? "TR" : undefined,
+    types: ["(cities)"],
+    debounceMs: 300,
+  });
+  const { user, isLoaded: isUserLoaded } = useUser();
+  const { saveTravelPlan, isLoading: isSaving, error: saveError } = useTravelPlan();
 
   const handleSnackbarClose = () => {
     setSnackbar({ ...snackbar, open: false });
@@ -121,13 +122,14 @@ export default function Home(): JSX.Element {
 
   const handlePlaceSelect = async (place: Place) => {
     handleSelect(place);
-    await getPlaceDetails(place.placeId);
+    const details = await getPlaceDetails(place.placeId);
     setFormState(prev => ({
       ...prev,
       city: {
         mainText: place.mainText,
         secondaryText: place.secondaryText,
         placeId: place.placeId,
+        country: details?.country || (prev.isDomestic ? "Turkey" : "Unknown"),
       },
     }));
     setFormErrors(prev => ({ ...prev, city: undefined }));
@@ -190,6 +192,15 @@ export default function Home(): JSX.Element {
     }
   };
 
+  const handleDomesticToggle = (isDomestic: boolean) => {
+    setFormState(prev => ({
+      ...prev,
+      isDomestic,
+      city: null // Reset city when switching between domestic/international
+    }));
+    setInput(""); // Reset input when switching
+  };
+
   const handleCreatePlan = async () => {
     const errors = validateForm();
     if (Object.keys(errors).length > 0) {
@@ -223,6 +234,7 @@ export default function Home(): JSX.Element {
       const travelPlanData = {
         id: new Date().getTime().toString(),
         destination: formState.city ? `${formState.city.mainText}, ${formState.city.secondaryText}` : "Not selected",
+        days: formState.days,
         duration: `${formState.days} days`,
         startDate: formState.startDate ? dayjs(formState.startDate).format("DD/MM/YYYY") : "Not selected",
         budget: formState.budget?.title || "Not selected",
@@ -231,6 +243,8 @@ export default function Home(): JSX.Element {
         itinerary: aiItinerary,
         bestTimeToVisit: "Not specified",
         hotelOptions: [],
+        isDomestic: formState.isDomestic,
+        country: formState.city?.country || (formState.isDomestic ? "Turkey" : "Not specified"),
       };
 
       const savedPlanId = await saveTravelPlan(travelPlanData);
@@ -303,12 +317,51 @@ export default function Home(): JSX.Element {
               </Typography>
 
               <Box component="form" sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                  <Button
+                    variant={formState.isDomestic ? "contained" : "outlined"}
+                    onClick={() => handleDomesticToggle(true)}
+                    sx={{
+                      flex: 1,
+                      background: formState.isDomestic ? (isDarkMode 
+                        ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
+                        : 'linear-gradient(45deg, #2563eb, #7c3aed)') : 'transparent',
+                      '&:hover': {
+                        background: formState.isDomestic ? (isDarkMode 
+                          ? 'linear-gradient(45deg, #60a5fa, #8b5cf6)'
+                          : 'linear-gradient(45deg, #1d4ed8, #6d28d9)') : 'rgba(37, 99, 235, 0.1)',
+                      },
+                    }}
+                  >
+                    TÜRKİYE
+                  </Button>
+                  <Button
+                    variant={!formState.isDomestic ? "contained" : "outlined"}
+                    onClick={() => handleDomesticToggle(false)}
+                    sx={{
+                      flex: 1,
+                      background: !formState.isDomestic ? (isDarkMode 
+                        ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
+                        : 'linear-gradient(45deg, #2563eb, #7c3aed)') : 'transparent',
+                      '&:hover': {
+                        background: !formState.isDomestic ? (isDarkMode 
+                          ? 'linear-gradient(45deg, #60a5fa, #8b5cf6)'
+                          : 'linear-gradient(45deg, #1d4ed8, #6d28d9)') : 'rgba(37, 99, 235, 0.1)',
+                      },
+                    }}
+                  >
+                    Yurt Dışı
+                  </Button>
+                </Box>
+
                 <CitySelector
                   inputValue={inputValue}
                   predictions={predictions}
                   onInputChange={setInput}
                   onPlaceSelect={handlePlaceSelect}
                   error={formErrors.city}
+                  placeholder="Şehir ara..."
+                  isDomestic={formState.isDomestic}
                 />
 
                 <TextField

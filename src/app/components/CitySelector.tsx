@@ -14,6 +14,8 @@ interface CitySelectorProps {
   onPlaceSelect: (place: Place) => void;
   error?: string;
   isLoading?: boolean;
+  placeholder?: string;
+  isDomestic?: boolean;
 }
 
 export const CitySelector: React.FC<CitySelectorProps> = ({
@@ -23,6 +25,8 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
   onPlaceSelect,
   error,
   isLoading = false,
+  placeholder = "Şehir ara...",
+  isDomestic = true,
 }) => {
   const { isDarkMode } = useThemeContext();
 
@@ -64,7 +68,7 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
           fullWidth
           value={inputValue}
           onChange={e => onInputChange(e.target.value)}
-          placeholder="Şehir ara..."
+          placeholder={placeholder}
           error={!!error}
           helperText={error}
           InputProps={{

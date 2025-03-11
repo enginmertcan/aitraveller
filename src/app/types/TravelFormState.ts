@@ -1,8 +1,10 @@
 export interface TravelFormState {
+  isDomestic: boolean;
   city: {
     mainText: string;
     secondaryText: string;
     placeId: string;
+    country?: string;
   } | null;
   days: number;
   startDate: Date | null;

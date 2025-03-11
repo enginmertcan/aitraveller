@@ -43,7 +43,7 @@ export interface TravelPlan {
   startDate: string;
   days: number;
   duration?: string;
-  budget: number;
+  budget: string;
   groupType?: string;
   numberOfPeople?: string;
   bestTimeToVisit?: string;
@@ -51,4 +51,8 @@ export interface TravelPlan {
     [key: string]: DayPlan | Activity[];
   };
   hotelOptions?: Hotel[];
+  isDomestic: boolean;
+  country: string;
+  userId?: string;
+  createdAt?: string;
 }
