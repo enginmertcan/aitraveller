@@ -35,24 +35,38 @@ export interface Hotel {
   geoCoordinates?: GeoCoordinates;
   rating?: number;
   description: string;
+  bestTimeToVisit?: string;
 }
 
 export interface TravelPlan {
   id: string;
   destination: string;
   startDate: string;
+  duration: string;
   days: number;
-  duration?: string;
+  groupType: string;
+  numberOfPeople: string;
   budget: string;
-  groupType?: string;
-  numberOfPeople?: string;
-  bestTimeToVisit?: string;
-  itinerary: {
-    [key: string]: DayPlan | Activity[];
-  };
-  hotelOptions?: Hotel[];
   isDomestic: boolean;
-  country: string;
-  userId?: string;
-  createdAt?: string;
+  residenceCountry: string;
+  userId: string;
+  itinerary: { [key: string]: DayPlan | Activity[] };
+  hotelOptions: Hotel[];
+  bestTimeToVisit?: string;
+  // Cultural Differences
+  culturalDifferences?: string;
+  lifestyleDifferences?: string;
+  foodCultureDifferences?: string;
+  socialNormsDifferences?: string;
+  // Visa and Travel Information
+  visaRequirements?: string;
+  visaApplicationProcess?: string;
+  visaFees?: string;
+  travelDocumentChecklist?: string | string[];
+  // Local Life Recommendations
+  localTransportationGuide?: string;
+  emergencyContacts?: string | string[];
+  currencyAndPayment?: string;
+  healthcareInfo?: string;
+  communicationInfo?: string;
 }

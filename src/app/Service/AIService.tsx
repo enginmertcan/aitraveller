@@ -57,11 +57,33 @@ export const chatSession = model.startChat({
 9. Yerel deneyimler ve kültürel öğeler vurgulanmalı
 10. Bütçeye uygun alternatifler sunulmalı
 
+11. Kültürel Farklılıklar ve Öneriler:
+    - Yaşanılan ülke ile hedef ülke arasındaki temel kültürel farklılıklar (culturalDifferences)
+    - Günlük yaşam alışkanlıkları farklılıkları (lifestyleDifferences)
+    - Yeme-içme kültürü farklılıkları (foodCultureDifferences)
+    - Sosyal davranış normları farklılıkları (socialNormsDifferences)
+
+12. Vize ve Seyahat Bilgileri:
+    - Vatandaşlık durumuna göre vize gereklilikleri (visaRequirements)
+    - Vize başvuru süreci ve gerekli belgeler (visaApplicationProcess)
+    - Tahmini vize ücreti (visaFees)
+    - Vize başvurusu için öneriler (visaTips)
+    - Pasaport ve seyahat belgeleri kontrol listesi (travelDocumentChecklist)
+
+13. Yerel Yaşam Önerileri:
+    - Yerel ulaşım sistemini kullanma rehberi (localTransportationGuide)
+    - Önemli acil durum numaraları (emergencyContacts)
+    - Yerel para birimi ve ödeme yöntemleri (currencyAndPayment)
+    - Sağlık hizmetleri bilgisi (healthcareInfo)
+    - İletişim ve internet kullanımı (communicationInfo)
+
 Lütfen bu seyahat planını JSON formatında oluştur:
 Konum: {destination}
 Süre: {duration} gün
 Kişi: {groupType}
-Bütçe: {budget}`
+Bütçe: {budget}
+Yaşadığı Ülke: {residenceCountry}
+Vatandaşlık: {citizenship}`
         },
       ],
     },

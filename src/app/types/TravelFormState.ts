@@ -19,4 +19,6 @@ export interface TravelFormState {
     description: string;
     people: string;
   } | null;
+  residenceCountry: string | null;
+  citizenship: string | null;
 }
