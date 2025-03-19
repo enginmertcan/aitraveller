@@ -21,6 +21,7 @@ export interface Activity {
 }
 
 export interface DayPlan {
+  day: string
   theme?: string;
   activities?: Activity[];
   plan?: Activity[];
