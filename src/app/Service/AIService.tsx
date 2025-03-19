@@ -22,7 +22,9 @@ export const chatSession = model.startChat({
       role: "user",
       parts: [
         {
-          text: `Aşağıdaki seyahat planını oluştur ve şu kurallara uy:
+          text: `ÖNEMLİ: Tüm yanıtlarınız kesinlikle Türkçe olmalıdır. İngilizce yanıt vermeyin.
+
+Aşağıdaki seyahat planını oluştur ve şu kurallara uy:
 
 1. Tüm metinler Türkçe olmalı
 2. Para birimleri TL olmalı
@@ -57,25 +59,37 @@ export const chatSession = model.startChat({
 9. Yerel deneyimler ve kültürel öğeler vurgulanmalı
 10. Bütçeye uygun alternatifler sunulmalı
 
-11. Kültürel Farklılıklar ve Öneriler:
+11. Vize ve Pasaport Bilgileri (ZORUNLU):
+    - Vize gerekliliği ve türü (visaRequirement)
+    - Vize başvuru süreci detayları (visaApplicationProcess)
+    - Gerekli belgeler listesi (requiredDocuments)
+    - Vize ücreti (visaFee)
+    - Vize başvuru süresi (visaProcessingTime)
+    - Vize başvuru merkezi bilgileri (visaApplicationCenters)
+    - Pasaport gereksinimleri (passportRequirements)
+    - Pasaport geçerlilik süresi gereksinimleri (passportValidityRequirements)
+    - Önemli notlar ve uyarılar (importantNotes)
+    - Acil durumlar için iletişim bilgileri (emergencyContacts)
+
+12. Kültürel Farklılıklar ve Öneriler (ZORUNLU):
     - Yaşanılan ülke ile hedef ülke arasındaki temel kültürel farklılıklar (culturalDifferences)
     - Günlük yaşam alışkanlıkları farklılıkları (lifestyleDifferences)
     - Yeme-içme kültürü farklılıkları (foodCultureDifferences)
     - Sosyal davranış normları farklılıkları (socialNormsDifferences)
+    - Dini ve kültürel hassasiyetler (religiousAndCulturalSensitivities)
+    - Yerel gelenekler ve görenekler (localTraditionsAndCustoms)
+    - Önemli kültürel etkinlikler ve festivaller (culturalEventsAndFestivals)
+    - Yerel halkla iletişim önerileri (localCommunicationTips)
 
-12. Vize ve Seyahat Bilgileri:
-    - Vatandaşlık durumuna göre vize gereklilikleri (visaRequirements)
-    - Vize başvuru süreci ve gerekli belgeler (visaApplicationProcess)
-    - Tahmini vize ücreti (visaFees)
-    - Vize başvurusu için öneriler (visaTips)
-    - Pasaport ve seyahat belgeleri kontrol listesi (travelDocumentChecklist)
-
-13. Yerel Yaşam Önerileri:
+13. Yerel Yaşam Önerileri (ZORUNLU):
     - Yerel ulaşım sistemini kullanma rehberi (localTransportationGuide)
     - Önemli acil durum numaraları (emergencyContacts)
     - Yerel para birimi ve ödeme yöntemleri (currencyAndPayment)
     - Sağlık hizmetleri bilgisi (healthcareInfo)
     - İletişim ve internet kullanımı (communicationInfo)
+    - Yerel mutfak ve yemek önerileri (localCuisineAndFoodTips)
+    - Güvenlik önerileri (safetyTips)
+    - Yerel dil ve iletişim ipuçları (localLanguageAndCommunicationTips)
 
 Lütfen bu seyahat planını JSON formatında oluştur:
 Konum: {destination}
@@ -83,7 +97,10 @@ Süre: {duration} gün
 Kişi: {groupType}
 Bütçe: {budget}
 Yaşadığı Ülke: {residenceCountry}
-Vatandaşlık: {citizenship}`
+Vatandaşlık: {citizenship}
+
+NOT: Tüm yanıtınız Türkçe olmalıdır. İngilizce yanıt vermeyin.
+NOT: Vize, pasaport ve kültürel öneriler bölümleri zorunludur ve detaylı olmalıdır.`
         },
       ],
     },
