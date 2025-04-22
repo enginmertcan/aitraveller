@@ -1,7 +1,7 @@
 import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
 
 import { db } from "../Service/firebaseConfig";
-import { TravelPlan, DayPlan, Activity } from "../types/travel";
+import { TravelPlan } from "../types/travel";
 
 // Default empty travel plan object
 const DEFAULT_TRAVEL_PLAN: Partial<TravelPlan> = {
