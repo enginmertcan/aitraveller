@@ -18,7 +18,7 @@ export function ItineraryView({ itinerary }: ItineraryViewProps) {
             {day.day}
           </Typography>
           <Grid container spacing={3}>
-            {day.activities.map((activity, actIndex) => (
+            {day.activities?.map((activity, actIndex) => (
               <Grid item xs={12} md={4} key={actIndex}>
                 <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
                   <CardMedia

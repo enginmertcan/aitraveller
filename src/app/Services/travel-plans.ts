@@ -56,48 +56,136 @@ export function parseItinerary(data: any) {
       const parsedItinerary = safeParseJSON(data.itinerary);
       if (!parsedItinerary) return parsedData;
 
-      // Extract nested fields with safe access
-      parsedData = {
-        ...parsedData,
-        ...parsedItinerary,
-        itinerary: Array.isArray(parsedItinerary.itinerary) ? parsedItinerary.itinerary : [],
-        hotelOptions: Array.isArray(parsedItinerary.hotelOptions) ? parsedItinerary.hotelOptions : [],
-      };
-
-      // Safely extract cultural differences
-      const culturalDiff = parsedItinerary.culturalDifferences || {};
-      if (typeof culturalDiff === 'object') {
-        parsedData.culturalDifferences = culturalDiff.culturalDifferences || '';
-        parsedData.lifestyleDifferences = culturalDiff.lifestyleDifferences || '';
-        parsedData.foodCultureDifferences = culturalDiff.foodCultureDifferences || '';
-        parsedData.socialNormsDifferences = culturalDiff.socialNormsDifferences || '';
+      console.log('Parsed itinerary type:', typeof parsedItinerary);
+      if (parsedItinerary) {
+        console.log('Parsed itinerary keys:', Object.keys(parsedItinerary));
       }
 
-      // Safely extract visa requirements
-      const visaReq = parsedItinerary.visaAndTravelRequirements || {};
-      if (typeof visaReq === 'object') {
-        parsedData.visaRequirements = visaReq.visaRequirements || '';
-        parsedData.visaApplicationProcess = visaReq.visaApplicationProcess || '';
-        parsedData.visaFees = visaReq.visaFees || '';
-        parsedData.travelDocumentChecklist = Array.isArray(visaReq.travelDocumentChecklist) 
-          ? visaReq.travelDocumentChecklist 
-          : typeof visaReq.travelDocumentChecklist === 'string' 
-            ? visaReq.travelDocumentChecklist 
-            : '';
+      // Mobil uygulamadan gelen itinerary formatını kontrol et
+      if (Array.isArray(parsedItinerary)) {
+        // Doğrudan array formatı - günlük planlar dizisi
+        console.log('Itinerary is an array with length:', parsedItinerary.length);
+        parsedData.itinerary = parsedItinerary;
+      }
+      // Eğer itinerary.itinerary bir array ise (nested format)
+      else if (parsedItinerary && parsedItinerary.itinerary && Array.isArray(parsedItinerary.itinerary)) {
+        console.log('Itinerary has nested itinerary array with length:', parsedItinerary.itinerary.length);
+        parsedData.itinerary = parsedItinerary.itinerary;
+      }
+      // Eğer itinerary bir obje ise ve içinde günlük planlar varsa (mobil uygulamadan gelen yeni format)
+      else if (typeof parsedItinerary === 'object' && !Array.isArray(parsedItinerary) &&
+               Object.keys(parsedItinerary).some(key => key.includes('Gün'))) {
+        console.log('Itinerary is an object with day keys');
+        parsedData.itinerary = parsedItinerary;
+      }
+      // Diğer formatlar - obje olarak gelmiş olabilir
+      else if (typeof parsedItinerary === 'object') {
+        console.log('Itinerary is a generic object');
+        parsedData.itinerary = parsedItinerary;
       }
 
-      // Safely extract local life information
-      const localInfo = parsedItinerary.localLifeInformation || {};
-      if (typeof localInfo === 'object') {
-        parsedData.localTransportationGuide = localInfo.localTransportationGuide || '';
-        parsedData.emergencyContacts = Array.isArray(localInfo.emergencyContacts)
-          ? localInfo.emergencyContacts
-          : typeof localInfo.emergencyContacts === 'string'
-            ? localInfo.emergencyContacts
-            : '';
-        parsedData.currencyAndPayment = localInfo.currencyAndPayment || '';
-        parsedData.healthcareInfo = localInfo.healthcareInfo || '';
-        parsedData.communicationInfo = localInfo.communicationInfo || '';
+      // Eğer hotelOptions varsa onu da çıkar
+      if (parsedItinerary && parsedItinerary.hotelOptions && Array.isArray(parsedItinerary.hotelOptions)) {
+        console.log('Found hotelOptions in itinerary with length:', parsedItinerary.hotelOptions.length);
+        parsedData.hotelOptions = parsedItinerary.hotelOptions;
+      }
+    }
+
+    // Parse culturalDifferences if it's a string
+    if (typeof data.culturalDifferences === 'string') {
+      try {
+        const parsedCulturalDifferences = safeParseJSON(data.culturalDifferences);
+        if (parsedCulturalDifferences && typeof parsedCulturalDifferences === 'object') {
+          parsedData.culturalDifferences = parsedCulturalDifferences;
+        }
+      } catch (error) {
+        console.error('Error parsing culturalDifferences:', error);
+      }
+    }
+
+    // Parse localTips if it's a string
+    if (typeof data.localTips === 'string') {
+      try {
+        const parsedLocalTips = safeParseJSON(data.localTips);
+        if (parsedLocalTips && typeof parsedLocalTips === 'object') {
+          parsedData.localTips = parsedLocalTips;
+
+          // Extract individual fields from localTips for compatibility
+          if (parsedLocalTips.localTransportationGuide) {
+            parsedData.localTransportationGuide = parsedLocalTips.localTransportationGuide;
+          }
+          if (parsedLocalTips.emergencyContacts) {
+            parsedData.emergencyContacts = parsedLocalTips.emergencyContacts;
+          }
+          if (parsedLocalTips.currencyAndPayment) {
+            parsedData.currencyAndPayment = parsedLocalTips.currencyAndPayment;
+          }
+          if (parsedLocalTips.healthcareInfo) {
+            parsedData.healthcareInfo = parsedLocalTips.healthcareInfo;
+          }
+          if (parsedLocalTips.communicationInfo) {
+            parsedData.communicationInfo = parsedLocalTips.communicationInfo;
+          }
+          if (parsedLocalTips.localCuisineAndFoodTips) {
+            parsedData.localCuisineAndFoodTips = parsedLocalTips.localCuisineAndFoodTips;
+          }
+          if (parsedLocalTips.safetyTips) {
+            parsedData.safetyTips = parsedLocalTips.safetyTips;
+          }
+          if (parsedLocalTips.localLanguageAndCommunicationTips) {
+            parsedData.localLanguageAndCommunicationTips = parsedLocalTips.localLanguageAndCommunicationTips;
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing localTips:', error);
+      }
+    }
+
+    // Parse visaInfo if it's a string
+    if (typeof data.visaInfo === 'string') {
+      try {
+        const parsedVisaInfo = safeParseJSON(data.visaInfo);
+        if (parsedVisaInfo && typeof parsedVisaInfo === 'object') {
+          parsedData.visaInfo = parsedVisaInfo;
+        }
+      } catch (error) {
+        console.error('Error parsing visaInfo:', error);
+      }
+    }
+
+    // Parse hotelOptions if it's a string
+    if (typeof data.hotelOptions === 'string') {
+      try {
+        const parsedHotelOptions = safeParseJSON(data.hotelOptions);
+        if (Array.isArray(parsedHotelOptions)) {
+          parsedData.hotelOptions = parsedHotelOptions;
+        }
+      } catch (error) {
+        console.error('Error parsing hotelOptions:', error);
+      }
+    }
+
+    // Parse tripSummary if it's a string
+    if (typeof data.tripSummary === 'string') {
+      try {
+        const parsedTripSummary = safeParseJSON(data.tripSummary);
+        if (parsedTripSummary && typeof parsedTripSummary === 'object') {
+          parsedData.tripSummary = parsedTripSummary;
+        }
+      } catch (error) {
+        console.error('Error parsing tripSummary:', error);
+      }
+    }
+
+    // Parse destinationInfo if it's a string
+    if (typeof data.destinationInfo === 'string') {
+      try {
+        const parsedDestinationInfo = safeParseJSON(data.destinationInfo);
+        if (parsedDestinationInfo && typeof parsedDestinationInfo === 'object') {
+          parsedData.destinationInfo = parsedDestinationInfo;
+        }
+      } catch (error) {
+        console.error('Error parsing destinationInfo:', error);
       }
     }
 
@@ -111,30 +199,83 @@ export function parseItinerary(data: any) {
 export function formatTravelPlan(data: any): Partial<TravelPlan> {
   try {
     const parsedData = parseItinerary(data);
-    
-    // Format itinerary if it's an array
-    let formattedItinerary = parsedData.itinerary;
-    if (Array.isArray(parsedData.itinerary)) {
-      formattedItinerary = parsedData.itinerary.reduce((acc: any, day: any, index: number) => {
-        if (day && typeof day === 'object') {
-          acc[`Day ${index + 1}`] = day;
-        }
-        return acc;
-      }, {});
-    }
-    
+
     // Ensure all required fields exist with proper types
-    return {
+    const formattedPlan = {
       ...DEFAULT_TRAVEL_PLAN,
       ...parsedData,
       id: data?.id || DEFAULT_TRAVEL_PLAN.id,
-      itinerary: formattedItinerary || DEFAULT_TRAVEL_PLAN.itinerary,
-      hotelOptions: Array.isArray(parsedData.hotelOptions) 
-        ? parsedData.hotelOptions.filter(hotel => hotel && typeof hotel === 'object')
-        : DEFAULT_TRAVEL_PLAN.hotelOptions,
       days: typeof parsedData.days === 'number' ? parsedData.days : DEFAULT_TRAVEL_PLAN.days,
       isDomestic: typeof parsedData.isDomestic === 'boolean' ? parsedData.isDomestic : DEFAULT_TRAVEL_PLAN.isDomestic,
     };
+
+    // Temel alanları kontrol et ve düzenle
+    if (!formattedPlan.bestTimeToVisit) {
+      formattedPlan.bestTimeToVisit = "Not specified";
+    }
+
+    if (typeof formattedPlan.duration === 'number') {
+      formattedPlan.duration = `${formattedPlan.duration} days`;
+    }
+
+    if (!formattedPlan.country && formattedPlan.destination) {
+      // Destinasyondan ülke bilgisini çıkarmaya çalış
+      const parts = formattedPlan.destination.split(',');
+      if (parts.length > 1) {
+        formattedPlan.country = parts[parts.length - 1].trim();
+      }
+    }
+
+    // Mobil uygulamayla uyumlu olması için eksik alanları tamamla
+    if (!formattedPlan.citizenship) {
+      formattedPlan.citizenship = "Turkey";
+    }
+
+    if (!formattedPlan.residenceCountry) {
+      formattedPlan.residenceCountry = "Turkey";
+    }
+
+    // Karmaşık nesneleri JSON string'e dönüştür
+    // Bu, web uygulamasının mobil uygulamayla aynı formatta veri almasını sağlar
+    const complexObjectsToStringify = [
+      'culturalDifferences', 'localTips', 'visaInfo', 'tripSummary', 'destinationInfo'
+    ];
+
+    complexObjectsToStringify.forEach(field => {
+      if (formattedPlan[field] && typeof formattedPlan[field] === 'object') {
+        try {
+          formattedPlan[field] = JSON.stringify(formattedPlan[field]);
+          console.log(`${field} field converted to JSON string`);
+        } catch (error) {
+          console.error(`Error converting ${field} to JSON string:`, error);
+          formattedPlan[field] = "{}";
+        }
+      }
+    });
+
+    // hotelOptions'ı JSON string'e dönüştür
+    if (formattedPlan.hotelOptions && Array.isArray(formattedPlan.hotelOptions)) {
+      try {
+        formattedPlan.hotelOptions = JSON.stringify(formattedPlan.hotelOptions);
+        console.log('hotelOptions converted to JSON string');
+      } catch (error) {
+        console.error('Error converting hotelOptions to JSON string:', error);
+        formattedPlan.hotelOptions = "[]";
+      }
+    }
+
+    // itinerary'yi JSON string'e dönüştür
+    if (formattedPlan.itinerary && (Array.isArray(formattedPlan.itinerary) || typeof formattedPlan.itinerary === 'object')) {
+      try {
+        formattedPlan.itinerary = JSON.stringify(formattedPlan.itinerary);
+        console.log('itinerary converted to JSON string');
+      } catch (error) {
+        console.error('Error converting itinerary to JSON string:', error);
+        formattedPlan.itinerary = "[]";
+      }
+    }
+
+    return formattedPlan;
   } catch (error) {
     console.error('Error formatting travel plan:', error);
     return { ...DEFAULT_TRAVEL_PLAN, id: data?.id || '' };
@@ -151,7 +292,7 @@ export async function fetchUserTravelPlans(userId: string): Promise<Partial<Trav
     const travelPlansRef = collection(db, "travelPlans");
     const q = query(travelPlansRef, where("userId", "==", userId));
     const querySnapshot = await getDocs(q);
-    
+
     return querySnapshot.docs.map(doc => formatTravelPlan({ ...doc.data(), id: doc.id }))
       .filter(plan => plan.id && plan.destination); // Only return valid plans
   } catch (error) {
