@@ -13,9 +13,17 @@ export interface WeatherData {
   uvIndex: number;
 }
 
+// Tarihi DD/MM/YYYY formatına dönüştüren yardımcı fonksiyon
+function formatDateToDDMMYYYY(date: Date): string {
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
 // Yedek hava durumu verisi
 const fallbackWeatherData: WeatherData = {
-  date: new Date().toISOString(),
+  date: formatDateToDDMMYYYY(new Date()), // DD/MM/YYYY formatında
   temperature: 20,
   feelsLike: 20,
   description: "Hava durumu verisi alınamadı",
@@ -82,8 +90,16 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
       return [fallbackWeatherData];
     }
 
+    // Tarih geçerli mi kontrol et
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid date provided:', date);
+      date = new Date(); // Geçersiz tarih ise bugünün tarihini kullan
+    }
+
+    console.log(`Fetching weather for ${formattedLocation} for date: ${date.toISOString().split('T')[0]}`);
+
     const formattedDate = date.toISOString().split('T')[0];
-    
+
     // API çağrısını yap
     const response = await fetch(
       `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(formattedLocation)}/${formattedDate}?unitGroup=metric&include=days&key=${API_KEY}&contentType=json`,
@@ -109,21 +125,34 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
       return [fallbackWeatherData];
     }
 
-    // Veriyi dönüştür
-    return data.days.map((day: any) => ({
-      date: day.datetime,
-      temperature: day.temp ?? 20,
-      feelsLike: day.feelslike ?? day.temp ?? 20,
-      description: day.conditions ?? "Parçalı Bulutlu",
-      icon: getWeatherIcon(day.icon),
-      humidity: day.humidity ?? 50,
-      windSpeed: day.windspeed ?? 5,
-      precipitationProbability: day.precipprob ?? 0,
-      uvIndex: day.uvindex ?? 5
-    }));
+    // Veriyi dönüştür ve tarihi formatla - Mobil uygulama ile uyumlu olması için DD/MM/YYYY formatını kullan
+    return data.days.map((day: any) => {
+      // API'den gelen datetime değerini Date objesine çevir (YYYY-MM-DD formatında)
+      const dayDate = new Date(day.datetime);
+
+      // Tarihi bir gün ileri al (zaman dilimi farkını düzeltmek için)
+      dayDate.setDate(dayDate.getDate() + 1);
+
+      // Tarihi DD/MM/YYYY formatına dönüştür (mobil uyumluluğu için)
+      const formattedDate = formatDateToDDMMYYYY(dayDate);
+
+      console.log(`Formatting weather date: ${day.datetime} -> ${formattedDate} (1 gün eklendi)`);
+
+      return {
+        date: formattedDate, // DD/MM/YYYY formatında (1 gün eklenmiş)
+        temperature: day.temp ?? 20,
+        feelsLike: day.feelslike ?? day.temp ?? 20,
+        description: day.conditions ?? "Parçalı Bulutlu",
+        icon: getWeatherIcon(day.icon),
+        humidity: day.humidity ?? 50,
+        windSpeed: day.windspeed ?? 5,
+        precipitationProbability: day.precipprob ?? 0,
+        uvIndex: day.uvindex ?? 5
+      };
+    });
 
   } catch (error) {
     console.error('Error fetching weather data:', error);
     return [fallbackWeatherData];
   }
-} 
+}

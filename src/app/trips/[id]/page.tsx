@@ -65,7 +65,7 @@ function formatItineraryItem(item: any) {
 
 function getItineraryItems(itinerary: any): string[] {
   const items: string[] = [];
-  
+
   if (!itinerary) return items;
 
   if (Array.isArray(itinerary)) {
@@ -152,15 +152,40 @@ export default function TripDetailsPage() {
         if (travelPlan.destination && travelPlan.startDate) {
           const days = parseInt(travelPlan.duration?.split(' ')[0] || '1');
           const startDate = travelPlan.startDate as string;
-          
+
+          console.log(`Fetching weather for ${days} days starting from ${startDate}`);
+
+          // Tarih formatını kontrol et ve doğru şekilde parse et
+          let parsedStartDate;
+
+          // Tarih formatını kontrol et (30 Nisan 2025 veya DD/MM/YYYY)
+          if (startDate.includes('/')) {
+            // DD/MM/YYYY formatı
+            parsedStartDate = dayjs(startDate, "DD/MM/YYYY");
+          } else {
+            // Türkçe tarih formatı (30 Nisan 2025)
+            parsedStartDate = dayjs(startDate, "D MMMM YYYY", "tr");
+          }
+
+          // Geçerli bir tarih mi kontrol et
+          if (!parsedStartDate.isValid()) {
+            console.warn('Invalid date format:', startDate);
+            parsedStartDate = dayjs(); // Bugünün tarihi
+          }
+
+          console.log(`Parsed start date: ${parsedStartDate.format('YYYY-MM-DD')}`);
+
           const weatherPromises = Array.from({ length: days }, (_, index) => {
-            const date = dayjs(startDate, "DD/MM/YYYY").add(index, 'day');
+            // Tarihi bir gün ileri al (zaman dilimi farkını düzeltmek için)
+            const date = parsedStartDate.add(index, 'day');
+            console.log(`Fetching weather for day ${index + 1}: ${date.format('YYYY-MM-DD')}`);
             return getWeatherForecast(travelPlan.destination!, date.toDate());
           });
 
           const weatherResults = await Promise.all(weatherPromises);
           // Her günün ilk tahminini al ve birleştir
           const combinedWeatherData = weatherResults.map(result => result[0]);
+          console.log(`Received weather data for ${combinedWeatherData.length} days`);
           setWeatherData(combinedWeatherData);
         }
       } catch (error) {
@@ -261,14 +286,14 @@ export default function TripDetailsPage() {
   }
 
   // Format duration to always show "gün"
-  const formattedDuration = plan?.days 
+  const formattedDuration = plan?.days
     ? `${plan.days} gün`
     : plan?.duration?.toLowerCase().includes("day")
     ? plan.duration.replace("days", "gün").replace("day", "gün")
     : "Belirtilmemiş";
 
   // Format budget with proper currency
-  const formattedBudget = plan?.budget 
+  const formattedBudget = plan?.budget
     ? typeof plan.budget === 'number'
       ? new Intl.NumberFormat("tr-TR", {
           style: "currency",
@@ -282,7 +307,7 @@ export default function TripDetailsPage() {
   // Format group type
   const formattedGroupType = plan?.groupType?.includes("Kişi")
     ? plan.groupType
-    : plan?.numberOfPeople 
+    : plan?.numberOfPeople
     ? `${plan.numberOfPeople} `
     : plan?.groupType || "Belirtilmemiş";
 
@@ -310,11 +335,24 @@ export default function TripDetailsPage() {
         />
         <Box>
           <Typography variant="h6" color="primary">
-            {new Date(weather.date).toLocaleDateString("tr-TR", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            })}
+            {(() => {
+              // Tarih formatını kontrol et (YYYY-MM-DD veya DD/MM/YYYY)
+              let date;
+              if (weather.date.includes('/')) {
+                // DD/MM/YYYY formatı
+                const [day, month, year] = weather.date.split('/').map(Number);
+                date = new Date(year, month - 1, day); // Ay 0-11 arasında olduğu için -1
+              } else {
+                // YYYY-MM-DD formatı (API'den gelen)
+                date = new Date(weather.date);
+              }
+
+              return date.toLocaleDateString("tr-TR", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              });
+            })()}
           </Typography>
           <Typography variant="subtitle1" color="text.secondary">
             {weather.description}
@@ -363,7 +401,7 @@ export default function TripDetailsPage() {
     <Box
       sx={{
         minHeight: "calc(100vh - 64px)",
-        background: isDarkMode 
+        background: isDarkMode
           ? 'linear-gradient(135deg, #111827 0%, #1f2937 100%)'
           : 'linear-gradient(135deg, #e0f2fe 0%, #ddd6fe 100%)',
         py: 6,
@@ -439,8 +477,8 @@ export default function TripDetailsPage() {
                       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                         <MapPin size={24} style={{ color: "#2563eb" }} />
                         <Box>
-                          <Typography variant="subtitle2" 
-                            sx={{ 
+                          <Typography variant="subtitle2"
+                            sx={{
                               color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                               fontWeight: 600,
                               fontSize: '0.875rem',
@@ -449,8 +487,8 @@ export default function TripDetailsPage() {
                           >
                             Konum
                           </Typography>
-                          <Typography variant="h6" 
-                            sx={{ 
+                          <Typography variant="h6"
+                            sx={{
                               fontWeight: 700,
                               fontSize: '1.25rem',
                               letterSpacing: '-0.01em',
@@ -465,8 +503,8 @@ export default function TripDetailsPage() {
                       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                         <Calendar size={24} style={{ color: "#7c3aed" }} />
                         <Box>
-                          <Typography variant="subtitle2" 
-                            sx={{ 
+                          <Typography variant="subtitle2"
+                            sx={{
                               color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                               fontWeight: 600,
                               fontSize: '0.875rem',
@@ -475,19 +513,40 @@ export default function TripDetailsPage() {
                           >
                             Tarih
                           </Typography>
-                          <Typography variant="h6" 
-                            sx={{ 
+                          <Typography variant="h6"
+                            sx={{
                               fontWeight: 700,
                               fontSize: '1.25rem',
                               letterSpacing: '-0.01em',
                               color: isDarkMode ? '#f3f4f6' : 'text.primary',
                             }}
                           >
-                            {new Date(plan.startDate).toLocaleDateString("tr-TR", {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                            })}
+                            {(() => {
+                              // Tarih formatını kontrol et ve doğru şekilde parse et
+                              let date;
+                              const startDate = plan.startDate as string;
+
+                              // Tarih formatını kontrol et (30 Nisan 2025 veya DD/MM/YYYY)
+                              if (startDate.includes('/')) {
+                                // DD/MM/YYYY formatı
+                                const [day, month, year] = startDate.split('/').map(Number);
+                                date = new Date(year, month - 1, day); // Ay 0-11 arasında olduğu için -1
+                              } else {
+                                // Doğrudan parse etmeyi dene
+                                date = new Date(startDate);
+                              }
+
+                              // Geçerli bir tarih mi kontrol et
+                              if (isNaN(date.getTime())) {
+                                return startDate; // Orijinal string'i göster
+                              }
+
+                              return date.toLocaleDateString("tr-TR", {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              });
+                            })()}
                           </Typography>
                         </Box>
                       </Box>
@@ -495,8 +554,8 @@ export default function TripDetailsPage() {
                       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                         <Clock size={24} style={{ color: "#2563eb" }} />
                         <Box>
-                          <Typography variant="subtitle2" 
-                            sx={{ 
+                          <Typography variant="subtitle2"
+                            sx={{
                               color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                               fontWeight: 600,
                               fontSize: '0.875rem',
@@ -505,8 +564,8 @@ export default function TripDetailsPage() {
                           >
                             Süre
                           </Typography>
-                          <Typography variant="h6" 
-                            sx={{ 
+                          <Typography variant="h6"
+                            sx={{
                               fontWeight: 700,
                               fontSize: '1.25rem',
                               letterSpacing: '-0.01em',
@@ -521,8 +580,8 @@ export default function TripDetailsPage() {
                       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                         <Users size={24} style={{ color: "#7c3aed" }} />
                         <Box>
-                          <Typography variant="subtitle2" 
-                            sx={{ 
+                          <Typography variant="subtitle2"
+                            sx={{
                               color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                               fontWeight: 600,
                               fontSize: '0.875rem',
@@ -531,8 +590,8 @@ export default function TripDetailsPage() {
                           >
                             Kiminle
                           </Typography>
-                          <Typography variant="h6" 
-                            sx={{ 
+                          <Typography variant="h6"
+                            sx={{
                               fontWeight: 700,
                               fontSize: '1.25rem',
                               letterSpacing: '-0.01em',
@@ -547,8 +606,8 @@ export default function TripDetailsPage() {
                       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                         <Wallet size={24} style={{ color: "#2563eb" }} />
                         <Box>
-                          <Typography variant="subtitle2" 
-                            sx={{ 
+                          <Typography variant="subtitle2"
+                            sx={{
                               color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                               fontWeight: 600,
                               fontSize: '0.875rem',
@@ -557,8 +616,8 @@ export default function TripDetailsPage() {
                           >
                             Bütçe
                           </Typography>
-                          <Typography variant="h6" 
-                            sx={{ 
+                          <Typography variant="h6"
+                            sx={{
                               fontWeight: 700,
                               fontSize: '1.25rem',
                               letterSpacing: '-0.01em',
@@ -602,8 +661,8 @@ export default function TripDetailsPage() {
                     >
                       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                         <Activity size={24} style={{ color: "#7c3aed" }} />
-                        <Typography variant="h6" 
-                          sx={{ 
+                        <Typography variant="h6"
+                          sx={{
                             fontWeight: 700,
                             fontSize: '1.25rem',
                             letterSpacing: '-0.01em',
@@ -923,8 +982,8 @@ export default function TripDetailsPage() {
                               },
                             }}
                           >
-                            <Typography variant="subtitle1" 
-                              sx={{ 
+                            <Typography variant="subtitle1"
+                              sx={{
                                 color: isDarkMode ? '#93c5fd' : '#2563eb',
                                 fontWeight: 600,
                                 fontSize: '1rem',
@@ -934,8 +993,8 @@ export default function TripDetailsPage() {
                             >
                               {hotel.hotelName}
                             </Typography>
-                            <Typography variant="body2" 
-                              sx={{ 
+                            <Typography variant="body2"
+                              sx={{
                                 color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                                 fontSize: '0.875rem',
                                 lineHeight: 1.5
@@ -974,7 +1033,7 @@ export default function TripDetailsPage() {
                         letterSpacing: '-0.02em',
                         lineHeight: 1.2,
                         color: isDarkMode ? '#fff' : 'inherit',
-                        background: isDarkMode 
+                        background: isDarkMode
                           ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
                           : 'linear-gradient(45deg, #2563eb, #7c3aed)',
                         backgroundClip: "text",
@@ -999,8 +1058,8 @@ export default function TripDetailsPage() {
                             transition: "all 0.2s ease",
                             "&:hover": {
                               transform: "translateY(-4px)",
-                              boxShadow: isDarkMode 
-                                ? '0 4px 20px rgba(0, 0, 0, 0.6)' 
+                              boxShadow: isDarkMode
+                                ? '0 4px 20px rgba(0, 0, 0, 0.6)'
                                 : '0 4px 20px rgba(0, 0, 0, 0.1)',
                             },
                             display: "flex",
@@ -1051,9 +1110,9 @@ export default function TripDetailsPage() {
 
                               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                                 <MapPin size={18} style={{ color: isDarkMode ? '#a78bfa' : '#7c3aed' }} />
-                                <Typography 
-                                  variant="body2" 
-                                  sx={{ 
+                                <Typography
+                                  variant="body2"
+                                  sx={{
                                     color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                                     fontSize: '0.875rem',
                                     lineHeight: 1.5,
@@ -1065,10 +1124,10 @@ export default function TripDetailsPage() {
 
                               {hotel.rating && (
                                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                  <Rating 
-                                    value={hotel.rating} 
-                                    precision={0.1} 
-                                    readOnly 
+                                  <Rating
+                                    value={hotel.rating}
+                                    precision={0.1}
+                                    readOnly
                                     sx={{
                                       '& .MuiRating-iconFilled': {
                                         color: isDarkMode ? '#93c5fd' : '#2563eb',
@@ -1078,9 +1137,9 @@ export default function TripDetailsPage() {
                                       },
                                     }}
                                   />
-                                  <Typography 
-                                    variant="body2" 
-                                    sx={{ 
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
                                       color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
                                       fontSize: '0.875rem',
                                       lineHeight: 1.5,
@@ -1108,9 +1167,9 @@ export default function TripDetailsPage() {
                                 {hotel.priceRange}
                               </Typography>
 
-                              <Typography 
-                                variant="body2" 
-                                sx={{ 
+                              <Typography
+                                variant="body2"
+                                sx={{
                                   color: isDarkMode ? '#e5e7eb' : 'text.secondary',
                                   flex: 1,
                                   fontSize: '0.875rem',
@@ -1174,7 +1233,7 @@ export default function TripDetailsPage() {
                         letterSpacing: '-0.02em',
                         lineHeight: 1.2,
                         color: isDarkMode ? '#fff' : 'inherit',
-                        background: isDarkMode 
+                        background: isDarkMode
                           ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
                           : 'linear-gradient(45deg, #2563eb, #7c3aed)',
                         backgroundClip: "text",
@@ -1200,8 +1259,8 @@ export default function TripDetailsPage() {
                             transition: "all 0.2s ease",
                             "&:hover": {
                               transform: "translateY(-4px)",
-                              boxShadow: isDarkMode 
-                                ? '0 4px 20px rgba(0, 0, 0, 0.6)' 
+                              boxShadow: isDarkMode
+                                ? '0 4px 20px rgba(0, 0, 0, 0.6)'
                                 : '0 4px 20px rgba(0, 0, 0, 0.1)',
                             },
                           }}
@@ -1227,11 +1286,24 @@ export default function TripDetailsPage() {
                                   letterSpacing: '-0.01em',
                                 }}
                               >
-                                {new Date(weather.date).toLocaleDateString("tr-TR", {
-                                  weekday: "long",
-                                  day: "numeric",
-                                  month: "long",
-                                })}
+                                {(() => {
+                                  // Tarih formatını kontrol et (DD/MM/YYYY veya YYYY-MM-DD)
+                                  let date;
+                                  if (weather.date.includes('/')) {
+                                    // DD/MM/YYYY formatı
+                                    const [day, month, year] = weather.date.split('/').map(Number);
+                                    date = new Date(year, month - 1, day); // Ay 0-11 arasında olduğu için -1
+                                  } else {
+                                    // YYYY-MM-DD formatı (API'den gelen)
+                                    date = new Date(weather.date);
+                                  }
+
+                                  return date.toLocaleDateString("tr-TR", {
+                                    weekday: "long",
+                                    day: "numeric",
+                                    month: "long",
+                                  });
+                                })()}
                               </Typography>
                               <Typography
                                 variant="subtitle1"
@@ -1322,7 +1394,7 @@ export default function TripDetailsPage() {
                                 </Typography>
                               </Box>
                             </Grid>
-                            
+
                           </Grid>
                         </Card>
                       </Grid>
@@ -1726,4 +1798,4 @@ export default function TripDetailsPage() {
       </Container>
     </Box>
   );
-} 
+}
