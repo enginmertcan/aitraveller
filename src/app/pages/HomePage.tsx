@@ -80,9 +80,9 @@ export default function Home(): JSX.Element {
   }>>([]);
 
   const [searchText, setSearchText] = useState({ residence: "", citizenship: "" });
-  const [filteredCountries, setFilteredCountries] = useState({ 
-    residence: [] as typeof countries, 
-    citizenship: [] as typeof countries 
+  const [filteredCountries, setFilteredCountries] = useState({
+    residence: [] as typeof countries,
+    citizenship: [] as typeof countries
   });
 
   const handleSnackbarClose = () => {
@@ -253,18 +253,18 @@ export default function Home(): JSX.Element {
 
   const handleSearch = (type: "residence" | "citizenship", value: string) => {
     setSearchText(prev => ({ ...prev, [type]: value }));
-    
+
     const searchValue = value.toLowerCase().trim();
     if (!searchValue) {
       setFilteredCountries(prev => ({ ...prev, [type]: countries }));
       return;
     }
-    
-    const filtered = countries.filter(country => 
+
+    const filtered = countries.filter(country =>
       country.name.common.toLowerCase().includes(searchValue) ||
       country.name.official.toLowerCase().includes(searchValue)
     );
-    
+
     setFilteredCountries(prev => ({ ...prev, [type]: filtered }));
   };
 
@@ -287,6 +287,7 @@ export default function Home(): JSX.Element {
     setIsCreatingPlan(true);
 
     try {
+      // Prompt'u Türkçe olarak hazırla
       const FINAL_PROMPT = AI_PROMPT.replace(
         "{location}",
         formState.city ? `${formState.city.mainText}, ${formState.city.secondaryText}` : "Belirtilmedi"
@@ -296,6 +297,8 @@ export default function Home(): JSX.Element {
         .replace("{budget}", formState.budget?.title || "Belirtilmedi")
         .replace("{residenceCountry}", formState.residenceCountry || "Belirtilmedi")
         .replace("{citizenship}", formState.citizenship || "Belirtilmedi");
+
+      console.log('Gönderilen prompt:', FINAL_PROMPT);
 
       const aiResponse = await chatSession.sendMessage(FINAL_PROMPT);
       const aiItinerary = await aiResponse?.response?.text();
@@ -363,7 +366,7 @@ export default function Home(): JSX.Element {
     <Box
       sx={{
         minHeight: "calc(100vh - 64px)",
-        background: isDarkMode 
+        background: isDarkMode
           ? 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)'
           : 'linear-gradient(135deg, #e0f2fe 0%, #ddd6fe 100%)',
         py: 8,
@@ -388,7 +391,7 @@ export default function Home(): JSX.Element {
                   mb: 4,
                   fontWeight: 700,
                   color: isDarkMode ? '#fff' : 'inherit',
-                  background: isDarkMode 
+                  background: isDarkMode
                     ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
                     : 'linear-gradient(45deg, #2563eb, #7c3aed)',
                   backgroundClip: "text",
@@ -406,11 +409,11 @@ export default function Home(): JSX.Element {
                     onClick={() => handleDomesticToggle(true)}
                     sx={{
                       flex: 1,
-                      background: formState.isDomestic ? (isDarkMode 
+                      background: formState.isDomestic ? (isDarkMode
                         ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
                         : 'linear-gradient(45deg, #2563eb, #7c3aed)') : 'transparent',
                       '&:hover': {
-                        background: formState.isDomestic ? (isDarkMode 
+                        background: formState.isDomestic ? (isDarkMode
                           ? 'linear-gradient(45deg, #60a5fa, #8b5cf6)'
                           : 'linear-gradient(45deg, #1d4ed8, #6d28d9)') : 'rgba(37, 99, 235, 0.1)',
                       },
@@ -423,11 +426,11 @@ export default function Home(): JSX.Element {
                     onClick={() => handleDomesticToggle(false)}
                     sx={{
                       flex: 1,
-                      background: !formState.isDomestic ? (isDarkMode 
+                      background: !formState.isDomestic ? (isDarkMode
                         ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
                         : 'linear-gradient(45deg, #2563eb, #7c3aed)') : 'transparent',
                       '&:hover': {
-                        background: !formState.isDomestic ? (isDarkMode 
+                        background: !formState.isDomestic ? (isDarkMode
                           ? 'linear-gradient(45deg, #60a5fa, #8b5cf6)'
                           : 'linear-gradient(45deg, #1d4ed8, #6d28d9)') : 'rgba(37, 99, 235, 0.1)',
                       },
@@ -459,8 +462,8 @@ export default function Home(): JSX.Element {
                         }}
                         InputProps={{
                           startAdornment: !formState.residenceCountry ? (
-                            <Box 
-                              sx={{ 
+                            <Box
+                              sx={{
                                 position: 'sticky',
                                 top: 0,
                                 bgcolor: isDarkMode ? 'rgba(18, 18, 18, 0.95)' : 'rgba(255, 255, 255, 0.95)',
@@ -507,8 +510,8 @@ export default function Home(): JSX.Element {
                       >
                         {filteredCountries.residence.length > 0 ? (
                           filteredCountries.residence.map((country) => (
-                            <MenuItem 
-                              key={country.cca2} 
+                            <MenuItem
+                              key={country.cca2}
                               value={country.name.common}
                               sx={{
                                 display: 'flex',
@@ -517,8 +520,8 @@ export default function Home(): JSX.Element {
                                 py: 1,
                               }}
                             >
-                              <img 
-                                src={country.flags.png} 
+                              <img
+                                src={country.flags.png}
                                 alt={`${country.name.common} flag`}
                                 style={{ width: 24, height: 16, objectFit: 'cover', borderRadius: 2 }}
                               />
@@ -527,8 +530,8 @@ export default function Home(): JSX.Element {
                           ))
                         ) : (
                           countries.map((country) => (
-                            <MenuItem 
-                              key={country.cca2} 
+                            <MenuItem
+                              key={country.cca2}
                               value={country.name.common}
                               sx={{
                                 display: 'flex',
@@ -537,8 +540,8 @@ export default function Home(): JSX.Element {
                                 py: 1,
                               }}
                             >
-                              <img 
-                                src={country.flags.png} 
+                              <img
+                                src={country.flags.png}
                                 alt={`${country.name.common} flag`}
                                 style={{ width: 24, height: 16, objectFit: 'cover', borderRadius: 2 }}
                               />
@@ -568,8 +571,8 @@ export default function Home(): JSX.Element {
                         }}
                         InputProps={{
                           startAdornment: !formState.citizenship ? (
-                            <Box 
-                              sx={{ 
+                            <Box
+                              sx={{
                                 position: 'sticky',
                                 top: 0,
                                 bgcolor: isDarkMode ? 'rgba(18, 18, 18, 0.95)' : 'rgba(255, 255, 255, 0.95)',
@@ -616,8 +619,8 @@ export default function Home(): JSX.Element {
                       >
                         {filteredCountries.citizenship.length > 0 ? (
                           filteredCountries.citizenship.map((country) => (
-                            <MenuItem 
-                              key={country.cca2} 
+                            <MenuItem
+                              key={country.cca2}
                               value={country.name.common}
                               sx={{
                                 display: 'flex',
@@ -626,8 +629,8 @@ export default function Home(): JSX.Element {
                                 py: 1,
                               }}
                             >
-                              <img 
-                                src={country.flags.png} 
+                              <img
+                                src={country.flags.png}
                                 alt={`${country.name.common} flag`}
                                 style={{ width: 24, height: 16, objectFit: 'cover', borderRadius: 2 }}
                               />
@@ -636,8 +639,8 @@ export default function Home(): JSX.Element {
                           ))
                         ) : (
                           countries.map((country) => (
-                            <MenuItem 
-                              key={country.cca2} 
+                            <MenuItem
+                              key={country.cca2}
                               value={country.name.common}
                               sx={{
                                 display: 'flex',
@@ -646,8 +649,8 @@ export default function Home(): JSX.Element {
                                 py: 1,
                               }}
                             >
-                              <img 
-                                src={country.flags.png} 
+                              <img
+                                src={country.flags.png}
                                 alt={`${country.name.common} flag`}
                                 style={{ width: 24, height: 16, objectFit: 'cover', borderRadius: 2 }}
                               />
@@ -745,8 +748,8 @@ export default function Home(): JSX.Element {
                           transition: "all 0.2s ease",
                           "&:hover": {
                             transform: "translateY(-4px)",
-                            boxShadow: isDarkMode 
-                              ? '0 4px 20px rgba(0, 0, 0, 0.4)' 
+                            boxShadow: isDarkMode
+                              ? '0 4px 20px rgba(0, 0, 0, 0.4)'
                               : '0 4px 20px rgba(0, 0, 0, 0.1)',
                             border: `1px solid ${isDarkMode ? '#93c5fd' : '#2563eb'}`,
                           },
@@ -797,8 +800,8 @@ export default function Home(): JSX.Element {
                           transition: "all 0.2s ease",
                           "&:hover": {
                             transform: "translateY(-4px)",
-                            boxShadow: isDarkMode 
-                              ? '0 4px 20px rgba(0, 0, 0, 0.4)' 
+                            boxShadow: isDarkMode
+                              ? '0 4px 20px rgba(0, 0, 0, 0.4)'
                               : '0 4px 20px rgba(0, 0, 0, 0.1)',
                             border: `1px solid ${isDarkMode ? '#a78bfa' : '#7c3aed'}`,
                           },
@@ -835,12 +838,12 @@ export default function Home(): JSX.Element {
                   sx={{
                     mt: 2,
                     py: 1.5,
-                    background: isDarkMode 
+                    background: isDarkMode
                       ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
                       : 'linear-gradient(45deg, #2563eb, #7c3aed)',
                     borderRadius: "12px",
                     "&:hover": {
-                      background: isDarkMode 
+                      background: isDarkMode
                         ? 'linear-gradient(45deg, #60a5fa, #8b5cf6)'
                         : 'linear-gradient(45deg, #1d4ed8, #6d28d9)',
                     },
@@ -881,7 +884,7 @@ export default function Home(): JSX.Element {
                       mb: 2,
                       fontWeight: 700,
                       color: isDarkMode ? '#fff' : 'inherit',
-                      background: isDarkMode 
+                      background: isDarkMode
                         ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
                         : 'linear-gradient(45deg, #2563eb, #7c3aed)',
                       backgroundClip: "text",
@@ -906,12 +909,12 @@ export default function Home(): JSX.Element {
                       href="/sign-in"
                       startIcon={<UserIcon />}
                       sx={{
-                        background: isDarkMode 
+                        background: isDarkMode
                           ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
                           : 'linear-gradient(45deg, #2563eb, #7c3aed)',
                         borderRadius: "12px",
                         "&:hover": {
-                          background: isDarkMode 
+                          background: isDarkMode
                             ? 'linear-gradient(45deg, #60a5fa, #8b5cf6)'
                             : 'linear-gradient(45deg, #1d4ed8, #6d28d9)',
                         },
@@ -945,7 +948,7 @@ export default function Home(): JSX.Element {
                       mb: 2,
                       fontWeight: 700,
                       color: isDarkMode ? '#fff' : 'inherit',
-                      background: isDarkMode 
+                      background: isDarkMode
                         ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
                         : 'linear-gradient(45deg, #2563eb, #7c3aed)',
                       backgroundClip: "text",
@@ -992,7 +995,7 @@ export default function Home(): JSX.Element {
           severity={snackbar.severity}
           sx={{
             width: "100%",
-            backgroundColor: isDarkMode 
+            backgroundColor: isDarkMode
               ? (snackbar.severity === "success" ? 'rgba(34, 197, 94, 0.9)' : 'rgba(239, 68, 68, 0.9)')
               : undefined,
             color: isDarkMode ? '#fff' : undefined,
