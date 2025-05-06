@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import {
   Box,
   Button,
@@ -13,13 +14,15 @@ import {
   Grid,
   IconButton,
   Typography,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { ArrowLeft, ArrowRight, Calendar, Clock, MapPin, Plane, Star, Users, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calendar, Clock, Heart, MapPin, Plane, Star, Users, Wallet } from "lucide-react";
 
 import { borderRadius, colors, shadows } from "../components/ThemeRegistry/theme";
 import { useThemeContext } from "../context/ThemeContext";
-import { fetchRecommendedTravelPlans } from "../Services/travel-plans";
+import { fetchRecommendedTravelPlans, toggleLike } from "../Services/travel-plans";
 import { TravelPlan } from "../types/travel";
 
 const StyledCard = styled(Card)(({ theme }) => ({
@@ -107,11 +110,46 @@ const formatDate = (dateString: string) => {
   }
 };
 
+// Like Button Component
+const LikeButton = styled(IconButton)(({ theme, isLiked }: { theme: any; isLiked: boolean }) => ({
+  position: "absolute",
+  top: 16,
+  left: 16,
+  backgroundColor: isLiked ? "rgba(233, 30, 99, 0.1)" : "rgba(255, 255, 255, 0.2)",
+  color: isLiked ? "#e91e63" : "#fff",
+  zIndex: 2,
+  "&:hover": {
+    backgroundColor: isLiked ? "rgba(233, 30, 99, 0.2)" : "rgba(255, 255, 255, 0.3)",
+  },
+}));
+
+// Like Count Badge
+const LikeCountBadge = styled(Box)(({ theme }) => ({
+  position: "absolute",
+  bottom: 16,
+  right: 16,
+  backgroundColor: "rgba(255, 255, 255, 0.9)",
+  color: "#000",
+  padding: "4px 8px",
+  borderRadius: borderRadius.md,
+  display: "flex",
+  alignItems: "center",
+  gap: "4px",
+  zIndex: 1,
+  fontWeight: 600,
+  fontSize: "0.75rem",
+  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+}));
+
 export default function RecommendedTripsPage() {
   const [recommendedTrips, setRecommendedTrips] = useState<TravelPlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertSeverity, setAlertSeverity] = useState<"success" | "error">("success");
   const router = useRouter();
   const { isDarkMode } = useThemeContext();
+  const { user, isLoaded } = useUser();
 
   useEffect(() => {
     const loadRecommendedTrips = async () => {
@@ -131,6 +169,84 @@ export default function RecommendedTripsPage() {
 
   const handleTripClick = (tripId: string) => {
     router.push(`/trips/${tripId}`);
+  };
+
+  // Handle like button click
+  const handleLike = async (event: React.MouseEvent, tripId: string) => {
+    event.stopPropagation(); // Prevent card click
+
+    if (!isLoaded || !user) {
+      setAlertMessage("Beğeni yapabilmek için giriş yapmalısınız.");
+      setAlertSeverity("error");
+      setAlertOpen(true);
+      return;
+    }
+
+    try {
+      // Find the trip in the current state
+      const tripIndex = recommendedTrips.findIndex(trip => trip.id === tripId);
+      if (tripIndex === -1) return;
+
+      const trip = recommendedTrips[tripIndex];
+      const isCurrentlyLiked = trip.likedBy?.includes(user.id) || false;
+      const currentLikes = trip.likes || 0;
+
+      // Create a new likedBy array
+      const newLikedBy = [...(trip.likedBy || [])];
+
+      if (isCurrentlyLiked) {
+        // Remove user from likedBy
+        const index = newLikedBy.indexOf(user.id);
+        if (index > -1) {
+          newLikedBy.splice(index, 1);
+        }
+      } else {
+        // Add user to likedBy
+        newLikedBy.push(user.id);
+      }
+
+      // Create a new trips array with the updated trip
+      const updatedTrips = [...recommendedTrips];
+      updatedTrips[tripIndex] = {
+        ...trip,
+        likes: isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1,
+        likedBy: newLikedBy
+      };
+
+      // Update the state immediately for responsive UI
+      setRecommendedTrips(updatedTrips);
+
+      // Then perform the actual API call in the background
+      const success = await toggleLike(tripId, user.id);
+
+      if (success) {
+        setAlertMessage("Beğeni durumu güncellendi.");
+        setAlertSeverity("success");
+        setAlertOpen(true);
+      } else {
+        // If the API call fails, revert the UI change
+        setRecommendedTrips(recommendedTrips);
+        setAlertMessage("Beğeni işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.");
+        setAlertSeverity("error");
+        setAlertOpen(true);
+      }
+    } catch (error) {
+      console.error("Error toggling like:", error);
+      setAlertMessage("Beğeni işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.");
+      setAlertSeverity("error");
+      setAlertOpen(true);
+    }
+  };
+
+  // Check if the current user has liked a trip
+  const isLikedByUser = (trip: TravelPlan) => {
+    if (!isLoaded || !user) return false;
+    return trip.likedBy?.includes(user.id) || false;
+  };
+
+  // Handle alert close
+  const handleAlertClose = () => {
+    setAlertOpen(false);
   };
 
   // Function to get a random gradient for the card header
@@ -236,6 +352,23 @@ export default function RecommendedTripsPage() {
                     overflow: "hidden",
                   }}
                 >
+                  {/* Like Button */}
+                  <LikeButton
+                    isLiked={isLikedByUser(trip)}
+                    onClick={(e) => handleLike(e, trip.id)}
+                    size="small"
+                  >
+                    <Heart size={18} fill={isLikedByUser(trip) ? "#e91e63" : "none"} />
+                  </LikeButton>
+
+                  {/* Like Count Badge */}
+                  <LikeCountBadge>
+                    <Heart size={14} color="#e91e63" fill="#e91e63" />
+                    <Typography variant="caption" fontWeight="bold">
+                      {trip.likes || 0}
+                    </Typography>
+                  </LikeCountBadge>
+
                   <Box
                     sx={{
                       position: "absolute",
@@ -449,6 +582,23 @@ export default function RecommendedTripsPage() {
           </Button>
         </NoTripsContainer>
       )}
+
+      {/* Alert Snackbar */}
+      <Snackbar
+        open={alertOpen}
+        autoHideDuration={4000}
+        onClose={handleAlertClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={handleAlertClose}
+          severity={alertSeverity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {alertMessage}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

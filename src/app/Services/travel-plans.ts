@@ -743,6 +743,62 @@ export async function toggleRecommendation(id: string, isRecommended: boolean, c
 }
 
 /**
+ * Bir seyahat planını beğenme veya beğeniyi kaldırma
+ */
+export async function toggleLike(id: string, userId: string): Promise<boolean> {
+  try {
+    console.log(`Toggling like for travel plan: ${id} by user: ${userId}`);
+
+    if (!id?.trim() || !userId?.trim()) {
+      console.warn("Invalid travel plan ID or user ID");
+      return false;
+    }
+
+    const travelPlanRef = doc(db, TRAVEL_PLANS_COLLECTION, id);
+
+    // Önce planı getir
+    const docSnap = await getDoc(travelPlanRef);
+
+    if (!docSnap.exists()) {
+      console.warn("Travel plan not found:", id);
+      return false;
+    }
+
+    const planData = docSnap.data();
+
+    // likedBy dizisini kontrol et, yoksa oluştur
+    const likedBy = planData.likedBy || [];
+
+    // Kullanıcı zaten beğenmiş mi kontrol et
+    const userIndex = likedBy.indexOf(userId);
+
+    if (userIndex > -1) {
+      // Kullanıcı zaten beğenmiş, beğeniyi kaldır
+      likedBy.splice(userIndex, 1);
+      console.log(`User removed like: ${userId}`);
+    } else {
+      // Kullanıcı henüz beğenmemiş, beğeni ekle
+      likedBy.push(userId);
+      console.log(`User added like: ${userId}`);
+    }
+
+    // Beğeni sayısını güncelle ve veritabanını güncelle
+    await updateDoc(travelPlanRef, {
+      likedBy: likedBy,
+      likes: likedBy.length,
+      updatedAt: serverTimestamp()
+    });
+
+    console.log(`Travel plan like status updated. New like count: ${likedBy.length}`);
+
+    return true;
+  } catch (error) {
+    console.error("Error updating travel plan like status:", error);
+    return false;
+  }
+}
+
+/**
  * Önerilen seyahat planlarını getirir
  */
 export async function fetchRecommendedTravelPlans(): Promise<Partial<TravelPlan>[]> {
@@ -793,8 +849,17 @@ export async function fetchRecommendedTravelPlans(): Promise<Partial<TravelPlan>
       })
     );
 
-    // Sadece geçerli planları döndür
-    return plans.filter(plan => plan.id && plan.destination);
+    // Sadece geçerli planları filtrele
+    const validPlans = plans.filter(plan => plan.id && plan.destination);
+
+    // Beğeni sayısına göre sırala (çoktan aza)
+    validPlans.sort((a, b) => {
+      const likesA = a.likes || 0;
+      const likesB = b.likes || 0;
+      return likesB - likesA;
+    });
+
+    return validPlans;
   } catch (error) {
     console.error("Error fetching recommended travel plans:", error);
     return [];

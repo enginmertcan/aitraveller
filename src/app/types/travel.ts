@@ -104,6 +104,8 @@ export interface TravelPlan {
   country?: string;
   userId: string;
   isRecommended?: boolean;
+  likes?: number;
+  likedBy?: string[];
   itinerary: { [key: string]: DayPlan | Activity[] } | string;
   hotelOptions: Hotel[] | string;
   bestTimeToVisit?: string;

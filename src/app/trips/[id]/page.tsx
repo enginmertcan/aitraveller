@@ -40,6 +40,7 @@ import {
   Droplets,
   FileCheck,
   Globe2,
+  Heart,
   HeartPulse,
   Hotel,
   MapPin,
@@ -58,7 +59,7 @@ import {
 import TripComments from "../../components/trips/trip-comments";
 import { LoadingSpinner } from "../../components/ui/loading-spinner";
 import { useThemeContext } from "../../context/ThemeContext";
-import { fetchTravelPlanById, toggleRecommendation } from "../../Services/travel-plans";
+import { fetchTravelPlanById, toggleLike, toggleRecommendation } from "../../Services/travel-plans";
 import { getWeatherForecast, WeatherData } from "../../Services/weather-service";
 import { TravelPlan } from "../../types/travel";
 
@@ -546,6 +547,105 @@ export default function TripDetailsPage() {
                   >
                     {plan.isRecommended ? "Önerildi" : "Öner"}
                   </Button>
+                )}
+
+                {/* Beğeni Butonu ve Sayısı - Önerilen planlarda göster */}
+                {plan.isRecommended && (
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        backgroundColor: 'rgba(233, 30, 99, 0.1)',
+                        borderRadius: '20px',
+                        padding: '6px 12px',
+                        marginRight: 1,
+                      }}
+                    >
+                      <Heart size={16} color="#e91e63" fill="#e91e63" />
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          ml: 1,
+                          fontWeight: 'bold',
+                          color: '#e91e63'
+                        }}
+                      >
+                        {plan.likes || 0}
+                      </Typography>
+                    </Box>
+
+                    {/* Beğeni Butonu */}
+                    <IconButton
+                      onClick={async () => {
+                        try {
+                          if (!user) {
+                            alert("Beğeni yapabilmek için giriş yapmalısınız.");
+                            return;
+                          }
+
+                          if (!tripId) {
+                            console.error("Trip ID is missing");
+                            alert("Seyahat planı ID'si bulunamadı.");
+                            return;
+                          }
+
+                          // Optimistic UI update - immediately update the UI
+                          const isCurrentlyLiked = plan.likedBy?.includes(user.id) || false;
+                          const currentLikes = plan.likes || 0;
+
+                          // Create a new likedBy array
+                          const newLikedBy = [...(plan.likedBy || [])];
+
+                          if (isCurrentlyLiked) {
+                            // Remove user from likedBy
+                            const index = newLikedBy.indexOf(user.id);
+                            if (index > -1) {
+                              newLikedBy.splice(index, 1);
+                            }
+                          } else {
+                            // Add user to likedBy
+                            newLikedBy.push(user.id);
+                          }
+
+                          // Update the plan state immediately for responsive UI
+                          setPlan({
+                            ...plan,
+                            likes: isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1,
+                            likedBy: newLikedBy
+                          });
+
+                          // Then perform the actual API call in the background
+                          const success = await toggleLike(tripId, user.id);
+
+                          if (!success) {
+                            // If the API call fails, revert the UI change
+                            setPlan({
+                              ...plan,
+                              likes: currentLikes,
+                              likedBy: plan.likedBy || []
+                            });
+                            alert("Beğeni işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.");
+                          }
+                        } catch (error) {
+                          console.error("Beğeni hatası:", error);
+                          alert("Beğeni işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.");
+                        }
+                      }}
+                      sx={{
+                        color: plan.likedBy?.includes(user?.id || '') ? "#e91e63" : "#666",
+                        backgroundColor: 'rgba(233, 30, 99, 0.1)',
+                        "&:hover": {
+                          backgroundColor: 'rgba(233, 30, 99, 0.2)',
+                        },
+                      }}
+                    >
+                      <Heart
+                        size={20}
+                        fill={plan.likedBy?.includes(user?.id || '') ? "#e91e63" : "none"}
+                      />
+                    </IconButton>
+                  </Box>
                 )}
 
                 {/* PDF İndir Butonu */}
