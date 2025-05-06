@@ -77,6 +77,27 @@ export function parseItinerary(data: any) {
         console.log('Parsed itinerary keys:', Object.keys(parsedItinerary));
       }
 
+      // Extract visaInfo, culturalDifferences, and localTips from the itinerary JSON string
+      if (parsedItinerary && typeof parsedItinerary === 'object') {
+        // Extract visaInfo
+        if (parsedItinerary.visaInfo) {
+          console.log('Found visaInfo in itinerary');
+          parsedData.visaInfo = parsedItinerary.visaInfo;
+        }
+
+        // Extract culturalDifferences
+        if (parsedItinerary.culturalDifferences) {
+          console.log('Found culturalDifferences in itinerary');
+          parsedData.culturalDifferences = parsedItinerary.culturalDifferences;
+        }
+
+        // Extract localTips
+        if (parsedItinerary.localTips) {
+          console.log('Found localTips in itinerary');
+          parsedData.localTips = parsedItinerary.localTips;
+        }
+      }
+
       // Mobil uygulamadan gelen itinerary formatını kontrol et
       if (Array.isArray(parsedItinerary)) {
         // Doğrudan array formatı - günlük planlar dizisi
@@ -113,6 +134,17 @@ export function parseItinerary(data: any) {
         const parsedCulturalDifferences = safeParseJSON(data.culturalDifferences);
         if (parsedCulturalDifferences && typeof parsedCulturalDifferences === 'object') {
           parsedData.culturalDifferences = parsedCulturalDifferences;
+
+          // Extract individual fields from culturalDifferences for compatibility
+          if (parsedCulturalDifferences.lifestyleDifferences) {
+            parsedData.lifestyleDifferences = parsedCulturalDifferences.lifestyleDifferences;
+          }
+          if (parsedCulturalDifferences.foodCultureDifferences) {
+            parsedData.foodCultureDifferences = parsedCulturalDifferences.foodCultureDifferences;
+          }
+          if (parsedCulturalDifferences.socialNormsDifferences) {
+            parsedData.socialNormsDifferences = parsedCulturalDifferences.socialNormsDifferences;
+          }
         }
       } catch (error) {
         console.error('Error parsing culturalDifferences:', error);
@@ -163,6 +195,20 @@ export function parseItinerary(data: any) {
         const parsedVisaInfo = safeParseJSON(data.visaInfo);
         if (parsedVisaInfo && typeof parsedVisaInfo === 'object') {
           parsedData.visaInfo = parsedVisaInfo;
+
+          // Extract individual fields from visaInfo for compatibility
+          if (parsedVisaInfo.visaRequirement) {
+            parsedData.visaRequirements = parsedVisaInfo.visaRequirement;
+          }
+          if (parsedVisaInfo.visaApplicationProcess) {
+            parsedData.visaApplicationProcess = parsedVisaInfo.visaApplicationProcess;
+          }
+          if (parsedVisaInfo.visaFee) {
+            parsedData.visaFees = parsedVisaInfo.visaFee;
+          }
+          if (parsedVisaInfo.requiredDocuments) {
+            parsedData.travelDocumentChecklist = parsedVisaInfo.requiredDocuments;
+          }
         }
       } catch (error) {
         console.error('Error parsing visaInfo:', error);
@@ -251,11 +297,90 @@ export function formatTravelPlan(data: any): Partial<TravelPlan> {
       formattedPlan.residenceCountry = "Turkey";
     }
 
+    // Web uygulamasından oluşturulan seyahat planları için culturalDifferences oluştur
+    if (!formattedPlan.culturalDifferences && (formattedPlan.lifestyleDifferences || formattedPlan.foodCultureDifferences || formattedPlan.socialNormsDifferences)) {
+      console.log('Creating culturalDifferences object from individual fields');
+      formattedPlan.culturalDifferences = {
+        culturalDifferences: 'Belirtilmemiş',
+        lifestyleDifferences: formattedPlan.lifestyleDifferences || 'Belirtilmemiş',
+        foodCultureDifferences: formattedPlan.foodCultureDifferences || 'Belirtilmemiş',
+        socialNormsDifferences: formattedPlan.socialNormsDifferences || 'Belirtilmemiş',
+        religiousAndCulturalSensitivities: 'Belirtilmemiş',
+        localTraditionsAndCustoms: 'Belirtilmemiş',
+        culturalEventsAndFestivals: 'Belirtilmemiş',
+        localCommunicationTips: 'Belirtilmemiş'
+      };
+    }
+
+    // Web uygulamasından oluşturulan seyahat planları için visaInfo oluştur
+    if (!formattedPlan.visaInfo && (formattedPlan.visaRequirements || formattedPlan.visaApplicationProcess || formattedPlan.travelDocumentChecklist)) {
+      console.log('Creating visaInfo object from individual fields');
+      formattedPlan.visaInfo = {
+        visaRequirement: formattedPlan.visaRequirements || '',
+        visaApplicationProcess: formattedPlan.visaApplicationProcess || '',
+        requiredDocuments: Array.isArray(formattedPlan.travelDocumentChecklist)
+          ? formattedPlan.travelDocumentChecklist
+          : (formattedPlan.travelDocumentChecklist ? [formattedPlan.travelDocumentChecklist] : []),
+        visaFee: formattedPlan.visaFees || '0 TL',
+        visaProcessingTime: 'Belirtilmemiş',
+        visaApplicationCenters: ['Belirtilmemiş'],
+        passportRequirements: 'Geçerli pasaport',
+        passportValidityRequirements: 'Seyahat bitiş tarihinden sonra en az 6 ay',
+        importantNotes: 'Belirtilmemiş',
+        emergencyContacts: {
+          ambulance: '112',
+          police: '155',
+          jandarma: '156'
+        }
+      };
+    }
+
+    // Web uygulamasından oluşturulan seyahat planları için localTips oluştur
+    if (!formattedPlan.localTips && (formattedPlan.localTransportationGuide || formattedPlan.emergencyContacts ||
+        formattedPlan.currencyAndPayment || formattedPlan.healthcareInfo || formattedPlan.communicationInfo)) {
+      console.log('Creating localTips object from individual fields');
+      formattedPlan.localTips = {
+        localTransportationGuide: formattedPlan.localTransportationGuide || 'Belirtilmemiş',
+        emergencyContacts: formattedPlan.emergencyContacts || { ambulance: '112', police: '155', jandarma: '156' },
+        currencyAndPayment: formattedPlan.currencyAndPayment || 'Belirtilmemiş',
+        healthcareInfo: formattedPlan.healthcareInfo || 'Belirtilmemiş',
+        communicationInfo: formattedPlan.communicationInfo || 'Belirtilmemiş',
+        localCuisineAndFoodTips: formattedPlan.localCuisineAndFoodTips || 'Belirtilmemiş',
+        safetyTips: formattedPlan.safetyTips || 'Belirtilmemiş',
+        localLanguageAndCommunicationTips: formattedPlan.localLanguageAndCommunicationTips || 'Belirtilmemiş'
+      };
+    }
+
     // Karmaşık nesneleri JSON string'e dönüştür
     // Bu, web uygulamasının mobil uygulamayla aynı formatta veri almasını sağlar
     const complexObjectsToStringify = [
       'culturalDifferences', 'localTips', 'visaInfo', 'tripSummary', 'destinationInfo'
     ];
+
+    // Önce bu alanları itinerary'den çıkaralım (eğer varsa)
+    if (formattedPlan.itinerary && typeof formattedPlan.itinerary === 'object') {
+      const itineraryObj = formattedPlan.itinerary as any;
+
+      // visaInfo, culturalDifferences ve localTips alanlarını itinerary'den çıkar
+      // ve üst seviye alanlara taşı (eğer üst seviyede yoksa)
+      if (itineraryObj.visaInfo && !formattedPlan.visaInfo) {
+        console.log('Moving visaInfo from itinerary to top level');
+        formattedPlan.visaInfo = itineraryObj.visaInfo;
+        delete itineraryObj.visaInfo;
+      }
+
+      if (itineraryObj.culturalDifferences && !formattedPlan.culturalDifferences) {
+        console.log('Moving culturalDifferences from itinerary to top level');
+        formattedPlan.culturalDifferences = itineraryObj.culturalDifferences;
+        delete itineraryObj.culturalDifferences;
+      }
+
+      if (itineraryObj.localTips && !formattedPlan.localTips) {
+        console.log('Moving localTips from itinerary to top level');
+        formattedPlan.localTips = itineraryObj.localTips;
+        delete itineraryObj.localTips;
+      }
+    }
 
     complexObjectsToStringify.forEach(field => {
       if (formattedPlan[field] && typeof formattedPlan[field] === 'object') {
@@ -309,8 +434,42 @@ export async function fetchUserTravelPlans(userId: string): Promise<Partial<Trav
     const q = query(travelPlansRef, where("userId", "==", userId));
     const querySnapshot = await getDocs(q);
 
-    return querySnapshot.docs.map(doc => formatTravelPlan({ ...doc.data(), id: doc.id }))
-      .filter(plan => plan.id && plan.destination); // Only return valid plans
+    // Her bir plan için özel işleme yap
+    const plans = await Promise.all(querySnapshot.docs.map(async (doc) => {
+      const rawData = doc.data();
+
+      // Özel işleme: itinerary içindeki visaInfo, culturalDifferences ve localTips alanlarını çıkar
+      if (rawData.itinerary && typeof rawData.itinerary === 'string') {
+        try {
+          const parsedItinerary = safeParseJSON(rawData.itinerary);
+          if (parsedItinerary && typeof parsedItinerary === 'object') {
+            // visaInfo, culturalDifferences ve localTips alanlarını itinerary'den çıkar
+            // ve üst seviye alanlara taşı
+            if (parsedItinerary.visaInfo && !rawData.visaInfo) {
+              console.log('Extracting visaInfo from itinerary');
+              rawData.visaInfo = parsedItinerary.visaInfo;
+            }
+
+            if (parsedItinerary.culturalDifferences && !rawData.culturalDifferences) {
+              console.log('Extracting culturalDifferences from itinerary');
+              rawData.culturalDifferences = parsedItinerary.culturalDifferences;
+            }
+
+            if (parsedItinerary.localTips && !rawData.localTips) {
+              console.log('Extracting localTips from itinerary');
+              rawData.localTips = parsedItinerary.localTips;
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing itinerary:', error);
+        }
+      }
+
+      return formatTravelPlan({ ...rawData, id: doc.id });
+    }));
+
+    // Sadece geçerli planları döndür
+    return plans.filter(plan => plan.id && plan.destination);
   } catch (error) {
     console.error("Error fetching travel plans:", error);
     return [];
@@ -334,6 +493,34 @@ export async function fetchTravelPlanById(id: string): Promise<Partial<TravelPla
 
     const rawData = docSnap.data();
     console.log('Raw data from Firebase:', rawData);
+
+    // Özel işleme: itinerary içindeki visaInfo, culturalDifferences ve localTips alanlarını çıkar
+    if (rawData.itinerary && typeof rawData.itinerary === 'string') {
+      try {
+        const parsedItinerary = safeParseJSON(rawData.itinerary);
+        if (parsedItinerary && typeof parsedItinerary === 'object') {
+          // visaInfo, culturalDifferences ve localTips alanlarını itinerary'den çıkar
+          // ve üst seviye alanlara taşı
+          if (parsedItinerary.visaInfo && !rawData.visaInfo) {
+            console.log('Extracting visaInfo from itinerary');
+            rawData.visaInfo = parsedItinerary.visaInfo;
+          }
+
+          if (parsedItinerary.culturalDifferences && !rawData.culturalDifferences) {
+            console.log('Extracting culturalDifferences from itinerary');
+            rawData.culturalDifferences = parsedItinerary.culturalDifferences;
+          }
+
+          if (parsedItinerary.localTips && !rawData.localTips) {
+            console.log('Extracting localTips from itinerary');
+            rawData.localTips = parsedItinerary.localTips;
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing itinerary:', error);
+      }
+    }
+
     const formattedPlan = formatTravelPlan({ ...rawData, id: docSnap.id });
     console.log('Formatted travel plan:', formattedPlan);
     return formattedPlan;
