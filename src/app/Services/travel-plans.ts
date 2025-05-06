@@ -1,7 +1,23 @@
-import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  doc,
+  getDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+  Timestamp
+} from "firebase/firestore";
 
 import { db } from "../Service/firebaseConfig";
-import { TravelPlan } from "../types/travel";
+import { TravelPlan, TripComment } from "../types/travel";
+
+// Koleksiyon referansları
+const TRAVEL_PLANS_COLLECTION = "travelPlans";
+const TRAVEL_PLANS_COMMENTS_COLLECTION = "travelPlans_comments";
 
 // Default empty travel plan object
 const DEFAULT_TRAVEL_PLAN: Partial<TravelPlan> = {
@@ -308,7 +324,7 @@ export async function fetchTravelPlanById(id: string): Promise<Partial<TravelPla
       return { ...DEFAULT_TRAVEL_PLAN };
     }
 
-    const travelPlanRef = doc(db, "travelPlans", id);
+    const travelPlanRef = doc(db, TRAVEL_PLANS_COLLECTION, id);
     const docSnap = await getDoc(travelPlanRef);
 
     if (!docSnap.exists()) {
@@ -324,5 +340,148 @@ export async function fetchTravelPlanById(id: string): Promise<Partial<TravelPla
   } catch (error) {
     console.error("Error fetching travel plan:", error);
     return { ...DEFAULT_TRAVEL_PLAN, id: id || '' };
+  }
+}
+
+/**
+ * Bir seyahat planına ait yorumları getirir
+ */
+export async function fetchCommentsByTravelPlanId(travelPlanId: string): Promise<TripComment[]> {
+  try {
+    console.log(`Fetching comments for travel plan: ${travelPlanId}`);
+
+    if (!travelPlanId?.trim()) {
+      console.warn("Invalid travel plan ID provided");
+      return [];
+    }
+
+    const commentsRef = collection(db, TRAVEL_PLANS_COMMENTS_COLLECTION);
+    const q = query(
+      commentsRef,
+      where("travelPlanId", "==", travelPlanId)
+    );
+
+    const querySnapshot = await getDocs(q);
+    console.log(`Found ${querySnapshot.size} comments`);
+
+    const comments: TripComment[] = [];
+
+    querySnapshot.forEach(doc => {
+      const data = doc.data();
+
+      // Convert Timestamp to Date string
+      const createdAt = data.createdAt instanceof Timestamp
+        ? data.createdAt.toDate().toISOString()
+        : data.createdAt || new Date().toISOString();
+
+      const updatedAt = data.updatedAt instanceof Timestamp
+        ? data.updatedAt.toDate().toISOString()
+        : data.updatedAt;
+
+      comments.push({
+        ...data as TripComment,
+        id: doc.id,
+        createdAt,
+        updatedAt
+      });
+    });
+
+    // Sort comments by date (newest first)
+    return comments.sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  } catch (error) {
+    console.error("Error fetching comments:", error);
+    return [];
+  }
+}
+
+/**
+ * Yeni bir yorum ekler
+ */
+export async function addComment(comment: Omit<TripComment, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  try {
+    console.log(`Adding comment for travel plan: ${comment.travelPlanId}`);
+
+    if (!comment.travelPlanId?.trim() || !comment.userId?.trim()) {
+      console.warn("Invalid travel plan ID or user ID");
+      throw new Error("Invalid travel plan ID or user ID");
+    }
+
+    const commentsRef = collection(db, TRAVEL_PLANS_COMMENTS_COLLECTION);
+
+    // Add timestamp
+    const commentWithTimestamp = {
+      ...comment,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+
+    // Add to Firestore
+    const docRef = await addDoc(commentsRef, commentWithTimestamp);
+    console.log('Comment added:', docRef.id);
+
+    return docRef.id;
+  } catch (error) {
+    console.error("Error adding comment:", error);
+    throw error;
+  }
+}
+
+/**
+ * Bir yorumu günceller
+ */
+export async function updateComment(id: string, comment: Partial<TripComment>): Promise<boolean> {
+  try {
+    console.log(`Updating comment: ${id}`);
+
+    if (!id?.trim()) {
+      console.warn("Invalid comment ID");
+      return false;
+    }
+
+    const commentRef = doc(db, TRAVEL_PLANS_COMMENTS_COLLECTION, id);
+
+    // Add updatedAt timestamp
+    const updateData = {
+      ...comment,
+      updatedAt: serverTimestamp()
+    };
+
+    // Remove ID (already exists as document ID in Firestore)
+    if ('id' in updateData) {
+      delete updateData.id;
+    }
+
+    await updateDoc(commentRef, updateData);
+    console.log('Comment updated:', id);
+
+    return true;
+  } catch (error) {
+    console.error("Error updating comment:", error);
+    return false;
+  }
+}
+
+/**
+ * Bir yorumu siler
+ */
+export async function deleteComment(id: string): Promise<boolean> {
+  try {
+    console.log(`Deleting comment: ${id}`);
+
+    if (!id?.trim()) {
+      console.warn("Invalid comment ID");
+      return false;
+    }
+
+    const commentRef = doc(db, TRAVEL_PLANS_COMMENTS_COLLECTION, id);
+    await deleteDoc(commentRef);
+    console.log('Comment deleted:', id);
+
+    return true;
+  } catch (error) {
+    console.error("Error deleting comment:", error);
+    return false;
   }
 }

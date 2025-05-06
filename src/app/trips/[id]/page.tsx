@@ -46,6 +46,7 @@ import {
   CreditCard,
   HeartPulse,
   Camera,
+  MessageSquare as MessageCircle,
 } from "lucide-react";
 import { useThemeContext } from '../../context/ThemeContext';
 
@@ -53,6 +54,7 @@ import { LoadingSpinner } from "../../components/ui/loading-spinner";
 import { TravelPlan } from "../../types/travel";
 import { fetchTravelPlanById } from "../../Services/travel-plans";
 import { getWeatherForecast, WeatherData } from "../../Services/weather-service";
+import TripComments from "../../components/trips/trip-comments";
 import dayjs from "dayjs";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -2770,6 +2772,40 @@ export default function TripDetailsPage() {
                 }
                 return null;
               })()}
+
+              {/* Yorumlar ve Deneyimler */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  mb: 4,
+                  borderRadius: "16px",
+                  background: isDarkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                  backdropFilter: 'blur(10px)',
+                  border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.1)',
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                  <MessageCircle size={24} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb', marginRight: '12px' }} />
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      fontWeight: 800,
+                      fontSize: { xs: '1.75rem', md: '2rem' },
+                      letterSpacing: '-0.02em',
+                      lineHeight: 1.2,
+                      background: "linear-gradient(45deg, #2563eb, #7c3aed)",
+                      backgroundClip: "text",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                    }}
+                  >
+                    Yorumlar ve Deneyimler
+                  </Typography>
+                </Box>
+
+                <TripComments travelPlanId={plan.id || ''} />
+              </Paper>
             </div>
           </Box>
         </Fade>
