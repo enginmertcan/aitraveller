@@ -111,7 +111,7 @@ const formatDate = (dateString: string) => {
 };
 
 // Like Button Component
-const LikeButton = styled(IconButton)(({ theme, isLiked }: { theme: any; isLiked: boolean }) => ({
+const LikeButton = styled(IconButton)(({ theme, isLiked }: { theme?: any; isLiked: boolean }) => ({
   position: "absolute",
   top: 16,
   left: 16,
