@@ -2692,10 +2692,15 @@ export default function TripDetailsPage() {
                 return null;
               })()}
 
-              {/* Trip Photos Gallery */}
+              {/* Trip Photos Gallery - Sadece planı oluşturan kullanıcı görebilir */}
               {(() => {
                 // Parse tripPhotos if it's a string
                 let tripPhotosArray = [];
+
+                // Kullanıcı kontrolü - sadece planı oluşturan kullanıcı görebilir
+                if (plan.userId !== user.id) {
+                  return null;
+                }
 
                 if (plan.tripPhotos) {
                   if (typeof plan.tripPhotos === 'string') {
