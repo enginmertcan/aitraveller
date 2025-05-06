@@ -21,6 +21,8 @@ import {
   Stack,
   CircularProgress,
   Alert,
+  Modal,
+  IconButton,
 } from "@mui/material";
 import {
   MapPin,
@@ -47,6 +49,7 @@ import {
   HeartPulse,
   Camera,
   MessageSquare as MessageCircle,
+  X as CloseIcon,
 } from "lucide-react";
 import { useThemeContext } from '../../context/ThemeContext';
 
@@ -261,6 +264,8 @@ export default function TripDetailsPage() {
   const theme = useTheme();
   const { isDarkMode } = useThemeContext();
   const contentRef = useRef<HTMLDivElement>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedPhotoForModal, setSelectedPhotoForModal] = useState<{url: string, location?: string} | null>(null);
 
   useEffect(() => {
     async function loadTravelPlan() {
@@ -2650,6 +2655,19 @@ export default function TripDetailsPage() {
                   }
                 }
 
+                // Fotoğrafa tıklama işlemi
+                const handlePhotoClick = (photo: any) => {
+                  const photoUrl = photo.imageData
+                    ? `data:image/jpeg;base64,${photo.imageData}`
+                    : photo.imageUrl;
+
+                  setSelectedPhotoForModal({
+                    url: photoUrl,
+                    location: photo.location
+                  });
+                  setModalOpen(true);
+                };
+
                 if (tripPhotosArray.length > 0) {
                   return (
                     <Paper
@@ -2697,7 +2715,9 @@ export default function TripDetailsPage() {
                                   boxShadow: isDarkMode ? '0 4px 20px rgba(0, 0, 0, 0.6)' : '0 4px 20px rgba(0, 0, 0, 0.1)',
                                 },
                                 overflow: 'hidden',
+                                cursor: 'pointer',
                               }}
+                              onClick={() => handlePhotoClick(photo)}
                             >
                               <Box
                                 sx={{
@@ -2777,16 +2797,18 @@ export default function TripDetailsPage() {
               <Paper
                 elevation={0}
                 sx={{
-                  p: 3,
+                  p: 4,
+                  mt: 6, // Üst kısımdan daha fazla ayırmak için margin-top değerini artırdık
                   mb: 4,
                   borderRadius: "16px",
                   background: isDarkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.8)',
                   backdropFilter: 'blur(10px)',
                   border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.1)',
+                  boxShadow: isDarkMode ? '0 8px 32px rgba(0, 0, 0, 0.3)' : '0 8px 32px rgba(0, 0, 0, 0.1)', // Daha belirgin gölge ekledik
                 }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                  <MessageCircle size={24} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb', marginRight: '12px' }} />
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, justifyContent: 'center' }}>
+                  <MessageCircle size={28} style={{ color: isDarkMode ? '#93c5fd' : '#2563eb', marginRight: '12px' }} />
                   <Typography
                     variant="h4"
                     sx={{
@@ -2804,12 +2826,102 @@ export default function TripDetailsPage() {
                   </Typography>
                 </Box>
 
+                <Divider sx={{ mb: 3, borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }} />
+
                 <TripComments travelPlanId={plan.id || ''} />
               </Paper>
             </div>
           </Box>
         </Fade>
       </Container>
+
+      {/* Fotoğraf Büyütme Modalı */}
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        aria-labelledby="photo-modal-title"
+        aria-describedby="photo-modal-description"
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backdropFilter: 'blur(5px)',
+        }}
+      >
+        <Box
+          sx={{
+            position: 'relative',
+            maxWidth: '90%',
+            maxHeight: '90%',
+            outline: 'none',
+            bgcolor: 'rgba(0, 0, 0, 0.85)',
+            p: 2,
+            borderRadius: 2,
+            boxShadow: 24,
+            animation: 'fadeIn 0.3s ease-in-out',
+            '@keyframes fadeIn': {
+              '0%': {
+                opacity: 0,
+                transform: 'scale(0.95)',
+              },
+              '100%': {
+                opacity: 1,
+                transform: 'scale(1)',
+              },
+            },
+          }}
+        >
+          {selectedPhotoForModal && (
+            <>
+              <img
+                src={selectedPhotoForModal.url}
+                alt="Büyütülmüş fotoğraf"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '80vh',
+                  objectFit: 'contain',
+                  borderRadius: '4px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+                }}
+              />
+              {selectedPhotoForModal.location && (
+                <Box sx={{
+                  position: 'absolute',
+                  bottom: 16,
+                  left: 16,
+                  backgroundColor: 'rgba(76, 102, 159, 0.85)',
+                  color: 'white',
+                  px: 2,
+                  py: 1,
+                  borderRadius: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                }}>
+                  <MapPin size={18} style={{ marginRight: '8px' }} />
+                  <Typography variant="body2">{selectedPhotoForModal.location}</Typography>
+                </Box>
+              )}
+              <IconButton
+                aria-label="close"
+                onClick={() => setModalOpen(false)}
+                sx={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  color: 'white',
+                  bgcolor: 'rgba(0, 0, 0, 0.5)',
+                  '&:hover': {
+                    bgcolor: 'rgba(0, 0, 0, 0.7)',
+                  },
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </>
+          )}
+        </Box>
+      </Modal>
     </Box>
   );
 }

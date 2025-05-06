@@ -22,7 +22,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import dayjs from "dayjs";
-import { Loader2, Crown as MapPin, User as UserIcon, UserPlus2 as UserPlus2Icon } from "lucide-react";
+import { Loader2, Crown as MapPin, User as UserIcon, UserPlus2 as UserPlus2Icon, PlusCircle, Globe2, Plane } from "lucide-react";
 import { useThemeContext } from '../context/ThemeContext';
 
 import "dayjs/locale/tr";
