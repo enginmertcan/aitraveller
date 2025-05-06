@@ -698,8 +698,9 @@ export async function deleteComment(id: string): Promise<boolean> {
 
 /**
  * Bir seyahat planını önerilen olarak işaretler veya öneriden kaldırır
+ * Sadece planı oluşturan kullanıcı bu işlemi yapabilir
  */
-export async function toggleRecommendation(id: string, isRecommended: boolean): Promise<boolean> {
+export async function toggleRecommendation(id: string, isRecommended: boolean, currentUserId?: string): Promise<boolean> {
   try {
     console.log(`${isRecommended ? "Recommending" : "Unrecommending"} travel plan: ${id}`);
 
@@ -709,6 +710,22 @@ export async function toggleRecommendation(id: string, isRecommended: boolean): 
     }
 
     const travelPlanRef = doc(db, TRAVEL_PLANS_COLLECTION, id);
+
+    // Önce planı getir ve kullanıcı kontrolü yap
+    const docSnap = await getDoc(travelPlanRef);
+
+    if (!docSnap.exists()) {
+      console.warn("Travel plan not found:", id);
+      return false;
+    }
+
+    const planData = docSnap.data();
+
+    // Eğer currentUserId verilmişse ve plan sahibi değilse işlemi reddet
+    if (currentUserId && planData.userId !== currentUserId) {
+      console.warn("Permission error: Only the creator of the plan can change its recommendation status");
+      return false;
+    }
 
     // Sadece isRecommended alanını güncelle
     await updateDoc(travelPlanRef, {

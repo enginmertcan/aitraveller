@@ -481,63 +481,72 @@ export default function TripDetailsPage() {
               </Button>
 
               <Box sx={{ display: "flex", gap: 2 }}>
-                {/* Öner Butonu */}
-                <Button
-                  onClick={async () => {
-                    try {
-                      const newRecommendedStatus = !(plan.isRecommended || false);
-                      // Daha önce tanımladığımız tripId değişkenini kullan
-                      if (!tripId) {
-                        console.error("Trip ID is missing");
-                        alert("Seyahat planı ID'si bulunamadı.");
-                        return;
-                      }
-                      const success = await toggleRecommendation(tripId, newRecommendedStatus);
+                {/* Öner Butonu - Sadece plan sahibi görebilir */}
+                {plan.userId === user?.id && (
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const newRecommendedStatus = !(plan.isRecommended || false);
+                        // Daha önce tanımladığımız tripId değişkenini kullan
+                        if (!tripId) {
+                          console.error("Trip ID is missing");
+                          alert("Seyahat planı ID'si bulunamadı.");
+                          return;
+                        }
 
-                      if (success) {
-                        setPlan({
-                          ...plan,
-                          isRecommended: newRecommendedStatus,
-                        });
+                        // Kullanıcı kontrolü - sadece planı oluşturan kullanıcı değiştirebilir
+                        if (plan.userId !== user?.id) {
+                          alert("Sadece planı oluşturan kullanıcı öneri durumunu değiştirebilir.");
+                          return;
+                        }
 
-                        alert(
-                          newRecommendedStatus
-                            ? "Seyahat planınız başarıyla önerilenlere eklendi."
-                            : "Seyahat planınız önerilerden kaldırıldı."
-                        );
-                      } else {
+                        const success = await toggleRecommendation(tripId, newRecommendedStatus, user?.id);
+
+                        if (success) {
+                          setPlan({
+                            ...plan,
+                            isRecommended: newRecommendedStatus,
+                          });
+
+                          alert(
+                            newRecommendedStatus
+                              ? "Seyahat planınız başarıyla önerilenlere eklendi."
+                              : "Seyahat planınız önerilerden kaldırıldı."
+                          );
+                        } else {
+                          alert("Yetki hatası: Sadece planı oluşturan kullanıcı öneri durumunu değiştirebilir.");
+                        }
+                      } catch (error) {
+                        console.error("Öneri durumu değiştirme hatası:", error);
                         alert("İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.");
                       }
-                    } catch (error) {
-                      console.error("Öneri durumu değiştirme hatası:", error);
-                      alert("İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.");
-                    }
-                  }}
-                  startIcon={plan.isRecommended ? <Star /> : <StarOutline />}
-                  variant={plan.isRecommended ? "contained" : "outlined"}
-                  sx={{
-                    borderRadius: "12px",
-                    px: 3,
-                    py: 1,
-                    ...(plan.isRecommended
-                      ? {
-                          background: "linear-gradient(45deg, #f59e0b, #d97706)",
-                          "&:hover": {
-                            background: "linear-gradient(45deg, #d97706, #b45309)",
-                          },
-                        }
-                      : {
-                          borderColor: "#f59e0b",
-                          color: "#f59e0b",
-                          "&:hover": {
-                            borderColor: "#d97706",
-                            backgroundColor: "rgba(245, 158, 11, 0.1)",
-                          },
-                        }),
-                  }}
-                >
-                  {plan.isRecommended ? "Önerildi" : "Öner"}
-                </Button>
+                    }}
+                    startIcon={plan.isRecommended ? <Star /> : <StarOutline />}
+                    variant={plan.isRecommended ? "contained" : "outlined"}
+                    sx={{
+                      borderRadius: "12px",
+                      px: 3,
+                      py: 1,
+                      ...(plan.isRecommended
+                        ? {
+                            background: "linear-gradient(45deg, #f59e0b, #d97706)",
+                            "&:hover": {
+                              background: "linear-gradient(45deg, #d97706, #b45309)",
+                            },
+                          }
+                        : {
+                            borderColor: "#f59e0b",
+                            color: "#f59e0b",
+                            "&:hover": {
+                              borderColor: "#d97706",
+                              backgroundColor: "rgba(245, 158, 11, 0.1)",
+                            },
+                          }),
+                    }}
+                  >
+                    {plan.isRecommended ? "Önerildi" : "Öner"}
+                  </Button>
+                )}
 
                 {/* PDF İndir Butonu */}
                 <Button
