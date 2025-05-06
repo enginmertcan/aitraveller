@@ -24,7 +24,8 @@ import {
   Moon,
   Map,
   PlusCircle,
-  Plane
+  Plane,
+  Star
 } from "lucide-react";
 import { useThemeContext } from '../../context/ThemeContext';
 import { colors, borderRadius, shadows } from '../ThemeRegistry/theme';
@@ -150,6 +151,7 @@ const Navbar = (): React.ReactElement => {
   const navItems = [
     { label: "Gezi Oluştur", path: "/", icon: <PlusCircle size={18} /> },
     { label: "Gezilerim", path: "/my-trips", icon: <Map size={18} /> },
+    { label: "Önerilen Seyahatler", path: "/recommended-trips", icon: <Star size={18} /> },
   ];
 
   const isActive = (path: string) => {

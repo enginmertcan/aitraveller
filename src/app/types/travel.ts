@@ -103,6 +103,7 @@ export interface TravelPlan {
   citizenship: string;
   country?: string;
   userId: string;
+  isRecommended?: boolean;
   itinerary: { [key: string]: DayPlan | Activity[] } | string;
   hotelOptions: Hotel[] | string;
   bestTimeToVisit?: string;

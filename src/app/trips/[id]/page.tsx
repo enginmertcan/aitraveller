@@ -50,12 +50,14 @@ import {
   Camera,
   MessageSquare as MessageCircle,
   X as CloseIcon,
+  Star,
+  Star as StarOutline,
 } from "lucide-react";
 import { useThemeContext } from '../../context/ThemeContext';
 
 import { LoadingSpinner } from "../../components/ui/loading-spinner";
 import { TravelPlan } from "../../types/travel";
-import { fetchTravelPlanById } from "../../Services/travel-plans";
+import { fetchTravelPlanById, toggleRecommendation } from "../../Services/travel-plans";
 import { getWeatherForecast, WeatherData } from "../../Services/weather-service";
 import TripComments from "../../components/trips/trip-comments";
 import dayjs from "dayjs";
@@ -555,23 +557,77 @@ export default function TripDetailsPage() {
                 Seyahatlerime Dön
               </Button>
 
-              <Button
-                onClick={generatePDF}
-                startIcon={<Download />}
-                variant="contained"
-                disabled={isLoading}
-                sx={{
-                  background: "linear-gradient(45deg, #2563eb, #7c3aed)",
-                  borderRadius: "12px",
-                  px: 3,
-                  py: 1,
-                  "&:hover": {
-                    background: "linear-gradient(45deg, #1d4ed8, #6d28d9)",
-                  },
-                }}
-              >
-                {isLoading ? 'PDF Oluşturuluyor...' : 'PDF Olarak İndir'}
-              </Button>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                {/* Öner Butonu */}
+                <Button
+                  onClick={async () => {
+                    try {
+                      const newRecommendedStatus = !(plan.isRecommended || false);
+                      const success = await toggleRecommendation(params.id as string, newRecommendedStatus);
+
+                      if (success) {
+                        setPlan({
+                          ...plan,
+                          isRecommended: newRecommendedStatus
+                        });
+
+                        alert(newRecommendedStatus
+                          ? 'Seyahat planınız başarıyla önerilenlere eklendi.'
+                          : 'Seyahat planınız önerilerden kaldırıldı.');
+                      } else {
+                        alert('İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+                      }
+                    } catch (error) {
+                      console.error('Öneri durumu değiştirme hatası:', error);
+                      alert('İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+                    }
+                  }}
+                  startIcon={plan.isRecommended ? <Star /> : <StarOutline />}
+                  variant={plan.isRecommended ? "contained" : "outlined"}
+                  sx={{
+                    borderRadius: "12px",
+                    px: 3,
+                    py: 1,
+                    ...(plan.isRecommended
+                      ? {
+                          background: "linear-gradient(45deg, #f59e0b, #d97706)",
+                          "&:hover": {
+                            background: "linear-gradient(45deg, #d97706, #b45309)",
+                          },
+                        }
+                      : {
+                          borderColor: "#f59e0b",
+                          color: "#f59e0b",
+                          "&:hover": {
+                            borderColor: "#d97706",
+                            backgroundColor: "rgba(245, 158, 11, 0.1)",
+                          },
+                        }
+                    ),
+                  }}
+                >
+                  {plan.isRecommended ? 'Önerildi' : 'Öner'}
+                </Button>
+
+                {/* PDF İndir Butonu */}
+                <Button
+                  onClick={generatePDF}
+                  startIcon={<Download />}
+                  variant="contained"
+                  disabled={isLoading}
+                  sx={{
+                    background: "linear-gradient(45deg, #2563eb, #7c3aed)",
+                    borderRadius: "12px",
+                    px: 3,
+                    py: 1,
+                    "&:hover": {
+                      background: "linear-gradient(45deg, #1d4ed8, #6d28d9)",
+                    },
+                  }}
+                >
+                  {isLoading ? 'PDF Oluşturuluyor...' : 'PDF Olarak İndir'}
+                </Button>
+              </Box>
             </Box>
 
             <div ref={contentRef}>

@@ -32,6 +32,7 @@ const DEFAULT_TRAVEL_PLAN: Partial<TravelPlan> = {
   isDomestic: false,
   residenceCountry: '',
   userId: '',
+  isRecommended: false,
   itinerary: {},
   hotelOptions: [],
   bestTimeToVisit: '',
@@ -670,5 +671,94 @@ export async function deleteComment(id: string): Promise<boolean> {
   } catch (error) {
     console.error("Error deleting comment:", error);
     return false;
+  }
+}
+
+/**
+ * Bir seyahat planını önerilen olarak işaretler veya öneriden kaldırır
+ */
+export async function toggleRecommendation(id: string, isRecommended: boolean): Promise<boolean> {
+  try {
+    console.log(`${isRecommended ? 'Recommending' : 'Unrecommending'} travel plan: ${id}`);
+
+    if (!id?.trim()) {
+      console.warn("Invalid travel plan ID");
+      return false;
+    }
+
+    const travelPlanRef = doc(db, TRAVEL_PLANS_COLLECTION, id);
+
+    // Sadece isRecommended alanını güncelle
+    await updateDoc(travelPlanRef, {
+      isRecommended: isRecommended,
+      updatedAt: serverTimestamp()
+    });
+
+    console.log(`Travel plan ${isRecommended ? 'recommended' : 'unrecommended'}:`, id);
+
+    return true;
+  } catch (error) {
+    console.error("Error updating travel plan recommendation status:", error);
+    return false;
+  }
+}
+
+/**
+ * Önerilen seyahat planlarını getirir
+ */
+export async function fetchRecommendedTravelPlans(): Promise<Partial<TravelPlan>[]> {
+  try {
+    console.log('Fetching recommended travel plans...');
+
+    const travelPlansRef = collection(db, TRAVEL_PLANS_COLLECTION);
+
+    // Sadece önerilen planları getir
+    const q = query(
+      travelPlansRef,
+      where("isRecommended", "==", true)
+    );
+
+    const querySnapshot = await getDocs(q);
+    console.log(`Found ${querySnapshot.size} recommended plans`);
+
+    // Her bir plan için özel işleme yap
+    const plans = await Promise.all(querySnapshot.docs.map(async (doc) => {
+      const rawData = doc.data();
+
+      // Özel işleme: itinerary içindeki visaInfo, culturalDifferences ve localTips alanlarını çıkar
+      if (rawData.itinerary && typeof rawData.itinerary === 'string') {
+        try {
+          const parsedItinerary = safeParseJSON(rawData.itinerary);
+          if (parsedItinerary && typeof parsedItinerary === 'object') {
+            // visaInfo, culturalDifferences ve localTips alanlarını itinerary'den çıkar
+            // ve üst seviye alanlara taşı
+            if (parsedItinerary.visaInfo && !rawData.visaInfo) {
+              console.log('Extracting visaInfo from itinerary');
+              rawData.visaInfo = parsedItinerary.visaInfo;
+            }
+
+            if (parsedItinerary.culturalDifferences && !rawData.culturalDifferences) {
+              console.log('Extracting culturalDifferences from itinerary');
+              rawData.culturalDifferences = parsedItinerary.culturalDifferences;
+            }
+
+            if (parsedItinerary.localTips && !rawData.localTips) {
+              console.log('Extracting localTips from itinerary');
+              rawData.localTips = parsedItinerary.localTips;
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing itinerary:', error);
+        }
+      }
+
+      return formatTravelPlan({ ...rawData, id: doc.id });
+    }));
+
+    // Sadece geçerli planları döndür
+    return plans.filter(plan => plan.id && plan.destination);
+  } catch (error) {
+    console.error("Error fetching recommended travel plans:", error);
+    return [];
   }
 }
