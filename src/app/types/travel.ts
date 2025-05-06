@@ -21,7 +21,7 @@ export interface Activity {
 }
 
 export interface DayPlan {
-  day: string
+  day: string;
   theme?: string;
   activities?: Activity[];
   plan?: Activity[];
@@ -74,19 +74,19 @@ export interface TripPhoto {
 }
 
 export interface TripComment {
-  id: string;             // Yorum ID'si
-  travelPlanId: string;   // Hangi seyahat planına ait olduğu
-  userId: string;         // Yorumu yapan kullanıcı ID'si
-  userName: string;       // Kullanıcı adı (görüntüleme için)
-  userPhotoUrl?: string;  // Kullanıcı profil fotoğrafı (opsiyonel)
-  content: string;        // Yorum içeriği
-  photoUrl?: string;      // Yorum fotoğrafı URL'i (opsiyonel)
-  photoData?: string;     // Yorum fotoğrafı base64 verisi (opsiyonel)
+  id: string; // Yorum ID'si
+  travelPlanId: string; // Hangi seyahat planına ait olduğu
+  userId: string; // Yorumu yapan kullanıcı ID'si
+  userName: string; // Kullanıcı adı (görüntüleme için)
+  userPhotoUrl?: string; // Kullanıcı profil fotoğrafı (opsiyonel)
+  content: string; // Yorum içeriği
+  photoUrl?: string; // Yorum fotoğrafı URL'i (opsiyonel)
+  photoData?: string; // Yorum fotoğrafı base64 verisi (opsiyonel)
   photoLocation?: string; // Fotoğrafın çekildiği konum (opsiyonel)
-  rating?: number;        // Değerlendirme puanı (1-5 arası, opsiyonel)
-  createdAt: string;      // Oluşturulma zamanı
-  updatedAt?: string;     // Güncellenme zamanı (opsiyonel)
-  [key: string]: any;     // Allow for additional fields
+  rating?: number; // Değerlendirme puanı (1-5 arası, opsiyonel)
+  createdAt: string; // Oluşturulma zamanı
+  updatedAt?: string; // Güncellenme zamanı (opsiyonel)
+  [key: string]: any; // Allow for additional fields
 }
 
 export interface TravelPlan {

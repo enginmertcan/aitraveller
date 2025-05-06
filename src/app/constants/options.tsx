@@ -1,7 +1,6 @@
 import { CrownIcon, DollarSign, Tent, UserIcon, UserPlus2Icon, Users, Wallet } from "lucide-react";
 
-export const AI_PROMPT =
-  `Konum: {location}
+export const AI_PROMPT = `Konum: {location}
 Süre: {totalDays} gün
 Kişi: {traveller}
 Bütçe: {budget}

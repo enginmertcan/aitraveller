@@ -53,7 +53,11 @@ export function TravelOverview({ plan }: TravelOverviewProps) {
         <Paper
           sx={{
             height: 300,
-            backgroundImage: `url(${plan.hotelOptions[0]?.hotelImageUrl || "/placeholder.jpg"})`,
+            backgroundImage: `url(${
+              typeof plan.hotelOptions === "string"
+                ? "/placeholder.jpg"
+                : plan.hotelOptions[0]?.hotelImageUrl || plan.hotelOptions[0]?.imageUrl || "/placeholder.jpg"
+            })`,
             backgroundSize: "cover",
             backgroundPosition: "center",
             borderRadius: 1,

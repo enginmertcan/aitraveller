@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+
 import "./globals.css";
-import { ThemeProvider } from "./context/ThemeContext";
+
 import { ClerkProvider } from "@clerk/nextjs";
-import Navbar from "./components/layout/navbar";
+
 import Footer from "./components/layout/footer";
+import Navbar from "./components/layout/navbar";
 import ThemeRegistry from "./components/ThemeRegistry/ThemeRegistry";
+import { ThemeProvider } from "./context/ThemeContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,16 +28,16 @@ export default function RootLayout({
         <ClerkProvider>
           <ThemeProvider>
             <ThemeRegistry>
-              <div style={{ 
-                minHeight: '100vh',
-                display: 'flex',
-                flexDirection: 'column',
-                paddingBottom: '60px' // Footer yüksekliği kadar padding
-              }}>
+              <div
+                style={{
+                  minHeight: "100vh",
+                  display: "flex",
+                  flexDirection: "column",
+                  paddingBottom: "60px", // Footer yüksekliği kadar padding
+                }}
+              >
                 <Navbar />
-                <main style={{ flex: 1 }}>
-                  {children}
-                </main>
+                <main style={{ flex: 1 }}>{children}</main>
                 <Footer />
               </div>
             </ThemeRegistry>
@@ -43,4 +46,4 @@ export default function RootLayout({
       </body>
     </html>
   );
-} 
+}

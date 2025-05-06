@@ -1,12 +1,12 @@
-import OpenAI from 'openai';
+import OpenAI from "openai";
 
 // OpenAI API anahtarını çevre değişkeninden al
-const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';
+const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || "";
 
 // OpenAI istemcisini başlat
 const openai = new OpenAI({
-  apiKey: apiKey,
-  dangerouslyAllowBrowser: true // Browser'da çalışması için gerekli
+  apiKey,
+  dangerouslyAllowBrowser: true, // Browser'da çalışması için gerekli
 });
 
 // Seyahat planı oluşturmak için kullanılacak sistem mesajı
@@ -92,8 +92,14 @@ Aşağıdaki formatta JSON döndürmelisin:
 }`;
 
 // Kullanıcı mesajı şablonu
-const getUserPrompt = (destination: string, duration: string, groupType: string, budget: string, residenceCountry: string, citizenship: string) => {
-  return `ÖNEMLİ: Tüm yanıtlarınız kesinlikle Türkçe olmalıdır. İngilizce yanıt vermeyin.
+const getUserPrompt = (
+  destination: string,
+  duration: string,
+  groupType: string,
+  budget: string,
+  residenceCountry: string,
+  citizenship: string
+) => `ÖNEMLİ: Tüm yanıtlarınız kesinlikle Türkçe olmalıdır. İngilizce yanıt vermeyin.
 
 Aşağıdaki seyahat planını oluştur ve şu kurallara uy:
 
@@ -173,18 +179,24 @@ Vatandaşlık: ${citizenship}
 NOT: Tüm yanıtınız Türkçe olmalıdır. İngilizce yanıt vermeyin.
 NOT: Vize, pasaport ve kültürel öneriler bölümleri zorunludur ve detaylı olmalıdır.
 NOT: SADECE JSON döndür, ekstra metin veya açıklama ekleme.`;
-};
 
 // OpenAI API'ye istek gönderen fonksiyon
-export const sendMessage = async (destination: string, duration: string, groupType: string, budget: string, residenceCountry: string, citizenship: string) => {
+export const sendMessage = async (
+  destination: string,
+  duration: string,
+  groupType: string,
+  budget: string,
+  residenceCountry: string,
+  citizenship: string
+) => {
   try {
-    console.log('OpenAI API ile seyahat planı oluşturuluyor...');
+    console.log("OpenAI API ile seyahat planı oluşturuluyor...");
     console.log(`Konum: ${destination}, Süre: ${duration}, Kişi: ${groupType}, Bütçe: ${budget}`);
 
     // API anahtarı kontrolü
     if (!apiKey) {
-      console.error('OpenAI API anahtarı bulunamadı!');
-      throw new Error('API anahtarı eksik. Lütfen .env dosyasını kontrol edin.');
+      console.error("OpenAI API anahtarı bulunamadı!");
+      throw new Error("API anahtarı eksik. Lütfen .env dosyasını kontrol edin.");
     }
 
     // OpenAI API'ye istek gönder
@@ -193,36 +205,36 @@ export const sendMessage = async (destination: string, duration: string, groupTy
       messages: [
         {
           role: "system",
-          content: SYSTEM_PROMPT
+          content: SYSTEM_PROMPT,
         },
         {
           role: "user",
-          content: getUserPrompt(destination, duration, groupType, budget, residenceCountry, citizenship)
-        }
+          content: getUserPrompt(destination, duration, groupType, budget, residenceCountry, citizenship),
+        },
       ],
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
     });
 
     // Yanıtı al
-    const responseText = completion.choices[0]?.message?.content || '{}';
-    console.log('OpenAI yanıtı alındı');
+    const responseText = completion.choices[0]?.message?.content || "{}";
+    console.log("OpenAI yanıtı alındı");
 
     // JSON olarak parse et
     try {
       const jsonResponse = JSON.parse(responseText);
       return {
         text: responseText,
-        json: jsonResponse
+        json: jsonResponse,
       };
     } catch (parseError) {
-      console.error('JSON parse hatası:', parseError);
+      console.error("JSON parse hatası:", parseError);
       return {
         text: responseText,
-        json: {}
+        json: {},
       };
     }
   } catch (error) {
-    console.error('OpenAI API hatası:', error);
+    console.error("OpenAI API hatası:", error);
     throw error;
   }
 };
@@ -231,52 +243,45 @@ export const sendMessage = async (destination: string, duration: string, groupTy
 export const chatSession = {
   sendMessage: async (prompt: string) => {
     try {
-      console.log('Alınan prompt:', prompt);
+      console.log("Alınan prompt:", prompt);
 
       // Prompt'tan parametreleri çıkar - regex'i iyileştir
-      const destination = prompt.match(/Konum:\s*(.*?)(?:\n|$)/)?.[1] || '';
-      const duration = prompt.match(/Süre:\s*(\d+)/)?.[1] || '3';
-      const groupType = prompt.match(/Kişi:\s*(.*?)(?:\n|$)/)?.[1] || 'Çift';
-      const budget = prompt.match(/Bütçe:\s*(.*?)(?:\n|$)/)?.[1] || 'Ekonomik';
-      const residenceCountry = prompt.match(/Yaşadığı Ülke:\s*(.*?)(?:\n|$)/)?.[1] || 'Turkey';
-      const citizenship = prompt.match(/Vatandaşlık:\s*(.*?)(?:\n|$)/)?.[1] || 'Turkey';
+      const destination = prompt.match(/Konum:\s*(.*?)(?:\n|$)/)?.[1] || "";
+      const duration = prompt.match(/Süre:\s*(\d+)/)?.[1] || "3";
+      const groupType = prompt.match(/Kişi:\s*(.*?)(?:\n|$)/)?.[1] || "Çift";
+      const budget = prompt.match(/Bütçe:\s*(.*?)(?:\n|$)/)?.[1] || "Ekonomik";
+      const residenceCountry = prompt.match(/Yaşadığı Ülke:\s*(.*?)(?:\n|$)/)?.[1] || "Turkey";
+      const citizenship = prompt.match(/Vatandaşlık:\s*(.*?)(?:\n|$)/)?.[1] || "Turkey";
 
-      console.log('Çıkarılan parametreler:', {
+      console.log("Çıkarılan parametreler:", {
         destination,
         duration,
         groupType,
         budget,
         residenceCountry,
-        citizenship
+        citizenship,
       });
 
       // Eğer destination boşsa, hata fırlat
       if (!destination) {
-        throw new Error('Konum bilgisi bulunamadı. Lütfen geçerli bir konum girin.');
+        throw new Error("Konum bilgisi bulunamadı. Lütfen geçerli bir konum girin.");
       }
 
       // OpenAI API'ye istek gönder
-      const result = await sendMessage(
-        destination,
-        duration,
-        groupType,
-        budget,
-        residenceCountry,
-        citizenship
-      );
+      const result = await sendMessage(destination, duration, groupType, budget, residenceCountry, citizenship);
 
       // Gemini API formatına uygun yanıt döndür
       return {
         response: {
           text: () => result.text,
-          json: result.json
-        }
+          json: result.json,
+        },
       };
     } catch (error) {
-      console.error('OpenAI mesaj gönderme hatası:', error);
+      console.error("OpenAI mesaj gönderme hatası:", error);
       throw error;
     }
-  }
+  },
 };
 
 export default chatSession;

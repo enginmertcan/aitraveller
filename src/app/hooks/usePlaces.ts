@@ -123,8 +123,8 @@ export const usePlaces = (
 
       if (response.results[0]) {
         const { location } = response.results[0].geometry;
-        const country = response.results[0].address_components?.find(
-          component => component.types.includes("country")
+        const country = response.results[0].address_components?.find(component =>
+          component.types.includes("country")
         )?.long_name;
 
         return {

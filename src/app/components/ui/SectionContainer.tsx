@@ -1,19 +1,12 @@
 "use client";
 
-import React, { ReactNode } from 'react';
-import { 
-  Box, 
-  Paper, 
-  Typography, 
-  PaperProps, 
-  SxProps, 
-  Theme,
-  Divider
-} from '@mui/material';
-import { useThemeContext } from '../../context/ThemeContext';
-import { colors, borderRadius, shadows } from '../ThemeRegistry/theme';
+import React, { ReactNode } from "react";
+import { Box, Divider, Paper, PaperProps, SxProps, Theme, Typography } from "@mui/material";
 
-interface SectionContainerProps extends Omit<PaperProps, 'children'> {
+import { useThemeContext } from "../../context/ThemeContext";
+import { borderRadius, colors, shadows } from "../ThemeRegistry/theme";
+
+interface SectionContainerProps extends Omit<PaperProps, "children"> {
   title?: string;
   subtitle?: string;
   icon?: ReactNode;
@@ -50,57 +43,59 @@ export const SectionContainer = ({
         backdropFilter: "blur(10px)",
         borderRadius: borderRadius.lg,
         border: `1px solid ${isDarkMode ? colors.dark.border : colors.light.border}`,
-        overflow: 'hidden',
-        position: 'relative',
-        ...sx
+        overflow: "hidden",
+        position: "relative",
+        ...sx,
       }}
       {...rest}
     >
       {/* Decorative element */}
       {decorativeElement && (
-        <Box 
-          sx={{ 
-            position: 'absolute', 
-            top: -100, 
-            right: -100, 
-            width: 300, 
-            height: 300, 
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(124, 58, 237, 0.05))',
-            filter: 'blur(60px)',
+        <Box
+          sx={{
+            position: "absolute",
+            top: -100,
+            right: -100,
+            width: 300,
+            height: 300,
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(124, 58, 237, 0.05))",
+            filter: "blur(60px)",
             zIndex: 0,
             opacity: isDarkMode ? 0.3 : 0.5,
           }}
         />
       )}
-      
+
       {/* Section Header */}
       {(title || icon) && (
-        <Box 
-          sx={{ 
-            mb: 4, 
-            display: "flex", 
-            flexDirection: { xs: 'column', sm: 'row' },
-            alignItems: "center", 
-            gap: 2, 
+        <Box
+          sx={{
+            mb: 4,
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: "center",
+            gap: 2,
             justifyContent: "space-between",
-            borderBottom: headerDivider ? `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}` : 'none',
+            borderBottom: headerDivider
+              ? `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"}`
+              : "none",
             pb: headerDivider ? 3 : 0,
-            position: 'relative',
+            position: "relative",
             zIndex: 1,
-            ...headerSx
+            ...headerSx,
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             {icon && (
-              <Box 
-                sx={{ 
-                  width: 48, 
-                  height: 48, 
-                  borderRadius: '50%', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   background: iconBackground || colors.gradients.primary,
                   boxShadow: isDarkMode ? shadows.dark.md : shadows.md,
                 }}
@@ -108,15 +103,15 @@ export const SectionContainer = ({
                 {icon}
               </Box>
             )}
-            
+
             <Box>
               {title && (
                 <Typography
                   variant="h4"
                   sx={{
                     fontWeight: 800,
-                    fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' },
-                    letterSpacing: '-0.02em',
+                    fontSize: { xs: "1.5rem", sm: "1.75rem", md: "2rem" },
+                    letterSpacing: "-0.02em",
                     lineHeight: 1.2,
                     background: "linear-gradient(45deg, #2563eb, #7c3aed)",
                     backgroundClip: "text",
@@ -127,7 +122,7 @@ export const SectionContainer = ({
                   {title}
                 </Typography>
               )}
-              
+
               {subtitle && (
                 <Typography
                   variant="body2"
@@ -143,13 +138,13 @@ export const SectionContainer = ({
           </Box>
         </Box>
       )}
-      
+
       {/* Section Content */}
-      <Box 
-        sx={{ 
-          position: 'relative',
+      <Box
+        sx={{
+          position: "relative",
           zIndex: 1,
-          ...contentSx
+          ...contentSx,
         }}
       >
         {children}

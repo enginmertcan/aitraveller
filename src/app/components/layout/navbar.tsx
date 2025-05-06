@@ -1,46 +1,32 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { SignOutButton, UserButton, useUser } from "@clerk/nextjs";
 import {
   AppBar,
   Box,
   Button,
   Container,
+  Divider,
   Drawer,
   IconButton,
   Stack,
   Toolbar,
-  Typography,
   Tooltip,
-  Divider
+  Typography,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import {
-  X as CloseIcon,
-  Menu as MenuIcon,
-  Sun,
-  Moon,
-  Map,
-  PlusCircle,
-  Plane,
-  Star
-} from "lucide-react";
-import { useThemeContext } from '../../context/ThemeContext';
-import { colors, borderRadius, shadows } from '../ThemeRegistry/theme';
+import { X as CloseIcon, Map, Menu as MenuIcon, Moon, Plane, PlusCircle, Star, Sun } from "lucide-react";
+
+import { useThemeContext } from "../../context/ThemeContext";
+import { borderRadius, colors, shadows } from "../ThemeRegistry/theme";
 
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
-  background: theme.palette.mode === 'dark'
-    ? "rgba(17, 24, 39, 0.95)"
-    : "rgba(255, 255, 255, 0.95)",
+  background: theme.palette.mode === "dark" ? "rgba(17, 24, 39, 0.95)" : "rgba(255, 255, 255, 0.95)",
   backdropFilter: "blur(10px)",
-  boxShadow: theme.palette.mode === 'dark'
-    ? "0 4px 30px rgba(0, 0, 0, 0.3)"
-    : "0 4px 30px rgba(0, 0, 0, 0.1)",
-  borderBottom: theme.palette.mode === 'dark'
-    ? "1px solid rgba(255, 255, 255, 0.1)"
-    : "1px solid rgba(0, 0, 0, 0.1)",
+  boxShadow: theme.palette.mode === "dark" ? "0 4px 30px rgba(0, 0, 0, 0.3)" : "0 4px 30px rgba(0, 0, 0, 0.1)",
+  borderBottom: theme.palette.mode === "dark" ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.1)",
   color: theme.palette.text.primary,
   transition: "all 0.3s ease",
   position: "fixed",
@@ -59,18 +45,17 @@ const NavButton = styled(Button)(({ theme }) => ({
   color: theme.palette.text.primary,
   "&:hover": {
     transform: "translateY(-2px)",
-    backgroundColor: theme.palette.mode === 'dark'
-      ? "rgba(255, 255, 255, 0.1)"
-      : "rgba(0, 0, 0, 0.05)",
+    backgroundColor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)",
   },
 }));
 
 const LogoText = styled(Typography)(({ theme }) => ({
   fontSize: "1.5rem",
   fontWeight: 800,
-  background: theme.palette.mode === 'dark'
-    ? "linear-gradient(45deg, #93c5fd, #a78bfa)"
-    : "linear-gradient(45deg, #2563eb, #7c3aed)",
+  background:
+    theme.palette.mode === "dark"
+      ? "linear-gradient(45deg, #93c5fd, #a78bfa)"
+      : "linear-gradient(45deg, #2563eb, #7c3aed)",
   WebkitBackgroundClip: "text",
   WebkitTextFillColor: "transparent",
   cursor: "pointer",
@@ -81,41 +66,38 @@ const LogoText = styled(Typography)(({ theme }) => ({
 }));
 
 const LogoIcon = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginRight: '12px',
-  color: theme.palette.mode === 'dark' ? '#93c5fd' : '#2563eb',
-  transition: 'all 0.3s ease',
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginRight: "12px",
+  color: theme.palette.mode === "dark" ? "#93c5fd" : "#2563eb",
+  transition: "all 0.3s ease",
 }));
 
 const ThemeToggleButton = styled(IconButton)(({ theme }) => ({
   padding: "8px",
   borderRadius: borderRadius.md,
   color: theme.palette.text.primary,
-  background: theme.palette.mode === 'dark'
-    ? "rgba(255, 255, 255, 0.05)"
-    : "rgba(0, 0, 0, 0.05)",
+  background: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.05)",
   transition: "all 0.2s ease-in-out",
   "&:hover": {
-    background: theme.palette.mode === 'dark'
-      ? "rgba(255, 255, 255, 0.1)"
-      : "rgba(0, 0, 0, 0.1)",
+    background: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
     transform: "translateY(-2px)",
   },
 }));
 
 const ActiveNavIndicator = styled(Box)(({ theme }) => ({
-  position: 'absolute',
+  position: "absolute",
   bottom: -2,
-  left: '50%',
-  transform: 'translateX(-50%)',
+  left: "50%",
+  transform: "translateX(-50%)",
   height: 3,
-  width: '50%',
-  borderRadius: '2px',
-  background: theme.palette.mode === 'dark'
-    ? "linear-gradient(45deg, #93c5fd, #a78bfa)"
-    : "linear-gradient(45deg, #2563eb, #7c3aed)",
+  width: "50%",
+  borderRadius: "2px",
+  background:
+    theme.palette.mode === "dark"
+      ? "linear-gradient(45deg, #93c5fd, #a78bfa)"
+      : "linear-gradient(45deg, #2563eb, #7c3aed)",
 }));
 
 const Navbar = (): React.ReactElement => {
@@ -134,9 +116,9 @@ const Navbar = (): React.ReactElement => {
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, [scrolled]);
 
@@ -155,8 +137,8 @@ const Navbar = (): React.ReactElement => {
   ];
 
   const isActive = (path: string) => {
-    if (path === '/' && pathname === '/') return true;
-    if (path !== '/' && pathname?.startsWith(path)) return true;
+    if (path === "/" && pathname === "/") return true;
+    if (path !== "/" && pathname?.startsWith(path)) return true;
     return false;
   };
 
@@ -175,16 +157,14 @@ const Navbar = (): React.ReactElement => {
             mx: { xs: 0, md: 1 },
             my: { xs: 1, md: 0 },
             width: { xs: "100%", md: "auto" },
-            position: 'relative',
+            position: "relative",
             fontWeight: isActive(item.path) ? 700 : 600,
-            color: isActive(item.path)
-              ? (isDarkMode ? colors.primary.light : colors.primary.main)
-              : 'inherit',
+            color: isActive(item.path) ? (isDarkMode ? colors.primary.light : colors.primary.main) : "inherit",
           }}
           startIcon={item.icon}
         >
           {item.label}
-          {isActive(item.path) && <ActiveNavIndicator sx={{ display: { xs: 'none', md: 'block' } }} />}
+          {isActive(item.path) && <ActiveNavIndicator sx={{ display: { xs: "none", md: "block" } }} />}
         </NavButton>
       ))}
 
@@ -222,23 +202,27 @@ const Navbar = (): React.ReactElement => {
         elevation={scrolled ? 1 : 0}
         sx={{
           backgroundColor: isDarkMode
-            ? (scrolled ? 'rgba(17, 24, 39, 0.95)' : 'rgba(17, 24, 39, 0.8)')
-            : (scrolled ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.8)'),
-          transition: 'all 0.3s ease',
+            ? scrolled
+              ? "rgba(17, 24, 39, 0.95)"
+              : "rgba(17, 24, 39, 0.8)"
+            : scrolled
+              ? "rgba(255, 255, 255, 0.95)"
+              : "rgba(255, 255, 255, 0.8)",
+          transition: "all 0.3s ease",
         }}
       >
         <Container maxWidth="xl">
           <Toolbar sx={{ justifyContent: "space-between", px: { xs: 1, sm: 2 } }}>
             <Box
               sx={{
-                display: 'flex',
-                alignItems: 'center',
-                cursor: 'pointer',
-                '&:hover': {
-                  '& .logo-icon': {
-                    transform: 'rotate(15deg)',
-                  }
-                }
+                display: "flex",
+                alignItems: "center",
+                cursor: "pointer",
+                "&:hover": {
+                  "& .logo-icon": {
+                    transform: "rotate(15deg)",
+                  },
+                },
               }}
               onClick={() => router.push("/")}
             >
@@ -248,12 +232,7 @@ const Navbar = (): React.ReactElement => {
               <LogoText>AI Traveller</LogoText>
             </Box>
 
-            <Stack
-              direction="row"
-              spacing={2}
-              alignItems="center"
-              sx={{ display: { xs: "none", md: "flex" } }}
-            >
+            <Stack direction="row" spacing={2} alignItems="center" sx={{ display: { xs: "none", md: "flex" } }}>
               {navContent}
             </Stack>
 
@@ -264,11 +243,11 @@ const Navbar = (): React.ReactElement => {
               onClick={handleDrawerToggle}
               sx={{
                 display: { md: "none" },
-                backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)",
                 borderRadius: borderRadius.md,
-                '&:hover': {
-                  backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
-                }
+                "&:hover": {
+                  backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)",
+                },
               }}
             >
               {mobileOpen ? <CloseIcon /> : <MenuIcon />}
@@ -288,27 +267,27 @@ const Navbar = (): React.ReactElement => {
           "& .MuiDrawer-paper": {
             boxSizing: "border-box",
             width: 280,
-            backgroundColor: isDarkMode
-              ? "rgba(17, 24, 39, 0.95)"
-              : "rgba(255, 255, 255, 0.95)",
+            backgroundColor: isDarkMode ? "rgba(17, 24, 39, 0.95)" : "rgba(255, 255, 255, 0.95)",
             backdropFilter: "blur(10px)",
-            borderLeft: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+            borderLeft: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"}`,
           },
         }}
       >
-        <Box sx={{
-          p: 3,
-          display: "flex",
-          flexDirection: "column",
-          height: '100%',
-          color: isDarkMode ? '#fff' : 'inherit',
-        }}>
+        <Box
+          sx={{
+            p: 3,
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            color: isDarkMode ? "#fff" : "inherit",
+          }}
+        >
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
             <Box
               sx={{
-                display: 'flex',
-                alignItems: 'center',
-                cursor: 'pointer',
+                display: "flex",
+                alignItems: "center",
+                cursor: "pointer",
               }}
               onClick={() => {
                 router.push("/");
@@ -318,23 +297,23 @@ const Navbar = (): React.ReactElement => {
               <LogoIcon>
                 <Plane size={24} />
               </LogoIcon>
-              <LogoText sx={{ fontSize: '1.3rem' }}>AI Traveller</LogoText>
+              <LogoText sx={{ fontSize: "1.3rem" }}>AI Traveller</LogoText>
             </Box>
             <IconButton
               onClick={handleDrawerToggle}
               sx={{
-                color: isDarkMode ? '#fff' : '#000',
-                backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-                '&:hover': {
-                  backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
-                }
+                color: isDarkMode ? "#fff" : "#000",
+                backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)",
+                "&:hover": {
+                  backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)",
+                },
               }}
             >
               <CloseIcon />
             </IconButton>
           </Box>
 
-          <Divider sx={{ mb: 2, borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }} />
+          <Divider sx={{ mb: 2, borderColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)" }} />
 
           <Box sx={{ display: "flex", flexDirection: "column", flex: 1, gap: 1 }}>
             {navItems.map(item => (
@@ -348,15 +327,21 @@ const Navbar = (): React.ReactElement => {
                 }}
                 sx={{
                   py: 1.5,
-                  justifyContent: 'flex-start',
+                  justifyContent: "flex-start",
                   backgroundColor: isActive(item.path)
-                    ? (isDarkMode ? 'rgba(147, 197, 253, 0.15)' : 'rgba(37, 99, 235, 0.1)')
-                    : 'transparent',
-                  '&:hover': {
+                    ? isDarkMode
+                      ? "rgba(147, 197, 253, 0.15)"
+                      : "rgba(37, 99, 235, 0.1)"
+                    : "transparent",
+                  "&:hover": {
                     backgroundColor: isActive(item.path)
-                      ? (isDarkMode ? 'rgba(147, 197, 253, 0.25)' : 'rgba(37, 99, 235, 0.15)')
-                      : (isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'),
-                  }
+                      ? isDarkMode
+                        ? "rgba(147, 197, 253, 0.25)"
+                        : "rgba(37, 99, 235, 0.15)"
+                      : isDarkMode
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(0, 0, 0, 0.05)",
+                  },
                 }}
                 startIcon={item.icon}
               >
@@ -365,9 +350,9 @@ const Navbar = (): React.ReactElement => {
             ))}
           </Box>
 
-          <Divider sx={{ my: 2, borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }} />
+          <Divider sx={{ my: 2, borderColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)" }} />
 
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <ThemeToggleButton
               onClick={toggleTheme}
               color="primary"

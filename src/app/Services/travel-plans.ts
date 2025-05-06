@@ -1,15 +1,15 @@
 import {
+  addDoc,
   collection,
-  getDocs,
-  query,
-  where,
+  deleteDoc,
   doc,
   getDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
+  getDocs,
+  query,
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  updateDoc,
+  where,
 } from "firebase/firestore";
 
 import { db } from "../Service/firebaseConfig";
@@ -21,44 +21,44 @@ const TRAVEL_PLANS_COMMENTS_COLLECTION = "travelPlans_comments";
 
 // Default empty travel plan object
 const DEFAULT_TRAVEL_PLAN: Partial<TravelPlan> = {
-  id: '',
-  destination: '',
-  startDate: '',
-  duration: '',
+  id: "",
+  destination: "",
+  startDate: "",
+  duration: "",
   days: 0,
-  groupType: '',
-  numberOfPeople: '',
-  budget: '',
+  groupType: "",
+  numberOfPeople: "",
+  budget: "",
   isDomestic: false,
-  residenceCountry: '',
-  userId: '',
+  residenceCountry: "",
+  userId: "",
   isRecommended: false,
   itinerary: {},
   hotelOptions: [],
-  bestTimeToVisit: '',
+  bestTimeToVisit: "",
   // Cultural Differences
-  culturalDifferences: '',
-  lifestyleDifferences: '',
-  foodCultureDifferences: '',
-  socialNormsDifferences: '',
+  culturalDifferences: "",
+  lifestyleDifferences: "",
+  foodCultureDifferences: "",
+  socialNormsDifferences: "",
   // Visa and Travel Information
-  visaRequirements: '',
-  visaApplicationProcess: '',
-  visaFees: '',
-  travelDocumentChecklist: '',
+  visaRequirements: "",
+  visaApplicationProcess: "",
+  visaFees: "",
+  travelDocumentChecklist: "",
   // Local Life Recommendations
-  localTransportationGuide: '',
-  emergencyContacts: '',
-  currencyAndPayment: '',
-  healthcareInfo: '',
-  communicationInfo: '',
+  localTransportationGuide: "",
+  emergencyContacts: "",
+  currencyAndPayment: "",
+  healthcareInfo: "",
+  communicationInfo: "",
 };
 
 function safeParseJSON(jsonString: string) {
   try {
     return JSON.parse(jsonString);
   } catch (e) {
-    console.error('Error parsing JSON:', e);
+    console.error("Error parsing JSON:", e);
     return null;
   }
 }
@@ -66,35 +66,35 @@ function safeParseJSON(jsonString: string) {
 export function parseItinerary(data: any) {
   try {
     // Create a deep copy of the data to avoid mutations
-    let parsedData = JSON.parse(JSON.stringify({ ...DEFAULT_TRAVEL_PLAN, ...data }));
+    const parsedData = JSON.parse(JSON.stringify({ ...DEFAULT_TRAVEL_PLAN, ...data }));
 
     // Parse itinerary if it's a string
-    if (typeof data.itinerary === 'string') {
+    if (typeof data.itinerary === "string") {
       const parsedItinerary = safeParseJSON(data.itinerary);
       if (!parsedItinerary) return parsedData;
 
-      console.log('Parsed itinerary type:', typeof parsedItinerary);
+      console.log("Parsed itinerary type:", typeof parsedItinerary);
       if (parsedItinerary) {
-        console.log('Parsed itinerary keys:', Object.keys(parsedItinerary));
+        console.log("Parsed itinerary keys:", Object.keys(parsedItinerary));
       }
 
       // Extract visaInfo, culturalDifferences, and localTips from the itinerary JSON string
-      if (parsedItinerary && typeof parsedItinerary === 'object') {
+      if (parsedItinerary && typeof parsedItinerary === "object") {
         // Extract visaInfo
         if (parsedItinerary.visaInfo) {
-          console.log('Found visaInfo in itinerary');
+          console.log("Found visaInfo in itinerary");
           parsedData.visaInfo = parsedItinerary.visaInfo;
         }
 
         // Extract culturalDifferences
         if (parsedItinerary.culturalDifferences) {
-          console.log('Found culturalDifferences in itinerary');
+          console.log("Found culturalDifferences in itinerary");
           parsedData.culturalDifferences = parsedItinerary.culturalDifferences;
         }
 
         // Extract localTips
         if (parsedItinerary.localTips) {
-          console.log('Found localTips in itinerary');
+          console.log("Found localTips in itinerary");
           parsedData.localTips = parsedItinerary.localTips;
         }
       }
@@ -102,38 +102,41 @@ export function parseItinerary(data: any) {
       // Mobil uygulamadan gelen itinerary formatını kontrol et
       if (Array.isArray(parsedItinerary)) {
         // Doğrudan array formatı - günlük planlar dizisi
-        console.log('Itinerary is an array with length:', parsedItinerary.length);
+        console.log("Itinerary is an array with length:", parsedItinerary.length);
         parsedData.itinerary = parsedItinerary;
       }
       // Eğer itinerary.itinerary bir array ise (nested format)
       else if (parsedItinerary && parsedItinerary.itinerary && Array.isArray(parsedItinerary.itinerary)) {
-        console.log('Itinerary has nested itinerary array with length:', parsedItinerary.itinerary.length);
+        console.log("Itinerary has nested itinerary array with length:", parsedItinerary.itinerary.length);
         parsedData.itinerary = parsedItinerary.itinerary;
       }
       // Eğer itinerary bir obje ise ve içinde günlük planlar varsa (mobil uygulamadan gelen yeni format)
-      else if (typeof parsedItinerary === 'object' && !Array.isArray(parsedItinerary) &&
-               Object.keys(parsedItinerary).some(key => key.includes('Gün'))) {
-        console.log('Itinerary is an object with day keys');
+      else if (
+        typeof parsedItinerary === "object" &&
+        !Array.isArray(parsedItinerary) &&
+        Object.keys(parsedItinerary).some(key => key.includes("Gün"))
+      ) {
+        console.log("Itinerary is an object with day keys");
         parsedData.itinerary = parsedItinerary;
       }
       // Diğer formatlar - obje olarak gelmiş olabilir
-      else if (typeof parsedItinerary === 'object') {
-        console.log('Itinerary is a generic object');
+      else if (typeof parsedItinerary === "object") {
+        console.log("Itinerary is a generic object");
         parsedData.itinerary = parsedItinerary;
       }
 
       // Eğer hotelOptions varsa onu da çıkar
       if (parsedItinerary && parsedItinerary.hotelOptions && Array.isArray(parsedItinerary.hotelOptions)) {
-        console.log('Found hotelOptions in itinerary with length:', parsedItinerary.hotelOptions.length);
+        console.log("Found hotelOptions in itinerary with length:", parsedItinerary.hotelOptions.length);
         parsedData.hotelOptions = parsedItinerary.hotelOptions;
       }
     }
 
     // Parse culturalDifferences if it's a string
-    if (typeof data.culturalDifferences === 'string') {
+    if (typeof data.culturalDifferences === "string") {
       try {
         const parsedCulturalDifferences = safeParseJSON(data.culturalDifferences);
-        if (parsedCulturalDifferences && typeof parsedCulturalDifferences === 'object') {
+        if (parsedCulturalDifferences && typeof parsedCulturalDifferences === "object") {
           parsedData.culturalDifferences = parsedCulturalDifferences;
 
           // Extract individual fields from culturalDifferences for compatibility
@@ -148,15 +151,15 @@ export function parseItinerary(data: any) {
           }
         }
       } catch (error) {
-        console.error('Error parsing culturalDifferences:', error);
+        console.error("Error parsing culturalDifferences:", error);
       }
     }
 
     // Parse localTips if it's a string
-    if (typeof data.localTips === 'string') {
+    if (typeof data.localTips === "string") {
       try {
         const parsedLocalTips = safeParseJSON(data.localTips);
-        if (parsedLocalTips && typeof parsedLocalTips === 'object') {
+        if (parsedLocalTips && typeof parsedLocalTips === "object") {
           parsedData.localTips = parsedLocalTips;
 
           // Extract individual fields from localTips for compatibility
@@ -186,15 +189,15 @@ export function parseItinerary(data: any) {
           }
         }
       } catch (error) {
-        console.error('Error parsing localTips:', error);
+        console.error("Error parsing localTips:", error);
       }
     }
 
     // Parse visaInfo if it's a string
-    if (typeof data.visaInfo === 'string') {
+    if (typeof data.visaInfo === "string") {
       try {
         const parsedVisaInfo = safeParseJSON(data.visaInfo);
-        if (parsedVisaInfo && typeof parsedVisaInfo === 'object') {
+        if (parsedVisaInfo && typeof parsedVisaInfo === "object") {
           parsedData.visaInfo = parsedVisaInfo;
 
           // Extract individual fields from visaInfo for compatibility
@@ -212,49 +215,49 @@ export function parseItinerary(data: any) {
           }
         }
       } catch (error) {
-        console.error('Error parsing visaInfo:', error);
+        console.error("Error parsing visaInfo:", error);
       }
     }
 
     // Parse hotelOptions if it's a string
-    if (typeof data.hotelOptions === 'string') {
+    if (typeof data.hotelOptions === "string") {
       try {
         const parsedHotelOptions = safeParseJSON(data.hotelOptions);
         if (Array.isArray(parsedHotelOptions)) {
           parsedData.hotelOptions = parsedHotelOptions;
         }
       } catch (error) {
-        console.error('Error parsing hotelOptions:', error);
+        console.error("Error parsing hotelOptions:", error);
       }
     }
 
     // Parse tripSummary if it's a string
-    if (typeof data.tripSummary === 'string') {
+    if (typeof data.tripSummary === "string") {
       try {
         const parsedTripSummary = safeParseJSON(data.tripSummary);
-        if (parsedTripSummary && typeof parsedTripSummary === 'object') {
+        if (parsedTripSummary && typeof parsedTripSummary === "object") {
           parsedData.tripSummary = parsedTripSummary;
         }
       } catch (error) {
-        console.error('Error parsing tripSummary:', error);
+        console.error("Error parsing tripSummary:", error);
       }
     }
 
     // Parse destinationInfo if it's a string
-    if (typeof data.destinationInfo === 'string') {
+    if (typeof data.destinationInfo === "string") {
       try {
         const parsedDestinationInfo = safeParseJSON(data.destinationInfo);
-        if (parsedDestinationInfo && typeof parsedDestinationInfo === 'object') {
+        if (parsedDestinationInfo && typeof parsedDestinationInfo === "object") {
           parsedData.destinationInfo = parsedDestinationInfo;
         }
       } catch (error) {
-        console.error('Error parsing destinationInfo:', error);
+        console.error("Error parsing destinationInfo:", error);
       }
     }
 
     return parsedData;
   } catch (error) {
-    console.error('Error in parseItinerary:', error);
+    console.error("Error in parseItinerary:", error);
     return { ...DEFAULT_TRAVEL_PLAN, ...data };
   }
 }
@@ -268,8 +271,8 @@ export function formatTravelPlan(data: any): Partial<TravelPlan> {
       ...DEFAULT_TRAVEL_PLAN,
       ...parsedData,
       id: data?.id || DEFAULT_TRAVEL_PLAN.id,
-      days: typeof parsedData.days === 'number' ? parsedData.days : DEFAULT_TRAVEL_PLAN.days,
-      isDomestic: typeof parsedData.isDomestic === 'boolean' ? parsedData.isDomestic : DEFAULT_TRAVEL_PLAN.isDomestic,
+      days: typeof parsedData.days === "number" ? parsedData.days : DEFAULT_TRAVEL_PLAN.days,
+      isDomestic: typeof parsedData.isDomestic === "boolean" ? parsedData.isDomestic : DEFAULT_TRAVEL_PLAN.isDomestic,
     };
 
     // Temel alanları kontrol et ve düzenle
@@ -277,13 +280,13 @@ export function formatTravelPlan(data: any): Partial<TravelPlan> {
       formattedPlan.bestTimeToVisit = "Not specified";
     }
 
-    if (typeof formattedPlan.duration === 'number') {
+    if (typeof formattedPlan.duration === "number") {
       formattedPlan.duration = `${formattedPlan.duration} days`;
     }
 
     if (!formattedPlan.country && formattedPlan.destination) {
       // Destinasyondan ülke bilgisini çıkarmaya çalış
-      const parts = formattedPlan.destination.split(',');
+      const parts = formattedPlan.destination.split(",");
       if (parts.length > 1) {
         formattedPlan.country = parts[parts.length - 1].trim();
       }
@@ -299,92 +302,112 @@ export function formatTravelPlan(data: any): Partial<TravelPlan> {
     }
 
     // Web uygulamasından oluşturulan seyahat planları için culturalDifferences oluştur
-    if (!formattedPlan.culturalDifferences && (formattedPlan.lifestyleDifferences || formattedPlan.foodCultureDifferences || formattedPlan.socialNormsDifferences)) {
-      console.log('Creating culturalDifferences object from individual fields');
+    if (
+      !formattedPlan.culturalDifferences &&
+      (formattedPlan.lifestyleDifferences ||
+        formattedPlan.foodCultureDifferences ||
+        formattedPlan.socialNormsDifferences)
+    ) {
+      console.log("Creating culturalDifferences object from individual fields");
       formattedPlan.culturalDifferences = {
-        culturalDifferences: 'Belirtilmemiş',
-        lifestyleDifferences: formattedPlan.lifestyleDifferences || 'Belirtilmemiş',
-        foodCultureDifferences: formattedPlan.foodCultureDifferences || 'Belirtilmemiş',
-        socialNormsDifferences: formattedPlan.socialNormsDifferences || 'Belirtilmemiş',
-        religiousAndCulturalSensitivities: 'Belirtilmemiş',
-        localTraditionsAndCustoms: 'Belirtilmemiş',
-        culturalEventsAndFestivals: 'Belirtilmemiş',
-        localCommunicationTips: 'Belirtilmemiş'
+        culturalDifferences: "Belirtilmemiş",
+        lifestyleDifferences: formattedPlan.lifestyleDifferences || "Belirtilmemiş",
+        foodCultureDifferences: formattedPlan.foodCultureDifferences || "Belirtilmemiş",
+        socialNormsDifferences: formattedPlan.socialNormsDifferences || "Belirtilmemiş",
+        religiousAndCulturalSensitivities: "Belirtilmemiş",
+        localTraditionsAndCustoms: "Belirtilmemiş",
+        culturalEventsAndFestivals: "Belirtilmemiş",
+        localCommunicationTips: "Belirtilmemiş",
       };
     }
 
     // Web uygulamasından oluşturulan seyahat planları için visaInfo oluştur
-    if (!formattedPlan.visaInfo && (formattedPlan.visaRequirements || formattedPlan.visaApplicationProcess || formattedPlan.travelDocumentChecklist)) {
-      console.log('Creating visaInfo object from individual fields');
+    if (
+      !formattedPlan.visaInfo &&
+      (formattedPlan.visaRequirements || formattedPlan.visaApplicationProcess || formattedPlan.travelDocumentChecklist)
+    ) {
+      console.log("Creating visaInfo object from individual fields");
       formattedPlan.visaInfo = {
-        visaRequirement: formattedPlan.visaRequirements || '',
-        visaApplicationProcess: formattedPlan.visaApplicationProcess || '',
+        visaRequirement: formattedPlan.visaRequirements || "",
+        visaApplicationProcess: formattedPlan.visaApplicationProcess || "",
         requiredDocuments: Array.isArray(formattedPlan.travelDocumentChecklist)
           ? formattedPlan.travelDocumentChecklist
-          : (formattedPlan.travelDocumentChecklist ? [formattedPlan.travelDocumentChecklist] : []),
-        visaFee: formattedPlan.visaFees || '0 TL',
-        visaProcessingTime: 'Belirtilmemiş',
-        visaApplicationCenters: ['Belirtilmemiş'],
-        passportRequirements: 'Geçerli pasaport',
-        passportValidityRequirements: 'Seyahat bitiş tarihinden sonra en az 6 ay',
-        importantNotes: 'Belirtilmemiş',
+          : formattedPlan.travelDocumentChecklist
+            ? [formattedPlan.travelDocumentChecklist]
+            : [],
+        visaFee: formattedPlan.visaFees || "0 TL",
+        visaProcessingTime: "Belirtilmemiş",
+        visaApplicationCenters: ["Belirtilmemiş"],
+        passportRequirements: "Geçerli pasaport",
+        passportValidityRequirements: "Seyahat bitiş tarihinden sonra en az 6 ay",
+        importantNotes: "Belirtilmemiş",
         emergencyContacts: {
-          ambulance: '112',
-          police: '155',
-          jandarma: '156'
-        }
+          ambulance: "112",
+          police: "155",
+          jandarma: "156",
+        },
       };
     }
 
     // Web uygulamasından oluşturulan seyahat planları için localTips oluştur
-    if (!formattedPlan.localTips && (formattedPlan.localTransportationGuide || formattedPlan.emergencyContacts ||
-        formattedPlan.currencyAndPayment || formattedPlan.healthcareInfo || formattedPlan.communicationInfo)) {
-      console.log('Creating localTips object from individual fields');
+    if (
+      !formattedPlan.localTips &&
+      (formattedPlan.localTransportationGuide ||
+        formattedPlan.emergencyContacts ||
+        formattedPlan.currencyAndPayment ||
+        formattedPlan.healthcareInfo ||
+        formattedPlan.communicationInfo)
+    ) {
+      console.log("Creating localTips object from individual fields");
       formattedPlan.localTips = {
-        localTransportationGuide: formattedPlan.localTransportationGuide || 'Belirtilmemiş',
-        emergencyContacts: formattedPlan.emergencyContacts || { ambulance: '112', police: '155', jandarma: '156' },
-        currencyAndPayment: formattedPlan.currencyAndPayment || 'Belirtilmemiş',
-        healthcareInfo: formattedPlan.healthcareInfo || 'Belirtilmemiş',
-        communicationInfo: formattedPlan.communicationInfo || 'Belirtilmemiş',
-        localCuisineAndFoodTips: formattedPlan.localCuisineAndFoodTips || 'Belirtilmemiş',
-        safetyTips: formattedPlan.safetyTips || 'Belirtilmemiş',
-        localLanguageAndCommunicationTips: formattedPlan.localLanguageAndCommunicationTips || 'Belirtilmemiş'
+        localTransportationGuide: formattedPlan.localTransportationGuide || "Belirtilmemiş",
+        emergencyContacts: formattedPlan.emergencyContacts || { ambulance: "112", police: "155", jandarma: "156" },
+        currencyAndPayment: formattedPlan.currencyAndPayment || "Belirtilmemiş",
+        healthcareInfo: formattedPlan.healthcareInfo || "Belirtilmemiş",
+        communicationInfo: formattedPlan.communicationInfo || "Belirtilmemiş",
+        localCuisineAndFoodTips: formattedPlan.localCuisineAndFoodTips || "Belirtilmemiş",
+        safetyTips: formattedPlan.safetyTips || "Belirtilmemiş",
+        localLanguageAndCommunicationTips: formattedPlan.localLanguageAndCommunicationTips || "Belirtilmemiş",
       };
     }
 
     // Karmaşık nesneleri JSON string'e dönüştür
     // Bu, web uygulamasının mobil uygulamayla aynı formatta veri almasını sağlar
     const complexObjectsToStringify = [
-      'culturalDifferences', 'localTips', 'visaInfo', 'tripSummary', 'destinationInfo'
+      "culturalDifferences",
+      "localTips",
+      "visaInfo",
+      "tripSummary",
+      "destinationInfo",
     ];
 
     // Önce bu alanları itinerary'den çıkaralım (eğer varsa)
-    if (formattedPlan.itinerary && typeof formattedPlan.itinerary === 'object') {
+    if (formattedPlan.itinerary && typeof formattedPlan.itinerary === "object") {
       const itineraryObj = formattedPlan.itinerary as any;
 
       // visaInfo, culturalDifferences ve localTips alanlarını itinerary'den çıkar
       // ve üst seviye alanlara taşı (eğer üst seviyede yoksa)
       if (itineraryObj.visaInfo && !formattedPlan.visaInfo) {
-        console.log('Moving visaInfo from itinerary to top level');
+        console.log("Moving visaInfo from itinerary to top level");
         formattedPlan.visaInfo = itineraryObj.visaInfo;
         delete itineraryObj.visaInfo;
       }
 
       if (itineraryObj.culturalDifferences && !formattedPlan.culturalDifferences) {
-        console.log('Moving culturalDifferences from itinerary to top level');
+        console.log("Moving culturalDifferences from itinerary to top level");
         formattedPlan.culturalDifferences = itineraryObj.culturalDifferences;
         delete itineraryObj.culturalDifferences;
       }
 
       if (itineraryObj.localTips && !formattedPlan.localTips) {
-        console.log('Moving localTips from itinerary to top level');
+        console.log("Moving localTips from itinerary to top level");
         formattedPlan.localTips = itineraryObj.localTips;
         delete itineraryObj.localTips;
       }
     }
 
     complexObjectsToStringify.forEach(field => {
-      if (formattedPlan[field] && typeof formattedPlan[field] === 'object') {
+      if (formattedPlan[field] && typeof formattedPlan[field] === "object") {
         try {
           formattedPlan[field] = JSON.stringify(formattedPlan[field]);
           console.log(`${field} field converted to JSON string`);
@@ -399,28 +422,31 @@ export function formatTravelPlan(data: any): Partial<TravelPlan> {
     if (formattedPlan.hotelOptions && Array.isArray(formattedPlan.hotelOptions)) {
       try {
         formattedPlan.hotelOptions = JSON.stringify(formattedPlan.hotelOptions);
-        console.log('hotelOptions converted to JSON string');
+        console.log("hotelOptions converted to JSON string");
       } catch (error) {
-        console.error('Error converting hotelOptions to JSON string:', error);
+        console.error("Error converting hotelOptions to JSON string:", error);
         formattedPlan.hotelOptions = "[]";
       }
     }
 
     // itinerary'yi JSON string'e dönüştür
-    if (formattedPlan.itinerary && (Array.isArray(formattedPlan.itinerary) || typeof formattedPlan.itinerary === 'object')) {
+    if (
+      formattedPlan.itinerary &&
+      (Array.isArray(formattedPlan.itinerary) || typeof formattedPlan.itinerary === "object")
+    ) {
       try {
         formattedPlan.itinerary = JSON.stringify(formattedPlan.itinerary);
-        console.log('itinerary converted to JSON string');
+        console.log("itinerary converted to JSON string");
       } catch (error) {
-        console.error('Error converting itinerary to JSON string:', error);
+        console.error("Error converting itinerary to JSON string:", error);
         formattedPlan.itinerary = "[]";
       }
     }
 
     return formattedPlan;
   } catch (error) {
-    console.error('Error formatting travel plan:', error);
-    return { ...DEFAULT_TRAVEL_PLAN, id: data?.id || '' };
+    console.error("Error formatting travel plan:", error);
+    return { ...DEFAULT_TRAVEL_PLAN, id: data?.id || "" };
   }
 }
 
@@ -436,38 +462,40 @@ export async function fetchUserTravelPlans(userId: string): Promise<Partial<Trav
     const querySnapshot = await getDocs(q);
 
     // Her bir plan için özel işleme yap
-    const plans = await Promise.all(querySnapshot.docs.map(async (doc) => {
-      const rawData = doc.data();
+    const plans = await Promise.all(
+      querySnapshot.docs.map(async doc => {
+        const rawData = doc.data();
 
-      // Özel işleme: itinerary içindeki visaInfo, culturalDifferences ve localTips alanlarını çıkar
-      if (rawData.itinerary && typeof rawData.itinerary === 'string') {
-        try {
-          const parsedItinerary = safeParseJSON(rawData.itinerary);
-          if (parsedItinerary && typeof parsedItinerary === 'object') {
-            // visaInfo, culturalDifferences ve localTips alanlarını itinerary'den çıkar
-            // ve üst seviye alanlara taşı
-            if (parsedItinerary.visaInfo && !rawData.visaInfo) {
-              console.log('Extracting visaInfo from itinerary');
-              rawData.visaInfo = parsedItinerary.visaInfo;
-            }
+        // Özel işleme: itinerary içindeki visaInfo, culturalDifferences ve localTips alanlarını çıkar
+        if (rawData.itinerary && typeof rawData.itinerary === "string") {
+          try {
+            const parsedItinerary = safeParseJSON(rawData.itinerary);
+            if (parsedItinerary && typeof parsedItinerary === "object") {
+              // visaInfo, culturalDifferences ve localTips alanlarını itinerary'den çıkar
+              // ve üst seviye alanlara taşı
+              if (parsedItinerary.visaInfo && !rawData.visaInfo) {
+                console.log("Extracting visaInfo from itinerary");
+                rawData.visaInfo = parsedItinerary.visaInfo;
+              }
 
-            if (parsedItinerary.culturalDifferences && !rawData.culturalDifferences) {
-              console.log('Extracting culturalDifferences from itinerary');
-              rawData.culturalDifferences = parsedItinerary.culturalDifferences;
-            }
+              if (parsedItinerary.culturalDifferences && !rawData.culturalDifferences) {
+                console.log("Extracting culturalDifferences from itinerary");
+                rawData.culturalDifferences = parsedItinerary.culturalDifferences;
+              }
 
-            if (parsedItinerary.localTips && !rawData.localTips) {
-              console.log('Extracting localTips from itinerary');
-              rawData.localTips = parsedItinerary.localTips;
+              if (parsedItinerary.localTips && !rawData.localTips) {
+                console.log("Extracting localTips from itinerary");
+                rawData.localTips = parsedItinerary.localTips;
+              }
             }
+          } catch (error) {
+            console.error("Error parsing itinerary:", error);
           }
-        } catch (error) {
-          console.error('Error parsing itinerary:', error);
         }
-      }
 
-      return formatTravelPlan({ ...rawData, id: doc.id });
-    }));
+        return formatTravelPlan({ ...rawData, id: doc.id });
+      })
+    );
 
     // Sadece geçerli planları döndür
     return plans.filter(plan => plan.id && plan.destination);
@@ -488,46 +516,46 @@ export async function fetchTravelPlanById(id: string): Promise<Partial<TravelPla
     const docSnap = await getDoc(travelPlanRef);
 
     if (!docSnap.exists()) {
-      console.warn('Travel plan not found:', id);
+      console.warn("Travel plan not found:", id);
       return { ...DEFAULT_TRAVEL_PLAN, id };
     }
 
     const rawData = docSnap.data();
-    console.log('Raw data from Firebase:', rawData);
+    console.log("Raw data from Firebase:", rawData);
 
     // Özel işleme: itinerary içindeki visaInfo, culturalDifferences ve localTips alanlarını çıkar
-    if (rawData.itinerary && typeof rawData.itinerary === 'string') {
+    if (rawData.itinerary && typeof rawData.itinerary === "string") {
       try {
         const parsedItinerary = safeParseJSON(rawData.itinerary);
-        if (parsedItinerary && typeof parsedItinerary === 'object') {
+        if (parsedItinerary && typeof parsedItinerary === "object") {
           // visaInfo, culturalDifferences ve localTips alanlarını itinerary'den çıkar
           // ve üst seviye alanlara taşı
           if (parsedItinerary.visaInfo && !rawData.visaInfo) {
-            console.log('Extracting visaInfo from itinerary');
+            console.log("Extracting visaInfo from itinerary");
             rawData.visaInfo = parsedItinerary.visaInfo;
           }
 
           if (parsedItinerary.culturalDifferences && !rawData.culturalDifferences) {
-            console.log('Extracting culturalDifferences from itinerary');
+            console.log("Extracting culturalDifferences from itinerary");
             rawData.culturalDifferences = parsedItinerary.culturalDifferences;
           }
 
           if (parsedItinerary.localTips && !rawData.localTips) {
-            console.log('Extracting localTips from itinerary');
+            console.log("Extracting localTips from itinerary");
             rawData.localTips = parsedItinerary.localTips;
           }
         }
       } catch (error) {
-        console.error('Error parsing itinerary:', error);
+        console.error("Error parsing itinerary:", error);
       }
     }
 
     const formattedPlan = formatTravelPlan({ ...rawData, id: docSnap.id });
-    console.log('Formatted travel plan:', formattedPlan);
+    console.log("Formatted travel plan:", formattedPlan);
     return formattedPlan;
   } catch (error) {
     console.error("Error fetching travel plan:", error);
-    return { ...DEFAULT_TRAVEL_PLAN, id: id || '' };
+    return { ...DEFAULT_TRAVEL_PLAN, id: id || "" };
   }
 }
 
@@ -544,10 +572,7 @@ export async function fetchCommentsByTravelPlanId(travelPlanId: string): Promise
     }
 
     const commentsRef = collection(db, TRAVEL_PLANS_COMMENTS_COLLECTION);
-    const q = query(
-      commentsRef,
-      where("travelPlanId", "==", travelPlanId)
-    );
+    const q = query(commentsRef, where("travelPlanId", "==", travelPlanId));
 
     const querySnapshot = await getDocs(q);
     console.log(`Found ${querySnapshot.size} comments`);
@@ -558,26 +583,23 @@ export async function fetchCommentsByTravelPlanId(travelPlanId: string): Promise
       const data = doc.data();
 
       // Convert Timestamp to Date string
-      const createdAt = data.createdAt instanceof Timestamp
-        ? data.createdAt.toDate().toISOString()
-        : data.createdAt || new Date().toISOString();
+      const createdAt =
+        data.createdAt instanceof Timestamp
+          ? data.createdAt.toDate().toISOString()
+          : data.createdAt || new Date().toISOString();
 
-      const updatedAt = data.updatedAt instanceof Timestamp
-        ? data.updatedAt.toDate().toISOString()
-        : data.updatedAt;
+      const updatedAt = data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : data.updatedAt;
 
       comments.push({
-        ...data as TripComment,
+        ...(data as TripComment),
         id: doc.id,
         createdAt,
-        updatedAt
+        updatedAt,
       });
     });
 
     // Sort comments by date (newest first)
-    return comments.sort((a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    return comments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   } catch (error) {
     console.error("Error fetching comments:", error);
     return [];
@@ -587,7 +609,7 @@ export async function fetchCommentsByTravelPlanId(travelPlanId: string): Promise
 /**
  * Yeni bir yorum ekler
  */
-export async function addComment(comment: Omit<TripComment, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+export async function addComment(comment: Omit<TripComment, "id" | "createdAt" | "updatedAt">): Promise<string> {
   try {
     console.log(`Adding comment for travel plan: ${comment.travelPlanId}`);
 
@@ -602,12 +624,12 @@ export async function addComment(comment: Omit<TripComment, 'id' | 'createdAt' |
     const commentWithTimestamp = {
       ...comment,
       createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
     };
 
     // Add to Firestore
     const docRef = await addDoc(commentsRef, commentWithTimestamp);
-    console.log('Comment added:', docRef.id);
+    console.log("Comment added:", docRef.id);
 
     return docRef.id;
   } catch (error) {
@@ -633,16 +655,16 @@ export async function updateComment(id: string, comment: Partial<TripComment>): 
     // Add updatedAt timestamp
     const updateData = {
       ...comment,
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
     };
 
     // Remove ID (already exists as document ID in Firestore)
-    if ('id' in updateData) {
+    if ("id" in updateData) {
       delete updateData.id;
     }
 
     await updateDoc(commentRef, updateData);
-    console.log('Comment updated:', id);
+    console.log("Comment updated:", id);
 
     return true;
   } catch (error) {
@@ -665,7 +687,7 @@ export async function deleteComment(id: string): Promise<boolean> {
 
     const commentRef = doc(db, TRAVEL_PLANS_COMMENTS_COLLECTION, id);
     await deleteDoc(commentRef);
-    console.log('Comment deleted:', id);
+    console.log("Comment deleted:", id);
 
     return true;
   } catch (error) {
@@ -679,7 +701,7 @@ export async function deleteComment(id: string): Promise<boolean> {
  */
 export async function toggleRecommendation(id: string, isRecommended: boolean): Promise<boolean> {
   try {
-    console.log(`${isRecommended ? 'Recommending' : 'Unrecommending'} travel plan: ${id}`);
+    console.log(`${isRecommended ? "Recommending" : "Unrecommending"} travel plan: ${id}`);
 
     if (!id?.trim()) {
       console.warn("Invalid travel plan ID");
@@ -690,11 +712,11 @@ export async function toggleRecommendation(id: string, isRecommended: boolean): 
 
     // Sadece isRecommended alanını güncelle
     await updateDoc(travelPlanRef, {
-      isRecommended: isRecommended,
-      updatedAt: serverTimestamp()
+      isRecommended,
+      updatedAt: serverTimestamp(),
     });
 
-    console.log(`Travel plan ${isRecommended ? 'recommended' : 'unrecommended'}:`, id);
+    console.log(`Travel plan ${isRecommended ? "recommended" : "unrecommended"}:`, id);
 
     return true;
   } catch (error) {
@@ -708,52 +730,51 @@ export async function toggleRecommendation(id: string, isRecommended: boolean): 
  */
 export async function fetchRecommendedTravelPlans(): Promise<Partial<TravelPlan>[]> {
   try {
-    console.log('Fetching recommended travel plans...');
+    console.log("Fetching recommended travel plans...");
 
     const travelPlansRef = collection(db, TRAVEL_PLANS_COLLECTION);
 
     // Sadece önerilen planları getir
-    const q = query(
-      travelPlansRef,
-      where("isRecommended", "==", true)
-    );
+    const q = query(travelPlansRef, where("isRecommended", "==", true));
 
     const querySnapshot = await getDocs(q);
     console.log(`Found ${querySnapshot.size} recommended plans`);
 
     // Her bir plan için özel işleme yap
-    const plans = await Promise.all(querySnapshot.docs.map(async (doc) => {
-      const rawData = doc.data();
+    const plans = await Promise.all(
+      querySnapshot.docs.map(async doc => {
+        const rawData = doc.data();
 
-      // Özel işleme: itinerary içindeki visaInfo, culturalDifferences ve localTips alanlarını çıkar
-      if (rawData.itinerary && typeof rawData.itinerary === 'string') {
-        try {
-          const parsedItinerary = safeParseJSON(rawData.itinerary);
-          if (parsedItinerary && typeof parsedItinerary === 'object') {
-            // visaInfo, culturalDifferences ve localTips alanlarını itinerary'den çıkar
-            // ve üst seviye alanlara taşı
-            if (parsedItinerary.visaInfo && !rawData.visaInfo) {
-              console.log('Extracting visaInfo from itinerary');
-              rawData.visaInfo = parsedItinerary.visaInfo;
-            }
+        // Özel işleme: itinerary içindeki visaInfo, culturalDifferences ve localTips alanlarını çıkar
+        if (rawData.itinerary && typeof rawData.itinerary === "string") {
+          try {
+            const parsedItinerary = safeParseJSON(rawData.itinerary);
+            if (parsedItinerary && typeof parsedItinerary === "object") {
+              // visaInfo, culturalDifferences ve localTips alanlarını itinerary'den çıkar
+              // ve üst seviye alanlara taşı
+              if (parsedItinerary.visaInfo && !rawData.visaInfo) {
+                console.log("Extracting visaInfo from itinerary");
+                rawData.visaInfo = parsedItinerary.visaInfo;
+              }
 
-            if (parsedItinerary.culturalDifferences && !rawData.culturalDifferences) {
-              console.log('Extracting culturalDifferences from itinerary');
-              rawData.culturalDifferences = parsedItinerary.culturalDifferences;
-            }
+              if (parsedItinerary.culturalDifferences && !rawData.culturalDifferences) {
+                console.log("Extracting culturalDifferences from itinerary");
+                rawData.culturalDifferences = parsedItinerary.culturalDifferences;
+              }
 
-            if (parsedItinerary.localTips && !rawData.localTips) {
-              console.log('Extracting localTips from itinerary');
-              rawData.localTips = parsedItinerary.localTips;
+              if (parsedItinerary.localTips && !rawData.localTips) {
+                console.log("Extracting localTips from itinerary");
+                rawData.localTips = parsedItinerary.localTips;
+              }
             }
+          } catch (error) {
+            console.error("Error parsing itinerary:", error);
           }
-        } catch (error) {
-          console.error('Error parsing itinerary:', error);
         }
-      }
 
-      return formatTravelPlan({ ...rawData, id: doc.id });
-    }));
+        return formatTravelPlan({ ...rawData, id: doc.id });
+      })
+    );
 
     // Sadece geçerli planları döndür
     return plans.filter(plan => plan.id && plan.destination);

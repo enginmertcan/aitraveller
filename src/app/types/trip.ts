@@ -6,7 +6,7 @@ export interface TripDetails {
   budget: string;
   residenceCountry: string;
   citizenship: string;
-  
+
   // Vize ve Pasaport Bilgileri
   visaRequirement: string;
   visaApplicationProcess: string;
@@ -78,4 +78,4 @@ export interface Activity {
   tips: string[];
   warnings?: string[];
   alternatives?: string[];
-} 
+}

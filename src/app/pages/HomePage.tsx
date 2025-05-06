@@ -12,28 +12,37 @@ import {
   CircularProgress,
   Container,
   Grid,
+  MenuItem,
   Paper,
   Snackbar,
   TextField,
   Typography,
-  MenuItem,
 } from "@mui/material";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import dayjs from "dayjs";
-import { Loader2, Crown as MapPin, User as UserIcon, UserPlus2 as UserPlus2Icon, PlusCircle, Globe2, Plane } from "lucide-react";
-import { useThemeContext } from '../context/ThemeContext';
+import {
+  Globe2,
+  Loader2,
+  Crown as MapPin,
+  Plane,
+  PlusCircle,
+  User as UserIcon,
+  UserPlus2 as UserPlus2Icon,
+} from "lucide-react";
+
+import { useThemeContext } from "../context/ThemeContext";
 
 import "dayjs/locale/tr";
 
+import { CitySelector } from "../components/CitySelector";
 import { AI_PROMPT, budgetOptions, commonIconStyle, companionOptions } from "../constants/options";
+import { usePlaces, type Place } from "../hooks/usePlaces";
 import { useTravelPlan } from "../hooks/useTravelPlan";
 import { chatSession } from "../Service/AIService";
-import { TravelFormState } from "../types/TravelFormState";
-import { usePlaces, type Place } from "../hooks/usePlaces";
-import { CitySelector } from "../components/CitySelector";
 import { getCountries } from "../Services/location.service";
+import { TravelFormState } from "../types/TravelFormState";
 
 export default function Home(): JSX.Element {
   const { isDarkMode } = useThemeContext();
@@ -73,16 +82,18 @@ export default function Home(): JSX.Element {
   const { user, isLoaded: isUserLoaded } = useUser();
   const { saveTravelPlan, isLoading: isSaving, error: saveError } = useTravelPlan();
 
-  const [countries, setCountries] = useState<Array<{
-    name: { common: string; official: string };
-    cca2: string;
-    flags: { png: string; svg: string };
-  }>>([]);
+  const [countries, setCountries] = useState<
+    Array<{
+      name: { common: string; official: string };
+      cca2: string;
+      flags: { png: string; svg: string };
+    }>
+  >([]);
 
   const [searchText, setSearchText] = useState({ residence: "", citizenship: "" });
   const [filteredCountries, setFilteredCountries] = useState({
     residence: [] as typeof countries,
-    citizenship: [] as typeof countries
+    citizenship: [] as typeof countries,
   });
 
   const handleSnackbarClose = () => {
@@ -236,7 +247,7 @@ export default function Home(): JSX.Element {
   const handleResidenceCountrySelect = (country: string) => {
     setFormState(prev => ({
       ...prev,
-      residenceCountry: country
+      residenceCountry: country,
     }));
     setFormErrors(prev => ({ ...prev, residenceCountry: undefined }));
     setSearchText(prev => ({ ...prev, residence: "" })); // Reset search text after selection
@@ -245,7 +256,7 @@ export default function Home(): JSX.Element {
   const handleCitizenshipSelect = (country: string) => {
     setFormState(prev => ({
       ...prev,
-      citizenship: country
+      citizenship: country,
     }));
     setFormErrors(prev => ({ ...prev, citizenship: undefined }));
     setSearchText(prev => ({ ...prev, citizenship: "" })); // Reset search text after selection
@@ -260,9 +271,10 @@ export default function Home(): JSX.Element {
       return;
     }
 
-    const filtered = countries.filter(country =>
-      country.name.common.toLowerCase().includes(searchValue) ||
-      country.name.official.toLowerCase().includes(searchValue)
+    const filtered = countries.filter(
+      country =>
+        country.name.common.toLowerCase().includes(searchValue) ||
+        country.name.official.toLowerCase().includes(searchValue)
     );
 
     setFilteredCountries(prev => ({ ...prev, [type]: filtered }));
@@ -298,7 +310,7 @@ export default function Home(): JSX.Element {
         .replace("{residenceCountry}", formState.residenceCountry || "Belirtilmedi")
         .replace("{citizenship}", formState.citizenship || "Belirtilmedi");
 
-      console.log('Gönderilen prompt:', FINAL_PROMPT);
+      console.log("Gönderilen prompt:", FINAL_PROMPT);
 
       const aiResponse = await chatSession.sendMessage(FINAL_PROMPT);
       const aiItinerary = await aiResponse?.response?.text();
@@ -348,7 +360,7 @@ export default function Home(): JSX.Element {
       setCountries(fetchedCountries);
       setFilteredCountries({
         residence: fetchedCountries,
-        citizenship: fetchedCountries
+        citizenship: fetchedCountries,
       });
     };
     fetchCountries();
@@ -367,8 +379,8 @@ export default function Home(): JSX.Element {
       sx={{
         minHeight: "calc(100vh - 64px)",
         background: isDarkMode
-          ? 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)'
-          : 'linear-gradient(135deg, #e0f2fe 0%, #ddd6fe 100%)',
+          ? "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)"
+          : "linear-gradient(135deg, #e0f2fe 0%, #ddd6fe 100%)",
         py: 8,
       }}
     >
@@ -379,10 +391,10 @@ export default function Home(): JSX.Element {
               elevation={0}
               sx={{
                 p: 4,
-                background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                background: isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(255, 255, 255, 0.8)",
                 backdropFilter: "blur(10px)",
                 borderRadius: "16px",
-                border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                border: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"}`,
               }}
             >
               <Typography
@@ -390,10 +402,10 @@ export default function Home(): JSX.Element {
                 sx={{
                   mb: 4,
                   fontWeight: 700,
-                  color: isDarkMode ? '#fff' : 'inherit',
+                  color: isDarkMode ? "#fff" : "inherit",
                   background: isDarkMode
-                    ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
-                    : 'linear-gradient(45deg, #2563eb, #7c3aed)',
+                    ? "linear-gradient(45deg, #93c5fd, #a78bfa)"
+                    : "linear-gradient(45deg, #2563eb, #7c3aed)",
                   backgroundClip: "text",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
@@ -403,19 +415,23 @@ export default function Home(): JSX.Element {
               </Typography>
 
               <Box component="form" sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
                   <Button
                     variant={formState.isDomestic ? "contained" : "outlined"}
                     onClick={() => handleDomesticToggle(true)}
                     sx={{
                       flex: 1,
-                      background: formState.isDomestic ? (isDarkMode
-                        ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
-                        : 'linear-gradient(45deg, #2563eb, #7c3aed)') : 'transparent',
-                      '&:hover': {
-                        background: formState.isDomestic ? (isDarkMode
-                          ? 'linear-gradient(45deg, #60a5fa, #8b5cf6)'
-                          : 'linear-gradient(45deg, #1d4ed8, #6d28d9)') : 'rgba(37, 99, 235, 0.1)',
+                      background: formState.isDomestic
+                        ? isDarkMode
+                          ? "linear-gradient(45deg, #93c5fd, #a78bfa)"
+                          : "linear-gradient(45deg, #2563eb, #7c3aed)"
+                        : "transparent",
+                      "&:hover": {
+                        background: formState.isDomestic
+                          ? isDarkMode
+                            ? "linear-gradient(45deg, #60a5fa, #8b5cf6)"
+                            : "linear-gradient(45deg, #1d4ed8, #6d28d9)"
+                          : "rgba(37, 99, 235, 0.1)",
                       },
                     }}
                   >
@@ -426,13 +442,17 @@ export default function Home(): JSX.Element {
                     onClick={() => handleDomesticToggle(false)}
                     sx={{
                       flex: 1,
-                      background: !formState.isDomestic ? (isDarkMode
-                        ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
-                        : 'linear-gradient(45deg, #2563eb, #7c3aed)') : 'transparent',
-                      '&:hover': {
-                        background: !formState.isDomestic ? (isDarkMode
-                          ? 'linear-gradient(45deg, #60a5fa, #8b5cf6)'
-                          : 'linear-gradient(45deg, #1d4ed8, #6d28d9)') : 'rgba(37, 99, 235, 0.1)',
+                      background: !formState.isDomestic
+                        ? isDarkMode
+                          ? "linear-gradient(45deg, #93c5fd, #a78bfa)"
+                          : "linear-gradient(45deg, #2563eb, #7c3aed)"
+                        : "transparent",
+                      "&:hover": {
+                        background: !formState.isDomestic
+                          ? isDarkMode
+                            ? "linear-gradient(45deg, #60a5fa, #8b5cf6)"
+                            : "linear-gradient(45deg, #1d4ed8, #6d28d9)"
+                          : "rgba(37, 99, 235, 0.1)",
                       },
                     }}
                   >
@@ -447,8 +467,8 @@ export default function Home(): JSX.Element {
                         select
                         fullWidth
                         label="Yaşadığınız Ülke"
-                        value={formState.residenceCountry || ''}
-                        onChange={(e) => handleResidenceCountrySelect(e.target.value)}
+                        value={formState.residenceCountry || ""}
+                        onChange={e => handleResidenceCountrySelect(e.target.value)}
                         error={!!formErrors.residenceCountry}
                         helperText={formErrors.residenceCountry}
                         SelectProps={{
@@ -464,58 +484,58 @@ export default function Home(): JSX.Element {
                           startAdornment: !formState.residenceCountry ? (
                             <Box
                               sx={{
-                                position: 'sticky',
+                                position: "sticky",
                                 top: 0,
-                                bgcolor: isDarkMode ? 'rgba(18, 18, 18, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                                bgcolor: isDarkMode ? "rgba(18, 18, 18, 0.95)" : "rgba(255, 255, 255, 0.95)",
                                 p: 1,
-                                width: '100%',
+                                width: "100%",
                                 zIndex: 1,
                                 borderBottom: 1,
-                                borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
                               }}
                             >
                               <input
                                 type="text"
                                 placeholder="Ülke ara..."
                                 value={searchText.residence}
-                                onChange={(e) => handleSearch("residence", e.target.value)}
+                                onChange={e => handleSearch("residence", e.target.value)}
                                 style={{
-                                  border: 'none',
-                                  padding: '8px',
-                                  width: '100%',
-                                  background: 'transparent',
-                                  color: isDarkMode ? '#fff' : 'inherit',
-                                  outline: 'none',
-                                  fontSize: '0.9rem',
+                                  border: "none",
+                                  padding: "8px",
+                                  width: "100%",
+                                  background: "transparent",
+                                  color: isDarkMode ? "#fff" : "inherit",
+                                  outline: "none",
+                                  fontSize: "0.9rem",
                                 }}
-                                onClick={(e) => e.stopPropagation()}
+                                onClick={e => e.stopPropagation()}
                               />
                             </Box>
                           ) : null,
                         }}
                         sx={{
-                          '& .MuiOutlinedInput-root': {
-                            backgroundColor: isDarkMode ? 'rgba(18, 18, 18, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-                            '& fieldset': {
-                              borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                          "& .MuiOutlinedInput-root": {
+                            backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.8)" : "rgba(255, 255, 255, 0.8)",
+                            "& fieldset": {
+                              borderColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
                             },
                           },
-                          '& .MuiInputLabel-root': {
-                            color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'inherit',
+                          "& .MuiInputLabel-root": {
+                            color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "inherit",
                           },
-                          '& .MuiInputBase-input': {
-                            color: isDarkMode ? '#fff' : 'inherit',
+                          "& .MuiInputBase-input": {
+                            color: isDarkMode ? "#fff" : "inherit",
                           },
                         }}
                       >
-                        {filteredCountries.residence.length > 0 ? (
-                          filteredCountries.residence.map((country) => (
+                        {filteredCountries.residence.length > 0
+                          ? filteredCountries.residence.map(country => (
                             <MenuItem
                               key={country.cca2}
                               value={country.name.common}
                               sx={{
-                                display: 'flex',
-                                alignItems: 'center',
+                                display: "flex",
+                                alignItems: "center",
                                 gap: 2,
                                 py: 1,
                               }}
@@ -523,19 +543,18 @@ export default function Home(): JSX.Element {
                               <img
                                 src={country.flags.png}
                                 alt={`${country.name.common} flag`}
-                                style={{ width: 24, height: 16, objectFit: 'cover', borderRadius: 2 }}
+                                style={{ width: 24, height: 16, objectFit: "cover", borderRadius: 2 }}
                               />
                               {country.name.common}
                             </MenuItem>
                           ))
-                        ) : (
-                          countries.map((country) => (
+                          : countries.map(country => (
                             <MenuItem
                               key={country.cca2}
                               value={country.name.common}
                               sx={{
-                                display: 'flex',
-                                alignItems: 'center',
+                                display: "flex",
+                                alignItems: "center",
                                 gap: 2,
                                 py: 1,
                               }}
@@ -543,12 +562,11 @@ export default function Home(): JSX.Element {
                               <img
                                 src={country.flags.png}
                                 alt={`${country.name.common} flag`}
-                                style={{ width: 24, height: 16, objectFit: 'cover', borderRadius: 2 }}
+                                style={{ width: 24, height: 16, objectFit: "cover", borderRadius: 2 }}
                               />
                               {country.name.common}
                             </MenuItem>
-                          ))
-                        )}
+                          ))}
                       </TextField>
                     </Grid>
                     <Grid item xs={12} md={6}>
@@ -556,8 +574,8 @@ export default function Home(): JSX.Element {
                         select
                         fullWidth
                         label="Vatandaşlık"
-                        value={formState.citizenship || ''}
-                        onChange={(e) => handleCitizenshipSelect(e.target.value)}
+                        value={formState.citizenship || ""}
+                        onChange={e => handleCitizenshipSelect(e.target.value)}
                         error={!!formErrors.citizenship}
                         helperText={formErrors.citizenship}
                         SelectProps={{
@@ -573,58 +591,58 @@ export default function Home(): JSX.Element {
                           startAdornment: !formState.citizenship ? (
                             <Box
                               sx={{
-                                position: 'sticky',
+                                position: "sticky",
                                 top: 0,
-                                bgcolor: isDarkMode ? 'rgba(18, 18, 18, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                                bgcolor: isDarkMode ? "rgba(18, 18, 18, 0.95)" : "rgba(255, 255, 255, 0.95)",
                                 p: 1,
-                                width: '100%',
+                                width: "100%",
                                 zIndex: 1,
                                 borderBottom: 1,
-                                borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
                               }}
                             >
                               <input
                                 type="text"
                                 placeholder="Ülke ara..."
                                 value={searchText.citizenship}
-                                onChange={(e) => handleSearch("citizenship", e.target.value)}
+                                onChange={e => handleSearch("citizenship", e.target.value)}
                                 style={{
-                                  border: 'none',
-                                  padding: '8px',
-                                  width: '100%',
-                                  background: 'transparent',
-                                  color: isDarkMode ? '#fff' : 'inherit',
-                                  outline: 'none',
-                                  fontSize: '0.9rem',
+                                  border: "none",
+                                  padding: "8px",
+                                  width: "100%",
+                                  background: "transparent",
+                                  color: isDarkMode ? "#fff" : "inherit",
+                                  outline: "none",
+                                  fontSize: "0.9rem",
                                 }}
-                                onClick={(e) => e.stopPropagation()}
+                                onClick={e => e.stopPropagation()}
                               />
                             </Box>
-                          ): null,
+                          ) : null,
                         }}
                         sx={{
-                          '& .MuiOutlinedInput-root': {
-                            backgroundColor: isDarkMode ? 'rgba(18, 18, 18, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-                            '& fieldset': {
-                              borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                          "& .MuiOutlinedInput-root": {
+                            backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.8)" : "rgba(255, 255, 255, 0.8)",
+                            "& fieldset": {
+                              borderColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
                             },
                           },
-                          '& .MuiInputLabel-root': {
-                            color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'inherit',
+                          "& .MuiInputLabel-root": {
+                            color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "inherit",
                           },
-                          '& .MuiInputBase-input': {
-                            color: isDarkMode ? '#fff' : 'inherit',
+                          "& .MuiInputBase-input": {
+                            color: isDarkMode ? "#fff" : "inherit",
                           },
                         }}
                       >
-                        {filteredCountries.citizenship.length > 0 ? (
-                          filteredCountries.citizenship.map((country) => (
+                        {filteredCountries.citizenship.length > 0
+                          ? filteredCountries.citizenship.map(country => (
                             <MenuItem
                               key={country.cca2}
                               value={country.name.common}
                               sx={{
-                                display: 'flex',
-                                alignItems: 'center',
+                                display: "flex",
+                                alignItems: "center",
                                 gap: 2,
                                 py: 1,
                               }}
@@ -632,19 +650,18 @@ export default function Home(): JSX.Element {
                               <img
                                 src={country.flags.png}
                                 alt={`${country.name.common} flag`}
-                                style={{ width: 24, height: 16, objectFit: 'cover', borderRadius: 2 }}
+                                style={{ width: 24, height: 16, objectFit: "cover", borderRadius: 2 }}
                               />
                               {country.name.common}
                             </MenuItem>
                           ))
-                        ) : (
-                          countries.map((country) => (
+                          : countries.map(country => (
                             <MenuItem
                               key={country.cca2}
                               value={country.name.common}
                               sx={{
-                                display: 'flex',
-                                alignItems: 'center',
+                                display: "flex",
+                                alignItems: "center",
                                 gap: 2,
                                 py: 1,
                               }}
@@ -652,12 +669,11 @@ export default function Home(): JSX.Element {
                               <img
                                 src={country.flags.png}
                                 alt={`${country.name.common} flag`}
-                                style={{ width: 24, height: 16, objectFit: 'cover', borderRadius: 2 }}
+                                style={{ width: 24, height: 16, objectFit: "cover", borderRadius: 2 }}
                               />
                               {country.name.common}
                             </MenuItem>
-                          ))
-                        )}
+                          ))}
                       </TextField>
                     </Grid>
                   </Grid>
@@ -683,17 +699,17 @@ export default function Home(): JSX.Element {
                   helperText={formErrors.days}
                   inputProps={{ min: 1, max: 5 }}
                   sx={{
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: isDarkMode ? 'rgba(18, 18, 18, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-                      '& fieldset': {
-                        borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.8)" : "rgba(255, 255, 255, 0.8)",
+                      "& fieldset": {
+                        borderColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
                       },
                     },
-                    '& .MuiInputLabel-root': {
-                      color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'inherit',
+                    "& .MuiInputLabel-root": {
+                      color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "inherit",
                     },
-                    '& .MuiInputBase-input': {
-                      color: isDarkMode ? '#fff' : 'inherit',
+                    "& .MuiInputBase-input": {
+                      color: isDarkMode ? "#fff" : "inherit",
                     },
                   }}
                 />
@@ -711,17 +727,17 @@ export default function Home(): JSX.Element {
                       },
                     }}
                     sx={{
-                      '& .MuiOutlinedInput-root': {
-                        backgroundColor: isDarkMode ? 'rgba(18, 18, 18, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-                        '& fieldset': {
-                          borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                      "& .MuiOutlinedInput-root": {
+                        backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.8)" : "rgba(255, 255, 255, 0.8)",
+                        "& fieldset": {
+                          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
                         },
                       },
-                      '& .MuiInputLabel-root': {
-                        color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'inherit',
+                      "& .MuiInputLabel-root": {
+                        color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "inherit",
                       },
-                      '& .MuiInputBase-input': {
-                        color: isDarkMode ? '#fff' : 'inherit',
+                      "& .MuiInputBase-input": {
+                        color: isDarkMode ? "#fff" : "inherit",
                       },
                     }}
                   />
@@ -736,22 +752,29 @@ export default function Home(): JSX.Element {
                         sx={{
                           height: "100%",
                           cursor: "pointer",
-                          background: formState.budget?.value === option.value
-                            ? (isDarkMode ? 'rgba(37, 99, 235, 0.2)' : 'rgba(37, 99, 235, 0.1)')
-                            : (isDarkMode ? 'rgba(18, 18, 18, 0.8)' : 'rgba(255, 255, 255, 0.8)'),
+                          background:
+                            formState.budget?.value === option.value
+                              ? isDarkMode
+                                ? "rgba(37, 99, 235, 0.2)"
+                                : "rgba(37, 99, 235, 0.1)"
+                              : isDarkMode
+                                ? "rgba(18, 18, 18, 0.8)"
+                                : "rgba(255, 255, 255, 0.8)",
                           borderRadius: "12px",
                           border: `1px solid ${
                             formState.budget?.value === option.value
-                              ? (isDarkMode ? '#93c5fd' : '#2563eb')
-                              : (isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)')
+                              ? isDarkMode
+                                ? "#93c5fd"
+                                : "#2563eb"
+                              : isDarkMode
+                                ? "rgba(255, 255, 255, 0.1)"
+                                : "rgba(0, 0, 0, 0.1)"
                           }`,
                           transition: "all 0.2s ease",
                           "&:hover": {
                             transform: "translateY(-4px)",
-                            boxShadow: isDarkMode
-                              ? '0 4px 20px rgba(0, 0, 0, 0.4)'
-                              : '0 4px 20px rgba(0, 0, 0, 0.1)',
-                            border: `1px solid ${isDarkMode ? '#93c5fd' : '#2563eb'}`,
+                            boxShadow: isDarkMode ? "0 4px 20px rgba(0, 0, 0, 0.4)" : "0 4px 20px rgba(0, 0, 0, 0.1)",
+                            border: `1px solid ${isDarkMode ? "#93c5fd" : "#2563eb"}`,
                           },
                         }}
                       >
@@ -760,7 +783,7 @@ export default function Home(): JSX.Element {
                             variant="h6"
                             sx={{
                               mb: 1,
-                              color: isDarkMode ? '#93c5fd' : '#2563eb',
+                              color: isDarkMode ? "#93c5fd" : "#2563eb",
                             }}
                           >
                             {option.title}
@@ -768,7 +791,7 @@ export default function Home(): JSX.Element {
                           <Typography
                             variant="body2"
                             sx={{
-                              color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                              color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "text.secondary",
                             }}
                           >
                             {option.description}
@@ -788,22 +811,29 @@ export default function Home(): JSX.Element {
                         sx={{
                           height: "100%",
                           cursor: "pointer",
-                          background: formState.companion?.value === option.value
-                            ? (isDarkMode ? 'rgba(124, 58, 237, 0.2)' : 'rgba(124, 58, 237, 0.1)')
-                            : (isDarkMode ? 'rgba(18, 18, 18, 0.8)' : 'rgba(255, 255, 255, 0.8)'),
+                          background:
+                            formState.companion?.value === option.value
+                              ? isDarkMode
+                                ? "rgba(124, 58, 237, 0.2)"
+                                : "rgba(124, 58, 237, 0.1)"
+                              : isDarkMode
+                                ? "rgba(18, 18, 18, 0.8)"
+                                : "rgba(255, 255, 255, 0.8)",
                           borderRadius: "12px",
                           border: `1px solid ${
                             formState.companion?.value === option.value
-                              ? (isDarkMode ? '#a78bfa' : '#7c3aed')
-                              : (isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)')
+                              ? isDarkMode
+                                ? "#a78bfa"
+                                : "#7c3aed"
+                              : isDarkMode
+                                ? "rgba(255, 255, 255, 0.1)"
+                                : "rgba(0, 0, 0, 0.1)"
                           }`,
                           transition: "all 0.2s ease",
                           "&:hover": {
                             transform: "translateY(-4px)",
-                            boxShadow: isDarkMode
-                              ? '0 4px 20px rgba(0, 0, 0, 0.4)'
-                              : '0 4px 20px rgba(0, 0, 0, 0.1)',
-                            border: `1px solid ${isDarkMode ? '#a78bfa' : '#7c3aed'}`,
+                            boxShadow: isDarkMode ? "0 4px 20px rgba(0, 0, 0, 0.4)" : "0 4px 20px rgba(0, 0, 0, 0.1)",
+                            border: `1px solid ${isDarkMode ? "#a78bfa" : "#7c3aed"}`,
                           },
                         }}
                       >
@@ -812,7 +842,7 @@ export default function Home(): JSX.Element {
                             variant="h6"
                             sx={{
                               mb: 1,
-                              color: isDarkMode ? '#a78bfa' : '#7c3aed',
+                              color: isDarkMode ? "#a78bfa" : "#7c3aed",
                             }}
                           >
                             {option.title}
@@ -820,7 +850,7 @@ export default function Home(): JSX.Element {
                           <Typography
                             variant="body2"
                             sx={{
-                              color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                              color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "text.secondary",
                             }}
                           >
                             {option.description}
@@ -839,13 +869,13 @@ export default function Home(): JSX.Element {
                     mt: 2,
                     py: 1.5,
                     background: isDarkMode
-                      ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
-                      : 'linear-gradient(45deg, #2563eb, #7c3aed)',
+                      ? "linear-gradient(45deg, #93c5fd, #a78bfa)"
+                      : "linear-gradient(45deg, #2563eb, #7c3aed)",
                     borderRadius: "12px",
                     "&:hover": {
                       background: isDarkMode
-                        ? 'linear-gradient(45deg, #60a5fa, #8b5cf6)'
-                        : 'linear-gradient(45deg, #1d4ed8, #6d28d9)',
+                        ? "linear-gradient(45deg, #60a5fa, #8b5cf6)"
+                        : "linear-gradient(45deg, #1d4ed8, #6d28d9)",
                     },
                   }}
                 >
@@ -865,10 +895,10 @@ export default function Home(): JSX.Element {
               sx={{
                 p: 4,
                 height: "100%",
-                background: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                background: isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(255, 255, 255, 0.8)",
                 backdropFilter: "blur(10px)",
                 borderRadius: "16px",
-                border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                border: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"}`,
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "center",
@@ -883,10 +913,10 @@ export default function Home(): JSX.Element {
                     sx={{
                       mb: 2,
                       fontWeight: 700,
-                      color: isDarkMode ? '#fff' : 'inherit',
+                      color: isDarkMode ? "#fff" : "inherit",
                       background: isDarkMode
-                        ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
-                        : 'linear-gradient(45deg, #2563eb, #7c3aed)',
+                        ? "linear-gradient(45deg, #93c5fd, #a78bfa)"
+                        : "linear-gradient(45deg, #2563eb, #7c3aed)",
                       backgroundClip: "text",
                       WebkitBackgroundClip: "text",
                       WebkitTextFillColor: "transparent",
@@ -898,7 +928,7 @@ export default function Home(): JSX.Element {
                     variant="body1"
                     sx={{
                       mb: 4,
-                      color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                      color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "text.secondary",
                     }}
                   >
                     Seyahat planı oluşturmak için lütfen giriş yapın veya kayıt olun.
@@ -910,13 +940,13 @@ export default function Home(): JSX.Element {
                       startIcon={<UserIcon />}
                       sx={{
                         background: isDarkMode
-                          ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
-                          : 'linear-gradient(45deg, #2563eb, #7c3aed)',
+                          ? "linear-gradient(45deg, #93c5fd, #a78bfa)"
+                          : "linear-gradient(45deg, #2563eb, #7c3aed)",
                         borderRadius: "12px",
                         "&:hover": {
                           background: isDarkMode
-                            ? 'linear-gradient(45deg, #60a5fa, #8b5cf6)'
-                            : 'linear-gradient(45deg, #1d4ed8, #6d28d9)',
+                            ? "linear-gradient(45deg, #60a5fa, #8b5cf6)"
+                            : "linear-gradient(45deg, #1d4ed8, #6d28d9)",
                         },
                       }}
                     >
@@ -927,12 +957,12 @@ export default function Home(): JSX.Element {
                       href="/sign-up"
                       startIcon={<UserPlus2Icon />}
                       sx={{
-                        borderColor: isDarkMode ? '#93c5fd' : '#2563eb',
-                        color: isDarkMode ? '#93c5fd' : '#2563eb',
+                        borderColor: isDarkMode ? "#93c5fd" : "#2563eb",
+                        color: isDarkMode ? "#93c5fd" : "#2563eb",
                         borderRadius: "12px",
                         "&:hover": {
-                          borderColor: isDarkMode ? '#60a5fa' : '#1d4ed8',
-                          backgroundColor: isDarkMode ? 'rgba(37, 99, 235, 0.2)' : 'rgba(37, 99, 235, 0.1)',
+                          borderColor: isDarkMode ? "#60a5fa" : "#1d4ed8",
+                          backgroundColor: isDarkMode ? "rgba(37, 99, 235, 0.2)" : "rgba(37, 99, 235, 0.1)",
                         },
                       }}
                     >
@@ -947,10 +977,10 @@ export default function Home(): JSX.Element {
                     sx={{
                       mb: 2,
                       fontWeight: 700,
-                      color: isDarkMode ? '#fff' : 'inherit',
+                      color: isDarkMode ? "#fff" : "inherit",
                       background: isDarkMode
-                        ? 'linear-gradient(45deg, #93c5fd, #a78bfa)'
-                        : 'linear-gradient(45deg, #2563eb, #7c3aed)',
+                        ? "linear-gradient(45deg, #93c5fd, #a78bfa)"
+                        : "linear-gradient(45deg, #2563eb, #7c3aed)",
                       backgroundClip: "text",
                       WebkitBackgroundClip: "text",
                       WebkitTextFillColor: "transparent",
@@ -962,7 +992,7 @@ export default function Home(): JSX.Element {
                     variant="body1"
                     sx={{
                       mb: 4,
-                      color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                      color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "text.secondary",
                     }}
                   >
                     Yeni bir seyahat planı oluşturmaya başlayabilirsiniz.
@@ -974,10 +1004,7 @@ export default function Home(): JSX.Element {
         </Grid>
       </Container>
 
-      <Backdrop
-        sx={{ color: "#fff", zIndex: theme => theme.zIndex.drawer + 1 }}
-        open={isCreatingPlan || isSaving}
-      >
+      <Backdrop sx={{ color: "#fff", zIndex: theme => theme.zIndex.drawer + 1 }} open={isCreatingPlan || isSaving}>
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
           <CircularProgress color="inherit" />
           <Typography>Seyahat planınız oluşturuluyor...</Typography>
@@ -996,9 +1023,11 @@ export default function Home(): JSX.Element {
           sx={{
             width: "100%",
             backgroundColor: isDarkMode
-              ? (snackbar.severity === "success" ? 'rgba(34, 197, 94, 0.9)' : 'rgba(239, 68, 68, 0.9)')
+              ? snackbar.severity === "success"
+                ? "rgba(34, 197, 94, 0.9)"
+                : "rgba(239, 68, 68, 0.9)"
               : undefined,
-            color: isDarkMode ? '#fff' : undefined,
+            color: isDarkMode ? "#fff" : undefined,
           }}
         >
           {snackbar.message}

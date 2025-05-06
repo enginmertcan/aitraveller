@@ -1,102 +1,97 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { useAuth, useUser } from '@clerk/nextjs';
-import { TripComment } from '@/app/types/travel';
+import { useEffect, useRef, useState } from "react";
+import { useThemeContext } from "@/app/context/ThemeContext";
+import { addComment, deleteComment, fetchCommentsByTravelPlanId, updateComment } from "@/app/Services/travel-plans";
+import { TripComment } from "@/app/types/travel";
+import { useAuth, useUser } from "@clerk/nextjs";
 import {
-  fetchCommentsByTravelPlanId,
-  addComment,
-  updateComment,
-  deleteComment
-} from '@/app/Services/travel-plans';
-import { formatDistanceToNow } from 'date-fns';
-import { tr } from 'date-fns/locale';
+  Close as CloseIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  Image as ImageIcon,
+  LocationOn as LocationIcon,
+  Send as SendIcon,
+} from "@mui/icons-material";
 import {
+  Avatar,
   Box,
-  Typography,
+  Button,
   Card,
+  CardActions,
   CardContent,
   CardHeader,
-  CardActions,
-  Avatar,
-  Button,
-  TextField,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
-  IconButton,
   Divider,
-  Paper,
+  IconButton,
   Modal,
-  styled
-} from '@mui/material';
-import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Send as SendIcon,
-  Image as ImageIcon,
-  Close as CloseIcon,
-  LocationOn as LocationIcon
-} from '@mui/icons-material';
-import { useThemeContext } from '@/app/context/ThemeContext';
+  Paper,
+  styled,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { formatDistanceToNow } from "date-fns";
+import { tr } from "date-fns/locale";
 
 interface TripCommentsProps {
   travelPlanId: string;
 }
 
 // Styled components
-const CommentImage = styled('img')(({ theme }) => ({
-  width: '100%',
+const CommentImage = styled("img")(({ theme }) => ({
+  width: "100%",
   maxHeight: 150, // Daha küçük boyut
-  objectFit: 'cover',
+  objectFit: "cover",
   borderRadius: theme.shape.borderRadius,
   marginTop: theme.spacing(2),
-  cursor: 'pointer',
-  transition: 'transform 0.3s ease',
-  '&:hover': {
-    transform: 'scale(1.03)',
+  cursor: "pointer",
+  transition: "transform 0.3s ease",
+  "&:hover": {
+    transform: "scale(1.03)",
   },
 }));
 
 const PhotoLocationBadge = styled(Box)(({ theme }) => ({
-  position: 'absolute',
+  position: "absolute",
   bottom: theme.spacing(1),
   left: theme.spacing(1),
-  backgroundColor: 'rgba(76, 102, 159, 0.8)',
-  padding: '4px 8px',
+  backgroundColor: "rgba(76, 102, 159, 0.8)",
+  padding: "4px 8px",
   borderRadius: 12,
-  display: 'flex',
-  alignItems: 'center',
-  color: 'white',
+  display: "flex",
+  alignItems: "center",
+  color: "white",
 }));
 
-const ModalImage = styled('img')({
-  maxWidth: '100%',
-  maxHeight: '80vh',
-  objectFit: 'contain',
-  borderRadius: '4px',
-  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
-  transition: 'transform 0.3s ease-in-out',
+const ModalImage = styled("img")({
+  maxWidth: "100%",
+  maxHeight: "80vh",
+  objectFit: "contain",
+  borderRadius: "4px",
+  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.25)",
+  transition: "transform 0.3s ease-in-out",
 });
 
 export default function TripComments({ travelPlanId }: TripCommentsProps) {
   const { userId } = useAuth();
   const { user, isLoaded: isUserLoaded } = useUser();
   const [comments, setComments] = useState<TripComment[]>([]);
-  const [newComment, setNewComment] = useState('');
+  const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingComment, setEditingComment] = useState<string | null>(null);
-  const [editText, setEditText] = useState('');
+  const [editText, setEditText] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [photoLocation, setPhotoLocation] = useState('');
+  const [photoLocation, setPhotoLocation] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedPhotoForModal, setSelectedPhotoForModal] = useState<{ url: string, location?: string } | null>(null);
+  const [selectedPhotoForModal, setSelectedPhotoForModal] = useState<{ url: string; location?: string } | null>(null);
   const { isDarkMode } = useThemeContext();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -113,7 +108,7 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
       const commentsData = await fetchCommentsByTravelPlanId(travelPlanId);
       setComments(commentsData);
     } catch (error) {
-      console.error('Yorumları yükleme hatası:', error);
+      console.error("Yorumları yükleme hatası:", error);
       // Toast yerine console.error kullanıyoruz
     } finally {
       setLoading(false);
@@ -133,10 +128,10 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
       if (selectedImage) {
         try {
           const reader = new FileReader();
-          const base64Promise = new Promise<string>((resolve) => {
+          const base64Promise = new Promise<string>(resolve => {
             reader.onload = () => {
               const base64 = reader.result as string;
-              resolve(base64.split(',')[1]); // base64 data kısmını al
+              resolve(base64.split(",")[1]); // base64 data kısmını al
             };
           });
 
@@ -144,21 +139,21 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
           photoData = await base64Promise;
 
           // Konum bilgisi varsa ekle
-          if (photoLocation && photoLocation.trim() !== '') {
+          if (photoLocation && photoLocation.trim() !== "") {
             photoLocationValue = photoLocation.trim();
           }
         } catch (error) {
-          console.error('Fotoğraf dönüştürme hatası:', error);
-          alert('Fotoğraf işlenirken bir hata oluştu.');
+          console.error("Fotoğraf dönüştürme hatası:", error);
+          alert("Fotoğraf işlenirken bir hata oluştu.");
           setSubmitting(false);
           return;
         }
       }
 
-      const commentData: Omit<TripComment, 'id' | 'createdAt' | 'updatedAt'> = {
+      const commentData: Omit<TripComment, "id" | "createdAt" | "updatedAt"> = {
         travelPlanId,
         userId,
-        userName: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Misafir',
+        userName: user.fullName || `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Misafir",
         userPhotoUrl: user.imageUrl || undefined,
         content: newComment.trim(),
       };
@@ -173,13 +168,13 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
       }
 
       await addComment(commentData);
-      setNewComment('');
+      setNewComment("");
       setSelectedImage(null);
-      setPhotoLocation('');
+      setPhotoLocation("");
       await loadComments(); // Yorumları yeniden yükle
     } catch (error) {
-      console.error('Yorum ekleme hatası:', error);
-      alert('Yorum eklenirken bir hata oluştu.');
+      console.error("Yorum ekleme hatası:", error);
+      alert("Yorum eklenirken bir hata oluştu.");
     } finally {
       setSubmitting(false);
     }
@@ -203,7 +198,7 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
       setEditingComment(null);
       await loadComments(); // Yorumları yeniden yükle
     } catch (error) {
-      console.error('Yorum güncelleme hatası:', error);
+      console.error("Yorum güncelleme hatası:", error);
     } finally {
       setSubmitting(false);
     }
@@ -226,7 +221,7 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
       setCommentToDelete(null);
       await loadComments(); // Yorumları yeniden yükle
     } catch (error) {
-      console.error('Yorum silme hatası:', error);
+      console.error("Yorum silme hatası:", error);
     } finally {
       setSubmitting(false);
     }
@@ -245,17 +240,17 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
       setSelectedImage(e.target.files[0]);
 
       // Konum bilgisi iste
-      const location = prompt('Fotoğrafın çekildiği yeri belirtin (opsiyonel):');
-      setPhotoLocation(location || '');
+      const location = prompt("Fotoğrafın çekildiği yeri belirtin (opsiyonel):");
+      setPhotoLocation(location || "");
     }
   };
 
   // Fotoğrafı temizle
   const handleClearImage = () => {
     setSelectedImage(null);
-    setPhotoLocation('');
+    setPhotoLocation("");
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
@@ -270,22 +265,21 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
     try {
       return formatDistanceToNow(new Date(dateString), {
         addSuffix: true,
-        locale: tr
+        locale: tr,
       });
     } catch (error) {
-      return 'bilinmeyen tarih';
+      return "bilinmeyen tarih";
     }
   };
 
   // Kullanıcı avatarı için baş harfler
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
+  const getInitials = (name: string) =>
+    name
+      .split(" ")
       .map(part => part[0])
-      .join('')
+      .join("")
       .toUpperCase()
       .substring(0, 2);
-  };
 
   return (
     <Box>
@@ -294,7 +288,7 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
       </Typography>
 
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
           <CircularProgress />
         </Box>
       ) : (
@@ -305,9 +299,9 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
                 key={comment.id}
                 sx={{
                   mb: 2,
-                  border: '1px solid',
-                  borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-                  background: isDarkMode ? 'rgba(17, 24, 39, 0.6)' : 'white',
+                  border: "1px solid",
+                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
+                  background: isDarkMode ? "rgba(17, 24, 39, 0.6)" : "white",
                 }}
               >
                 <CardHeader
@@ -315,17 +309,17 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
                     <Avatar
                       src={comment.userPhotoUrl}
                       alt={comment.userName}
-                      sx={{ bgcolor: isDarkMode ? '#3b82f6' : '#2563eb' }}
+                      sx={{ bgcolor: isDarkMode ? "#3b82f6" : "#2563eb" }}
                     >
                       {getInitials(comment.userName)}
                     </Avatar>
                   }
                   title={comment.userName}
                   subheader={formatDate(comment.createdAt)}
-                  titleTypographyProps={{ variant: 'subtitle1' }}
+                  titleTypographyProps={{ variant: "subtitle1" }}
                   subheaderTypographyProps={{
-                    variant: 'caption',
-                    sx: { color: isDarkMode ? 'rgba(255, 255, 255, 0.6)' : 'text.secondary' }
+                    variant: "caption",
+                    sx: { color: isDarkMode ? "rgba(255, 255, 255, 0.6)" : "text.secondary" },
                   }}
                 />
 
@@ -337,17 +331,13 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
                         multiline
                         minRows={3}
                         value={editText}
-                        onChange={(e) => setEditText(e.target.value)}
+                        onChange={e => setEditText(e.target.value)}
                         variant="outlined"
                         size="small"
                         sx={{ mb: 2 }}
                       />
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          onClick={() => setEditingComment(null)}
-                        >
+                      <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
+                        <Button variant="outlined" size="small" onClick={() => setEditingComment(null)}>
                           İptal
                         </Button>
                         <Button
@@ -362,33 +352,37 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
                     </Box>
                   ) : (
                     <>
-                      <Typography variant="body2" color={isDarkMode ? 'white' : 'text.primary'}>
+                      <Typography variant="body2" color={isDarkMode ? "white" : "text.primary"}>
                         {comment.content}
                       </Typography>
 
                       {/* Fotoğraf varsa göster */}
                       {(comment.photoUrl || comment.photoData) && (
-                        <Box sx={{
-                          position: 'relative',
-                          mt: 2,
-                          maxWidth: '250px', // Maksimum genişlik sınırlaması
-                          mx: 'auto', // Yatayda ortalama
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                          borderRadius: 1,
-                          overflow: 'hidden',
-                          transition: 'all 0.3s ease',
-                          '&:hover': {
-                            boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
-                            transform: 'translateY(-2px)',
-                          }
-                        }}>
+                        <Box
+                          sx={{
+                            position: "relative",
+                            mt: 2,
+                            maxWidth: "250px", // Maksimum genişlik sınırlaması
+                            mx: "auto", // Yatayda ortalama
+                            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                            borderRadius: 1,
+                            overflow: "hidden",
+                            transition: "all 0.3s ease",
+                            "&:hover": {
+                              boxShadow: "0 4px 8px rgba(0,0,0,0.15)",
+                              transform: "translateY(-2px)",
+                            },
+                          }}
+                        >
                           <CommentImage
                             src={comment.photoUrl || `data:image/jpeg;base64,${comment.photoData}`}
                             alt="Yorum fotoğrafı"
-                            onClick={() => handlePhotoClick(
-                              comment.photoUrl || `data:image/jpeg;base64,${comment.photoData}`,
-                              comment.photoLocation
-                            )}
+                            onClick={() =>
+                              handlePhotoClick(
+                                comment.photoUrl || `data:image/jpeg;base64,${comment.photoData}`,
+                                comment.photoLocation
+                              )
+                            }
                           />
                           {comment.photoLocation && (
                             <PhotoLocationBadge>
@@ -403,19 +397,11 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
                 </CardContent>
 
                 {userId === comment.userId && editingComment !== comment.id && (
-                  <CardActions sx={{ justifyContent: 'flex-end', pt: 0 }}>
-                    <IconButton
-                      size="small"
-                      onClick={() => startEditing(comment)}
-                      color="primary"
-                    >
+                  <CardActions sx={{ justifyContent: "flex-end", pt: 0 }}>
+                    <IconButton size="small" onClick={() => startEditing(comment)} color="primary">
                       <EditIcon fontSize="small" />
                     </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => openDeleteDialog(comment.id)}
-                      color="error"
-                    >
+                    <IconButton size="small" onClick={() => openDeleteDialog(comment.id)} color="error">
                       <DeleteIcon fontSize="small" />
                     </IconButton>
                   </CardActions>
@@ -427,13 +413,17 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
               elevation={0}
               sx={{
                 p: 3,
-                textAlign: 'center',
-                background: isDarkMode ? 'rgba(17, 24, 39, 0.6)' : 'rgba(255, 255, 255, 0.8)',
-                border: '1px solid',
-                borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                textAlign: "center",
+                background: isDarkMode ? "rgba(17, 24, 39, 0.6)" : "rgba(255, 255, 255, 0.8)",
+                border: "1px solid",
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
               }}
             >
-              <Typography variant="body2" color={isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'} sx={{ fontStyle: 'italic' }}>
+              <Typography
+                variant="body2"
+                color={isDarkMode ? "rgba(255, 255, 255, 0.7)" : "text.secondary"}
+                sx={{ fontStyle: "italic" }}
+              >
                 Henüz yorum yapılmamış. İlk yorumu siz yapın!
               </Typography>
             </Paper>
@@ -446,41 +436,45 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
       <Box sx={{ mt: 2 }}>
         {/* Fotoğraf önizleme */}
         {selectedImage && (
-          <Box sx={{
-            position: 'relative',
-            mb: 2,
-            borderRadius: 2,
-            overflow: 'hidden',
-            border: '1px solid',
-            borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-            maxWidth: '300px', // Maksimum genişlik sınırlaması
-            mx: 'auto', // Yatayda ortalama
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          }}>
+          <Box
+            sx={{
+              position: "relative",
+              mb: 2,
+              borderRadius: 2,
+              overflow: "hidden",
+              border: "1px solid",
+              borderColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
+              maxWidth: "300px", // Maksimum genişlik sınırlaması
+              mx: "auto", // Yatayda ortalama
+              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+            }}
+          >
             <img
               src={URL.createObjectURL(selectedImage)}
               alt="Seçilen fotoğraf"
               style={{
-                width: '100%',
+                width: "100%",
                 maxHeight: 150, // Daha küçük boyut
-                objectFit: 'cover',
-                transition: 'transform 0.3s ease',
+                objectFit: "cover",
+                transition: "transform 0.3s ease",
               }}
             />
             {photoLocation && (
-              <Box sx={{
-                position: 'absolute',
-                bottom: 8,
-                left: 8,
-                backgroundColor: 'rgba(76, 102, 159, 0.85)',
-                color: 'white',
-                px: 1,
-                py: 0.5,
-                borderRadius: 1,
-                display: 'flex',
-                alignItems: 'center',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-              }}>
+              <Box
+                sx={{
+                  position: "absolute",
+                  bottom: 8,
+                  left: 8,
+                  backgroundColor: "rgba(76, 102, 159, 0.85)",
+                  color: "white",
+                  px: 1,
+                  py: 0.5,
+                  borderRadius: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                }}
+              >
                 <LocationIcon sx={{ fontSize: 16, mr: 0.5 }} />
                 <Typography variant="caption">{photoLocation}</Typography>
               </Box>
@@ -488,13 +482,13 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
             <IconButton
               size="small"
               sx={{
-                position: 'absolute',
+                position: "absolute",
                 top: 8,
                 right: 8,
-                backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                }
+                backgroundColor: "rgba(255, 255, 255, 0.8)",
+                "&:hover": {
+                  backgroundColor: "rgba(255, 255, 255, 0.9)",
+                },
               }}
               onClick={handleClearImage}
             >
@@ -509,16 +503,12 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
           minRows={4}
           placeholder="Yorum yazın..."
           value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
+          onChange={e => setNewComment(e.target.value)}
           variant="outlined"
           sx={{ mb: 2 }}
         />
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button
-            variant="outlined"
-            startIcon={<ImageIcon />}
-            onClick={handleSelectImage}
-          >
+        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+          <Button variant="outlined" startIcon={<ImageIcon />} onClick={handleSelectImage}>
             Fotoğraf Ekle
           </Button>
 
@@ -543,34 +533,24 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
         <input
           type="file"
           accept="image/*"
-          style={{ display: 'none' }}
+          style={{ display: "none" }}
           ref={fileInputRef}
           onChange={handleImageChange}
         />
       </Box>
 
       {/* Silme Onay Dialog */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-      >
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>Yorumu Sil</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Bu yorumu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
-          </DialogContentText>
+          <DialogContentText>Bu yorumu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.</DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)} color="primary">
             İptal
           </Button>
-          <Button
-            onClick={handleDeleteComment}
-            color="error"
-            disabled={submitting}
-            autoFocus
-          >
-            {submitting ? <CircularProgress size={20} /> : 'Sil'}
+          <Button onClick={handleDeleteComment} color="error" disabled={submitting} autoFocus>
+            {submitting ? <CircularProgress size={20} /> : "Sil"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -580,49 +560,53 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backdropFilter: 'blur(3px)',
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backdropFilter: "blur(3px)",
         }}
       >
-        <Box sx={{
-          position: 'relative',
-          maxWidth: '90%',
-          maxHeight: '90%',
-          outline: 'none',
-          bgcolor: 'rgba(0, 0, 0, 0.85)',
-          p: 2,
-          borderRadius: 2,
-          animation: 'fadeIn 0.3s ease-in-out',
-          '@keyframes fadeIn': {
-            '0%': {
-              opacity: 0,
-              transform: 'scale(0.95)',
+        <Box
+          sx={{
+            position: "relative",
+            maxWidth: "90%",
+            maxHeight: "90%",
+            outline: "none",
+            bgcolor: "rgba(0, 0, 0, 0.85)",
+            p: 2,
+            borderRadius: 2,
+            animation: "fadeIn 0.3s ease-in-out",
+            "@keyframes fadeIn": {
+              "0%": {
+                opacity: 0,
+                transform: "scale(0.95)",
+              },
+              "100%": {
+                opacity: 1,
+                transform: "scale(1)",
+              },
             },
-            '100%': {
-              opacity: 1,
-              transform: 'scale(1)',
-            },
-          },
-        }}>
+          }}
+        >
           {selectedPhotoForModal && (
             <>
               <ModalImage src={selectedPhotoForModal.url} alt="Büyütülmüş fotoğraf" />
               {selectedPhotoForModal.location && (
-                <Box sx={{
-                  position: 'absolute',
-                  bottom: 16,
-                  left: 16,
-                  backgroundColor: 'rgba(76, 102, 159, 0.85)',
-                  color: 'white',
-                  px: 2,
-                  py: 1,
-                  borderRadius: 2,
-                  display: 'flex',
-                  alignItems: 'center',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                }}>
+                <Box
+                  sx={{
+                    position: "absolute",
+                    bottom: 16,
+                    left: 16,
+                    backgroundColor: "rgba(76, 102, 159, 0.85)",
+                    color: "white",
+                    px: 2,
+                    py: 1,
+                    borderRadius: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                  }}
+                >
                   <LocationIcon sx={{ fontSize: 18, mr: 1 }} />
                   <Typography variant="body2">{selectedPhotoForModal.location}</Typography>
                 </Box>
@@ -631,16 +615,16 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
           )}
           <IconButton
             sx={{
-              position: 'absolute',
+              position: "absolute",
               top: 8,
               right: 8,
-              backgroundColor: 'rgba(0, 0, 0, 0.6)',
-              color: 'white',
-              '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                transform: 'rotate(90deg)',
-                transition: 'transform 0.3s ease',
-              }
+              backgroundColor: "rgba(0, 0, 0, 0.6)",
+              color: "white",
+              "&:hover": {
+                backgroundColor: "rgba(0, 0, 0, 0.8)",
+                transform: "rotate(90deg)",
+                transition: "transform 0.3s ease",
+              },
             }}
             onClick={() => setModalOpen(false)}
           >
