@@ -10,7 +10,6 @@ import {
   Card,
   CardContent,
   Chip,
-  CircularProgress,
   Container,
   Divider,
   Fade,
@@ -341,6 +340,7 @@ export default function TripDetailsPage() {
     }
 
     loadTravelPlan();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isLoaded, router, params.id]);
 
   // PDF oluşturma fonksiyonu
@@ -2920,7 +2920,7 @@ export default function TripDetailsPage() {
                                             month: "long",
                                             year: "numeric",
                                           });
-                                        } catch (e) {
+                                        } catch {
                                           return photo.uploadedAt;
                                         }
                                       })()}

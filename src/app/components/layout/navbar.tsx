@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { SignOutButton, UserButton, useUser } from "@clerk/nextjs";
+import { UserButton, useUser } from "@clerk/nextjs";
 import {
   AppBar,
   Box,
@@ -13,14 +13,13 @@ import {
   IconButton,
   Stack,
   Toolbar,
-  Tooltip,
   Typography,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { X as CloseIcon, Map, Menu as MenuIcon, Moon, Plane, PlusCircle, Star, Sun } from "lucide-react";
 
 import { useThemeContext } from "../../context/ThemeContext";
-import { borderRadius, colors, shadows } from "../ThemeRegistry/theme";
+import { borderRadius, colors } from "../ThemeRegistry/theme";
 
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
   background: theme.palette.mode === "dark" ? "rgba(17, 24, 39, 0.95)" : "rgba(255, 255, 255, 0.95)",

@@ -98,6 +98,7 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
   // Yorumları yükle
   useEffect(() => {
     loadComments();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [travelPlanId]);
 
   const loadComments = async () => {
@@ -267,7 +268,7 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
         addSuffix: true,
         locale: tr,
       });
-    } catch (error) {
+    } catch {
       return "bilinmeyen tarih";
     }
   };

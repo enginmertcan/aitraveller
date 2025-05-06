@@ -23,11 +23,6 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import dayjs from "dayjs";
 import {
-  Globe2,
-  Loader2,
-  Crown as MapPin,
-  Plane,
-  PlusCircle,
   User as UserIcon,
   UserPlus2 as UserPlus2Icon,
 } from "lucide-react";
@@ -37,7 +32,7 @@ import { useThemeContext } from "../context/ThemeContext";
 import "dayjs/locale/tr";
 
 import { CitySelector } from "../components/CitySelector";
-import { AI_PROMPT, budgetOptions, commonIconStyle, companionOptions } from "../constants/options";
+import { AI_PROMPT, budgetOptions, companionOptions } from "../constants/options";
 import { usePlaces, type Place } from "../hooks/usePlaces";
 import { useTravelPlan } from "../hooks/useTravelPlan";
 import { chatSession } from "../Service/AIService";
@@ -79,8 +74,8 @@ export default function Home(): JSX.Element {
     types: ["(cities)"],
     debounceMs: 300,
   });
-  const { user, isLoaded: isUserLoaded } = useUser();
-  const { saveTravelPlan, isLoading: isSaving, error: saveError } = useTravelPlan();
+  const { user } = useUser();
+  const { saveTravelPlan, isLoading: isSaving } = useTravelPlan();
 
   const [countries, setCountries] = useState<
     Array<{

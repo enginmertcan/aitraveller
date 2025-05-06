@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { Copyright, GitHub, LinkedIn } from "@mui/icons-material";
-import { Box, Container, Divider, IconButton, Link, Stack, Typography } from "@mui/material";
+import { Copyright } from "@mui/icons-material";
+import { Box, Container, Divider, Link, Stack, Typography } from "@mui/material";
 
 import { useThemeContext } from "../../context/ThemeContext";
 

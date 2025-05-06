@@ -1,7 +1,7 @@
 "use client";
 
 import React, { ReactNode } from "react";
-import { Box, Divider, Paper, PaperProps, SxProps, Theme, Typography } from "@mui/material";
+import { Box, Paper, PaperProps, SxProps, Theme, Typography } from "@mui/material";
 
 import { useThemeContext } from "../../context/ThemeContext";
 import { borderRadius, colors, shadows } from "../ThemeRegistry/theme";

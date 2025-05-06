@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Box, Button, Chip, Grid, Paper, Typography } from "@mui/material";
+import { Box, Button, Grid, Paper, Typography } from "@mui/material";
 import { Calendar, DollarSign, MapPin, Users } from "lucide-react";
 
 import { useThemeContext } from "../../context/ThemeContext";

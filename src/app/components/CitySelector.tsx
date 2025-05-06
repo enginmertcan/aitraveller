@@ -36,7 +36,6 @@ export const CitySelector: React.FC<CitySelectorProps> = ({
   error,
   isLoading = false,
   placeholder = "Şehir ara...",
-  isDomestic = true,
 }) => {
   const { isDarkMode } = useThemeContext();
 

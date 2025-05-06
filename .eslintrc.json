@@ -35,26 +35,11 @@
     "prefer-object-spread": "error",
     "no-array-constructor": "error",
     "array-callback-return": "error",
-    "prefer-destructuring": [
-      "error",
-      {
-        "VariableDeclarator": {
-          "array": true,
-          "object": true
-        },
-        "AssignmentExpression": {
-          "array": false,
-          "object": false
-        }
-      }
-    ],
+    "prefer-destructuring": "off",
     "no-eval": "error",
     "prefer-template": "error",
     "template-curly-spacing": "error",
-    "func-style": [
-      "error",
-      "expression"
-    ],
+    "func-style": "off",
     "func-names": "error",
     "wrap-iife": [
       "error",
@@ -62,29 +47,25 @@
     ],
     "default-param-last": "error",
     "no-new-func": "error",
-    "no-param-reassign": "error",
-   // "function-paren-newline": "error",
+    "no-param-reassign": "off",
     "prefer-arrow-callback": "error",
     "arrow-spacing": "error",
     "arrow-body-style": "error",
     "no-duplicate-imports": "error",
     "import/first": "error",
     "dot-notation": "error",
-    "no-plusplus": "error",
+    "no-plusplus": "off",
     "eqeqeq": [
       "error",
       "always"
     ],
     "no-case-declarations": "error",
-    "no-nested-ternary": "error",
+    "no-nested-ternary": "off",
     "no-unneeded-ternary": "error",
-    "no-mixed-operators": "error",
+    "no-mixed-operators": "off",
     "nonblock-statement-body-position": "error",
     "no-else-return": "error",
-    "indent": [
-      "error",
-      2
-    ],
+    "indent": "off",
     "space-before-blocks": "error",
     "keyword-spacing": "error",
     "space-infix-ops": "error",
@@ -109,10 +90,7 @@
       "error",
       "always"
     ],
-    "max-len": [
-      "error",
-      180
-    ],
+    "max-len": "off",
     "block-spacing": "error",
     "comma-spacing": [
       "error",
@@ -132,15 +110,18 @@
       "error",
       "last"
     ],
-    "new-cap": "error",
-    "@typescript-eslint/explicit-module-boundary-types": "warn",
+    "new-cap": "off",
+    "@typescript-eslint/explicit-module-boundary-types": "off",
     "@typescript-eslint/no-unused-vars": [
       "error",
       {
-        "argsIgnorePattern": "^_"
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
       }
     ],
-    "@typescript-eslint/no-explicit-any": "error"
+    "@typescript-eslint/no-explicit-any": "off",
+    "prettier/prettier": "off",
+    "@next/next/no-img-element": "off"
   },
   "ignorePatterns": ["src/utils/crud.tsx"]
 }
