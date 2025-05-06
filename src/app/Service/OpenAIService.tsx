@@ -73,13 +73,21 @@ Aşağıdaki formatta JSON döndürmelisin:
     "culturalDifferences": "Kültürel farklılıklar",
     "lifestyleDifferences": "Yaşam tarzı farklılıkları",
     "foodCultureDifferences": "Yemek kültürü farklılıkları",
-    "socialNormsDifferences": "Sosyal norm farklılıkları"
+    "socialNormsDifferences": "Sosyal norm farklılıkları",
+    "religiousAndCulturalSensitivities": "Dini ve kültürel hassasiyetler",
+    "localTraditionsAndCustoms": "Yerel gelenekler ve görenekler",
+    "culturalEventsAndFestivals": "Kültürel etkinlikler ve festivaller",
+    "localCommunicationTips": "Yerel halkla iletişim önerileri"
   },
   "localTips": {
     "localTransportationGuide": "Ulaşım rehberi",
     "emergencyContacts": "Acil durum numaraları",
     "currencyAndPayment": "Para birimi ve ödeme",
-    "communicationInfo": "İletişim bilgileri"
+    "healthcareInfo": "Sağlık hizmetleri bilgisi",
+    "communicationInfo": "İletişim ve internet kullanımı",
+    "localCuisineAndFoodTips": "Yerel mutfak ve yemek önerileri",
+    "safetyTips": "Güvenlik önerileri",
+    "localLanguageAndCommunicationTips": "Yerel dil ve iletişim ipuçları"
   }
 }`;
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { TripComment } from '@/app/types/travel';
 import {
@@ -29,18 +29,58 @@ import {
   DialogTitle,
   IconButton,
   Divider,
-  Paper
+  Paper,
+  Modal,
+  styled
 } from '@mui/material';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Send as SendIcon
+  Send as SendIcon,
+  Image as ImageIcon,
+  Close as CloseIcon,
+  LocationOn as LocationIcon
 } from '@mui/icons-material';
 import { useThemeContext } from '@/app/context/ThemeContext';
 
 interface TripCommentsProps {
   travelPlanId: string;
 }
+
+// Styled components
+const CommentImage = styled('img')(({ theme }) => ({
+  width: '100%',
+  maxHeight: 150, // Daha küçük boyut
+  objectFit: 'cover',
+  borderRadius: theme.shape.borderRadius,
+  marginTop: theme.spacing(2),
+  cursor: 'pointer',
+  transition: 'transform 0.3s ease',
+  '&:hover': {
+    transform: 'scale(1.03)',
+  },
+}));
+
+const PhotoLocationBadge = styled(Box)(({ theme }) => ({
+  position: 'absolute',
+  bottom: theme.spacing(1),
+  left: theme.spacing(1),
+  backgroundColor: 'rgba(76, 102, 159, 0.8)',
+  padding: '4px 8px',
+  borderRadius: 12,
+  display: 'flex',
+  alignItems: 'center',
+  color: 'white',
+}));
+
+const ModalImage = styled('img')({
+  maxWidth: '100%',
+  maxHeight: '80vh',
+  objectFit: 'contain',
+  borderRadius: '4px',
+  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+  transition: 'transform 0.3s ease-in-out',
+});
 
 export default function TripComments({ travelPlanId }: TripCommentsProps) {
   const { userId } = useAuth();
@@ -53,7 +93,12 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
   const [editText, setEditText] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [photoLocation, setPhotoLocation] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedPhotoForModal, setSelectedPhotoForModal] = useState<{ url: string, location?: string } | null>(null);
   const { isDarkMode } = useThemeContext();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Yorumları yükle
   useEffect(() => {
@@ -77,23 +122,64 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
 
   // Yeni yorum ekle
   const handleAddComment = async () => {
-    if (!newComment.trim() || !userId || !isUserLoaded || !user) return;
+    if ((!newComment.trim() && !selectedImage) || !userId || !isUserLoaded || !user) return;
 
     setSubmitting(true);
     try {
+      let photoData = null;
+      let photoLocationValue = null;
+
+      // Eğer fotoğraf seçilmişse, base64'e dönüştür
+      if (selectedImage) {
+        try {
+          const reader = new FileReader();
+          const base64Promise = new Promise<string>((resolve) => {
+            reader.onload = () => {
+              const base64 = reader.result as string;
+              resolve(base64.split(',')[1]); // base64 data kısmını al
+            };
+          });
+
+          reader.readAsDataURL(selectedImage);
+          photoData = await base64Promise;
+
+          // Konum bilgisi varsa ekle
+          if (photoLocation && photoLocation.trim() !== '') {
+            photoLocationValue = photoLocation.trim();
+          }
+        } catch (error) {
+          console.error('Fotoğraf dönüştürme hatası:', error);
+          alert('Fotoğraf işlenirken bir hata oluştu.');
+          setSubmitting(false);
+          return;
+        }
+      }
+
       const commentData: Omit<TripComment, 'id' | 'createdAt' | 'updatedAt'> = {
         travelPlanId,
         userId,
-        userName: user.fullName || user.firstName + ' ' + user.lastName || 'Misafir',
+        userName: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Misafir',
         userPhotoUrl: user.imageUrl || undefined,
         content: newComment.trim(),
       };
 
+      // Sadece değerler varsa ekle (undefined değerleri eklemiyoruz)
+      if (photoData) {
+        commentData.photoData = photoData;
+      }
+
+      if (photoLocationValue) {
+        commentData.photoLocation = photoLocationValue;
+      }
+
       await addComment(commentData);
       setNewComment('');
+      setSelectedImage(null);
+      setPhotoLocation('');
       await loadComments(); // Yorumları yeniden yükle
     } catch (error) {
       console.error('Yorum ekleme hatası:', error);
+      alert('Yorum eklenirken bir hata oluştu.');
     } finally {
       setSubmitting(false);
     }
@@ -144,6 +230,39 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Fotoğraf seçme işlemi
+  const handleSelectImage = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // Fotoğraf değiştiğinde
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedImage(e.target.files[0]);
+
+      // Konum bilgisi iste
+      const location = prompt('Fotoğrafın çekildiği yeri belirtin (opsiyonel):');
+      setPhotoLocation(location || '');
+    }
+  };
+
+  // Fotoğrafı temizle
+  const handleClearImage = () => {
+    setSelectedImage(null);
+    setPhotoLocation('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Fotoğrafa tıklama işlemi
+  const handlePhotoClick = (photoUrl: string, photoLocation?: string) => {
+    setSelectedPhotoForModal({ url: photoUrl, location: photoLocation });
+    setModalOpen(true);
   };
 
   // Tarih formatı
@@ -242,9 +361,44 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
                       </Box>
                     </Box>
                   ) : (
-                    <Typography variant="body2" color={isDarkMode ? 'white' : 'text.primary'}>
-                      {comment.content}
-                    </Typography>
+                    <>
+                      <Typography variant="body2" color={isDarkMode ? 'white' : 'text.primary'}>
+                        {comment.content}
+                      </Typography>
+
+                      {/* Fotoğraf varsa göster */}
+                      {(comment.photoUrl || comment.photoData) && (
+                        <Box sx={{
+                          position: 'relative',
+                          mt: 2,
+                          maxWidth: '250px', // Maksimum genişlik sınırlaması
+                          mx: 'auto', // Yatayda ortalama
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                          borderRadius: 1,
+                          overflow: 'hidden',
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+                            transform: 'translateY(-2px)',
+                          }
+                        }}>
+                          <CommentImage
+                            src={comment.photoUrl || `data:image/jpeg;base64,${comment.photoData}`}
+                            alt="Yorum fotoğrafı"
+                            onClick={() => handlePhotoClick(
+                              comment.photoUrl || `data:image/jpeg;base64,${comment.photoData}`,
+                              comment.photoLocation
+                            )}
+                          />
+                          {comment.photoLocation && (
+                            <PhotoLocationBadge>
+                              <LocationIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                              <Typography variant="caption">{comment.photoLocation}</Typography>
+                            </PhotoLocationBadge>
+                          )}
+                        </Box>
+                      )}
+                    </>
                   )}
                 </CardContent>
 
@@ -290,6 +444,65 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
       <Divider sx={{ my: 3 }} />
 
       <Box sx={{ mt: 2 }}>
+        {/* Fotoğraf önizleme */}
+        {selectedImage && (
+          <Box sx={{
+            position: 'relative',
+            mb: 2,
+            borderRadius: 2,
+            overflow: 'hidden',
+            border: '1px solid',
+            borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+            maxWidth: '300px', // Maksimum genişlik sınırlaması
+            mx: 'auto', // Yatayda ortalama
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          }}>
+            <img
+              src={URL.createObjectURL(selectedImage)}
+              alt="Seçilen fotoğraf"
+              style={{
+                width: '100%',
+                maxHeight: 150, // Daha küçük boyut
+                objectFit: 'cover',
+                transition: 'transform 0.3s ease',
+              }}
+            />
+            {photoLocation && (
+              <Box sx={{
+                position: 'absolute',
+                bottom: 8,
+                left: 8,
+                backgroundColor: 'rgba(76, 102, 159, 0.85)',
+                color: 'white',
+                px: 1,
+                py: 0.5,
+                borderRadius: 1,
+                display: 'flex',
+                alignItems: 'center',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+              }}>
+                <LocationIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                <Typography variant="caption">{photoLocation}</Typography>
+              </Box>
+            )}
+            <IconButton
+              size="small"
+              sx={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                }
+              }}
+              onClick={handleClearImage}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        )}
+
         <TextField
           fullWidth
           multiline
@@ -300,13 +513,21 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
           variant="outlined"
           sx={{ mb: 2 }}
         />
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+          <Button
+            variant="outlined"
+            startIcon={<ImageIcon />}
+            onClick={handleSelectImage}
+          >
+            Fotoğraf Ekle
+          </Button>
+
           <Button
             variant="contained"
             color="primary"
             endIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
             onClick={handleAddComment}
-            disabled={!newComment.trim() || submitting}
+            disabled={(!newComment.trim() && !selectedImage) || submitting}
             sx={{
               background: "linear-gradient(45deg, #2563eb, #7c3aed)",
               "&:hover": {
@@ -317,6 +538,15 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
             Gönder
           </Button>
         </Box>
+
+        {/* Gizli dosya input */}
+        <input
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          ref={fileInputRef}
+          onChange={handleImageChange}
+        />
       </Box>
 
       {/* Silme Onay Dialog */}
@@ -344,6 +574,80 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Fotoğraf Modalı */}
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backdropFilter: 'blur(3px)',
+        }}
+      >
+        <Box sx={{
+          position: 'relative',
+          maxWidth: '90%',
+          maxHeight: '90%',
+          outline: 'none',
+          bgcolor: 'rgba(0, 0, 0, 0.85)',
+          p: 2,
+          borderRadius: 2,
+          animation: 'fadeIn 0.3s ease-in-out',
+          '@keyframes fadeIn': {
+            '0%': {
+              opacity: 0,
+              transform: 'scale(0.95)',
+            },
+            '100%': {
+              opacity: 1,
+              transform: 'scale(1)',
+            },
+          },
+        }}>
+          {selectedPhotoForModal && (
+            <>
+              <ModalImage src={selectedPhotoForModal.url} alt="Büyütülmüş fotoğraf" />
+              {selectedPhotoForModal.location && (
+                <Box sx={{
+                  position: 'absolute',
+                  bottom: 16,
+                  left: 16,
+                  backgroundColor: 'rgba(76, 102, 159, 0.85)',
+                  color: 'white',
+                  px: 2,
+                  py: 1,
+                  borderRadius: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                }}>
+                  <LocationIcon sx={{ fontSize: 18, mr: 1 }} />
+                  <Typography variant="body2">{selectedPhotoForModal.location}</Typography>
+                </Box>
+              )}
+            </>
+          )}
+          <IconButton
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              backgroundColor: 'rgba(0, 0, 0, 0.6)',
+              color: 'white',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                transform: 'rotate(90deg)',
+                transition: 'transform 0.3s ease',
+              }
+            }}
+            onClick={() => setModalOpen(false)}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Box>
+      </Modal>
     </Box>
   );
 }
