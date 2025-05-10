@@ -1373,7 +1373,7 @@ export default function TripDetailsPage() {
                     </Box>
                   </Paper>
                 );
-              })()}              
+              })()}
 
               {/* Önerilen Oteller */}
               {(() => {
@@ -1461,17 +1461,36 @@ export default function TripDetailsPage() {
                                 sx={{
                                   width: "100%",
                                   height: 200,
-                                  backgroundImage: (hotel.imageUrl || hotel.hotelImageUrl) &&
-                                    !(hotel.imageUrl?.includes("sample-image") || hotel.hotelImageUrl?.includes("sample-image") ||
-                                      hotel.imageUrl?.includes("placeholder") || hotel.hotelImageUrl?.includes("placeholder"))
-                                    ? `url(${hotel.hotelImageUrl || hotel.imageUrl})`
-                                    : `url(https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070&auto=format&fit=crop)`,
-                                  backgroundSize: "cover",
-                                  backgroundPosition: "center",
+                                  position: "relative",
                                   borderTopLeftRadius: "12px",
                                   borderTopRightRadius: "12px",
-                                  position: "relative",
-                                  "&::after": {
+                                  overflow: "hidden",
+                                }}
+                              >
+                                <img
+                                  src={
+                                    (hotel.imageUrl || hotel.hotelImageUrl) &&
+                                    !(hotel.imageUrl?.includes("sample-image") || hotel.hotelImageUrl?.includes("sample-image") ||
+                                      hotel.imageUrl?.includes("placeholder") || hotel.hotelImageUrl?.includes("placeholder"))
+                                    ? (hotel.hotelImageUrl || hotel.imageUrl)
+                                    : "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070&auto=format&fit=crop"
+                                  }
+                                  alt={hotel.hotelName}
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                    transition: "transform 0.3s ease",
+                                  }}
+                                  onMouseOver={(e) => {
+                                    e.currentTarget.style.transform = "scale(1.05)";
+                                  }}
+                                  onMouseOut={(e) => {
+                                    e.currentTarget.style.transform = "scale(1)";
+                                  }}
+                                />
+                                <Box
+                                  sx={{
                                     content: '""',
                                     position: "absolute",
                                     bottom: 0,
@@ -1483,9 +1502,10 @@ export default function TripDetailsPage() {
                                       : "linear-gradient(to top, rgba(0,0,0,0.7), transparent)",
                                     borderBottomLeftRadius: "12px",
                                     borderBottomRightRadius: "12px",
-                                  },
-                                }}
-                              />
+                                    pointerEvents: "none",
+                                  }}
+                                />
+                              </Box>
                               <CardContent sx={{ p: 3, flex: 1, display: "flex", flexDirection: "column" }}>
                                 <Stack spacing={2}>
                                   <Typography
@@ -3118,18 +3138,29 @@ export default function TripDetailsPage() {
                 sx={{
                   width: "100%",
                   height: 300,
-                  backgroundImage: (selectedHotelForModal.imageUrl || selectedHotelForModal.hotelImageUrl) &&
-                    !(selectedHotelForModal.imageUrl?.includes("sample-image") || selectedHotelForModal.hotelImageUrl?.includes("sample-image") ||
-                      selectedHotelForModal.imageUrl?.includes("placeholder") || selectedHotelForModal.hotelImageUrl?.includes("placeholder"))
-                    ? `url(${selectedHotelForModal.hotelImageUrl || selectedHotelForModal.imageUrl})`
-                    : `url(https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070&auto=format&fit=crop)`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
                   borderRadius: "12px",
                   mb: 3,
                   boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
+                  overflow: "hidden",
+                  position: "relative",
                 }}
-              />
+              >
+                <img
+                  src={
+                    (selectedHotelForModal.imageUrl || selectedHotelForModal.hotelImageUrl) &&
+                    !(selectedHotelForModal.imageUrl?.includes("sample-image") || selectedHotelForModal.hotelImageUrl?.includes("sample-image") ||
+                      selectedHotelForModal.imageUrl?.includes("placeholder") || selectedHotelForModal.hotelImageUrl?.includes("placeholder"))
+                    ? (selectedHotelForModal.hotelImageUrl || selectedHotelForModal.imageUrl)
+                    : "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070&auto=format&fit=crop"
+                  }
+                  alt={selectedHotelForModal.hotelName}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+              </Box>
 
               {/* Otel Bilgileri */}
               <Grid container spacing={3}>
