@@ -1,4 +1,6 @@
 import OpenAI from "openai";
+import { HotelImageService } from "./HotelImageService";
+import { Hotel } from "../types/travel";
 
 // OpenAI API anahtarını çevre değişkeninden al
 const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || "";
@@ -222,6 +224,27 @@ export const sendMessage = async (
     // JSON olarak parse et
     try {
       const jsonResponse = JSON.parse(responseText);
+
+      // Otel görselleri için Google Places API'yi kullan
+      if (jsonResponse.hotelOptions && Array.isArray(jsonResponse.hotelOptions) && jsonResponse.hotelOptions.length > 0) {
+        console.log('Otel görselleri getiriliyor...');
+        try {
+          // Bütçeye göre otel görselleri getir
+          const updatedHotels = await HotelImageService.fetchImagesForHotels(
+            jsonResponse.hotelOptions as Hotel[],
+            destination,
+            budget
+          );
+
+          // Güncellenmiş otel listesini kaydet
+          jsonResponse.hotelOptions = updatedHotels;
+          console.log(`${updatedHotels.length} otel için görsel güncellendi`);
+        } catch (error) {
+          console.error('Otel görselleri getirme hatası:', error);
+          // Hata durumunda mevcut otel listesini koru
+        }
+      }
+
       return {
         text: responseText,
         json: jsonResponse,
