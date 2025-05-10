@@ -16,6 +16,8 @@ import {
   Typography,
   Snackbar,
   Alert,
+  ImageList,
+  ImageListItem,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { ArrowLeft, ArrowRight, Calendar, Clock, Heart, MapPin, Plane, Star, Users, Wallet } from "lucide-react";
@@ -473,6 +475,28 @@ export default function RecommendedTripsPage() {
                       </Grid>
                     )}
                   </Grid>
+
+                  {/* Hotel Images Section - Display hotel images instead of hotel names */}
+                  {trip.hotelOptions && typeof trip.hotelOptions !== 'string' && trip.hotelOptions.length > 0 && (
+                    <Box sx={{ mt: 2, mb: 2 }}>
+                      <ImageList sx={{ width: "100%", height: 120, m: 0 }} cols={3} rowHeight={120} gap={4}>
+                        {trip.hotelOptions.slice(0, 3).map((hotel: any, hotelIndex: number) => (
+                          <ImageListItem key={hotelIndex} sx={{ overflow: "hidden", borderRadius: "8px" }}>
+                            <img
+                              src={hotel.hotelImageUrl || hotel.imageUrl || '/placeholder-hotel.jpg'}
+                              alt={hotel.hotelName}
+                              loading="lazy"
+                              style={{ 
+                                width: "100%", 
+                                height: "100%", 
+                                objectFit: "cover"
+                              }}
+                            />
+                          </ImageListItem>
+                        ))}
+                      </ImageList>
+                    </Box>
+                  )}
 
                   <ChipContainer>
                     {trip.isDomestic !== undefined && (

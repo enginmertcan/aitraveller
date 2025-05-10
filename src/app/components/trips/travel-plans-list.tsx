@@ -1,11 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Box, Button, Grid, Paper, Typography } from "@mui/material";
+import { Box, Button, Grid, Paper, Typography, ImageList, ImageListItem } from "@mui/material";
 import { Calendar, DollarSign, MapPin, Users } from "lucide-react";
 
 import { useThemeContext } from "../../context/ThemeContext";
-import { TravelPlan } from "../../types/travel";
+import { TravelPlan, Hotel } from "../../types/travel";
 
 interface TravelPlansListProps {
   plans: Partial<TravelPlan>[];
@@ -100,6 +100,28 @@ export function TravelPlansList({ plans }: TravelPlansListProps) {
                 </Box>
               )}
             </Box>
+
+            {/* Hotel Images Section - Display hotel images instead of hotel names */}
+            {plan.hotelOptions && typeof plan.hotelOptions !== 'string' && plan.hotelOptions.length > 0 && (
+              <Box sx={{ mt: 2, mb: 2 }}>
+                <ImageList sx={{ width: "100%", height: 120, m: 0 }} cols={3} rowHeight={120} gap={4}>
+                  {plan.hotelOptions.slice(0, 3).map((hotel: Hotel, index: number) => (
+                    <ImageListItem key={index} sx={{ overflow: "hidden", borderRadius: "8px" }}>
+                      <img
+                        src={hotel.hotelImageUrl || hotel.imageUrl || '/placeholder-hotel.jpg'}
+                        alt={hotel.hotelName}
+                        loading="lazy"
+                        style={{ 
+                          width: "100%", 
+                          height: "100%", 
+                          objectFit: "cover"
+                        }}
+                      />
+                    </ImageListItem>
+                  ))}
+                </ImageList>
+              </Box>
+            )}
 
             <Box sx={{ mt: "auto", pt: 2 }}>
               <Button
