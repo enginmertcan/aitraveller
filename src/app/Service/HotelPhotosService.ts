@@ -1,12 +1,9 @@
 /**
  * HotelPhotosService.ts
- * 
+ *
  * This service handles fetching and displaying hotel photos.
  * It provides methods to fetch hotel photos from external APIs and display them in the UI.
  */
-
-// API key for Google Places API
-const GOOGLE_PLACES_API_KEY = "AIzaSyCuywyLDcnyRENGnIHnit-ym2rhQBnXMJw";
 
 // Maximum number of photos to fetch (no fixed limit)
 const MAX_PHOTOS = 50;
@@ -22,48 +19,43 @@ const HotelPhotosService = {
    * @param city - The city where the hotel is located
    * @returns Promise<string[]> - Array of photo URLs
    */
-  async fetchHotelPhotos(hotelName: string, city: string): Promise<string[]> {
+  async getHotelPhotos(hotelName: string, city: string): Promise<string[]> {
     try {
       console.log(`Fetching hotel photos for: ${hotelName} in ${city}`);
-      
-      // Step 1: Find the hotel using Places API Text Search
-      const searchQuery = `${hotelName} hotel ${city}`;
-      const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(
-        searchQuery
-      )}&key=${GOOGLE_PLACES_API_KEY}`;
-      
-      const searchResponse = await fetch(searchUrl);
-      const searchData = await searchResponse.json();
-      
-      if (!searchData.results || searchData.results.length === 0) {
-        console.warn(`No results found for hotel: ${hotelName}`);
+
+      // Create search query
+      const query = `${hotelName} hotel ${city}`;
+
+      // Use the API route to get photo references
+      const response = await fetch('/api/places/photos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+      });
+
+      if (!response.ok) {
+        console.warn(`API request failed for hotel: ${hotelName}`);
         return [];
       }
-      
-      // Get the first result (most relevant)
-      const placeId = searchData.results[0].place_id;
-      
-      // Step 2: Get place details including photos
-      const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=photos&key=${GOOGLE_PLACES_API_KEY}`;
-      const detailsResponse = await fetch(detailsUrl);
-      const detailsData = await detailsResponse.json();
-      
-      if (!detailsData.result || !detailsData.result.photos || detailsData.result.photos.length === 0) {
+
+      const data = await response.json();
+
+      if (!data.photoReferences || data.photoReferences.length === 0) {
         console.warn(`No photos found for hotel: ${hotelName}`);
         return [];
       }
-      
+
       // Get all available photos (up to MAX_PHOTOS)
-      const photoReferences = detailsData.result.photos
-        .slice(0, MAX_PHOTOS)
-        .map((photo: any) => photo.photo_reference);
-      
-      // Step 3: Get photo URLs for each reference
+      const photoReferences = data.photoReferences.slice(0, MAX_PHOTOS);
+
+      // Step 3: Get photo URLs for each reference using the photo API route
       const photoUrls = photoReferences.map(
         (reference: string) =>
-          `https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photoreference=${reference}&key=${GOOGLE_PLACES_API_KEY}`
+          `/api/places/photo?photoReference=${reference}&maxwidth=1200`
       );
-      
+
       console.log(`Found ${photoUrls.length} photos for hotel: ${hotelName}`);
       return photoUrls;
     } catch (error) {
@@ -71,7 +63,7 @@ const HotelPhotosService = {
       return [];
     }
   },
-  
+
   /**
    * Displays hotel photos in a container element
    * @param hotelName - The name of the hotel
@@ -91,21 +83,21 @@ const HotelPhotosService = {
         console.error(`Container element not found: ${containerId}`);
         return;
       }
-      
+
       // Clear container
       container.innerHTML = "";
-      
+
       // Add loading indicator
       const loadingElement = document.createElement("div");
       loadingElement.className = "hotel-photos-loading";
       loadingElement.innerHTML = `
         <div style="display: flex; justify-content: center; align-items: center; height: 200px;">
           <div style="
-            border: 4px solid ${isDarkMode ? "#1f2937" : "#f3f4f6"}; 
-            border-top: 4px solid ${isDarkMode ? "#93c5fd" : "#2563eb"}; 
-            border-radius: 50%; 
-            width: 40px; 
-            height: 40px; 
+            border: 4px solid ${isDarkMode ? "#1f2937" : "#f3f4f6"};
+            border-top: 4px solid ${isDarkMode ? "#93c5fd" : "#2563eb"};
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
             animation: spin 1s linear infinite;"
           ></div>
         </div>
@@ -117,24 +109,24 @@ const HotelPhotosService = {
         </style>
       `;
       container.appendChild(loadingElement);
-      
+
       // Fetch hotel photos
-      const photoUrls = await this.fetchHotelPhotos(hotelName, city);
-      
+      const photoUrls = await this.getHotelPhotos(hotelName, city);
+
       // Remove loading indicator
       container.innerHTML = "";
-      
+
       if (photoUrls.length === 0) {
         // Display no photos message
         const noPhotosElement = document.createElement("div");
         noPhotosElement.className = "hotel-photos-empty";
         noPhotosElement.innerHTML = `
           <div style="
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 200px; 
-            color: ${isDarkMode ? "#9ca3af" : "#6b7280"}; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: ${isDarkMode ? "#9ca3af" : "#6b7280"};
             text-align: center;
             font-style: italic;
           ">
@@ -144,16 +136,16 @@ const HotelPhotosService = {
         container.appendChild(noPhotosElement);
         return;
       }
-      
+
       // Create photo gallery container
       const galleryElement = document.createElement("div");
       galleryElement.className = "hotel-photos-gallery";
       galleryElement.style.display = "flex";
       galleryElement.style.flexWrap = "wrap";
       galleryElement.style.gap = "8px";
-      
+
       // Add photos to gallery
-      photoUrls.forEach((url, index) => {
+      photoUrls.forEach((url: string, index: number) => {
         const photoElement = document.createElement("div");
         photoElement.className = "hotel-photo-item";
         photoElement.style.position = "relative";
@@ -162,7 +154,7 @@ const HotelPhotosService = {
         photoElement.style.overflow = "hidden";
         photoElement.style.borderRadius = "8px";
         photoElement.style.cursor = "pointer";
-        
+
         const imgElement = document.createElement("img");
         imgElement.src = url;
         imgElement.alt = `${hotelName} - Photo ${index + 1}`;
@@ -170,32 +162,32 @@ const HotelPhotosService = {
         imgElement.style.height = "100%";
         imgElement.style.objectFit = "cover";
         imgElement.style.transition = "transform 0.3s ease";
-        
+
         photoElement.appendChild(imgElement);
-        
+
         // Add hover effect
         photoElement.addEventListener("mouseenter", () => {
           imgElement.style.transform = "scale(1.05)";
         });
-        
+
         photoElement.addEventListener("mouseleave", () => {
           imgElement.style.transform = "scale(1)";
         });
-        
+
         // Add click handler to open full-size image
         photoElement.addEventListener("click", () => {
           this.openFullSizeImage(url, hotelName, index, photoUrls, isDarkMode);
         });
-        
+
         galleryElement.appendChild(photoElement);
       });
-      
+
       container.appendChild(galleryElement);
     } catch (error) {
       console.error("Error displaying hotel photos:", error);
     }
   },
-  
+
   /**
    * Opens a full-size image in a modal
    * @param url - The URL of the image
@@ -225,7 +217,7 @@ const HotelPhotosService = {
     modalContainer.style.justifyContent = "center";
     modalContainer.style.alignItems = "center";
     modalContainer.style.zIndex = "9999";
-    
+
     // Create image container
     const imageContainer = document.createElement("div");
     imageContainer.style.position = "relative";
@@ -234,7 +226,7 @@ const HotelPhotosService = {
     imageContainer.style.display = "flex";
     imageContainer.style.justifyContent = "center";
     imageContainer.style.alignItems = "center";
-    
+
     // Create image element
     const imgElement = document.createElement("img");
     imgElement.src = url;
@@ -244,9 +236,9 @@ const HotelPhotosService = {
     imgElement.style.objectFit = "contain";
     imgElement.style.borderRadius = "4px";
     imgElement.style.boxShadow = "0 4px 20px rgba(0, 0, 0, 0.3)";
-    
+
     imageContainer.appendChild(imgElement);
-    
+
     // Create close button
     const closeButton = document.createElement("button");
     closeButton.innerHTML = "×";
@@ -264,7 +256,7 @@ const HotelPhotosService = {
     closeButton.style.display = "flex";
     closeButton.style.justifyContent = "center";
     closeButton.style.alignItems = "center";
-    
+
     // Add navigation buttons if there are multiple photos
     if (allPhotos.length > 1) {
       // Create counter
@@ -279,9 +271,9 @@ const HotelPhotosService = {
       counter.style.padding = "8px 16px";
       counter.style.borderRadius = "20px";
       counter.style.fontSize = "14px";
-      
+
       modalContainer.appendChild(counter);
-      
+
       // Create previous button
       const prevButton = document.createElement("button");
       prevButton.innerHTML = "❮";
@@ -300,14 +292,14 @@ const HotelPhotosService = {
       prevButton.style.display = "flex";
       prevButton.style.justifyContent = "center";
       prevButton.style.alignItems = "center";
-      
+
       prevButton.addEventListener("click", (e) => {
         e.stopPropagation();
         const newIndex = (index - 1 + allPhotos.length) % allPhotos.length;
         modalContainer.remove();
         this.openFullSizeImage(allPhotos[newIndex], hotelName, newIndex, allPhotos, isDarkMode);
       });
-      
+
       // Create next button
       const nextButton = document.createElement("button");
       nextButton.innerHTML = "❯";
@@ -326,36 +318,36 @@ const HotelPhotosService = {
       nextButton.style.display = "flex";
       nextButton.style.justifyContent = "center";
       nextButton.style.alignItems = "center";
-      
+
       nextButton.addEventListener("click", (e) => {
         e.stopPropagation();
         const newIndex = (index + 1) % allPhotos.length;
         modalContainer.remove();
         this.openFullSizeImage(allPhotos[newIndex], hotelName, newIndex, allPhotos, isDarkMode);
       });
-      
+
       modalContainer.appendChild(prevButton);
       modalContainer.appendChild(nextButton);
     }
-    
+
     // Close modal when clicking outside the image
     modalContainer.addEventListener("click", () => {
       modalContainer.remove();
     });
-    
+
     // Prevent closing when clicking on the image
     imageContainer.addEventListener("click", (e) => {
       e.stopPropagation();
     });
-    
+
     // Close modal when clicking the close button
     closeButton.addEventListener("click", () => {
       modalContainer.remove();
     });
-    
+
     modalContainer.appendChild(imageContainer);
     modalContainer.appendChild(closeButton);
-    
+
     // Add modal to body
     document.body.appendChild(modalContainer);
   }

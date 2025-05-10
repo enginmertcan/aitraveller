@@ -283,14 +283,58 @@ export default function TripDetailsPage() {
       const hotelName = selectedHotelForModal.hotelName;
 
       if (hotelName && city) {
-        console.log(`Otel fotoğrafları yükleniyor: ${hotelName}, ${city}, ${city}, Türkiye`);
+        console.log(`Otel fotoğrafları yükleniyor: ${hotelName}, ${city}`);
 
         // DOM'un hazır olmasını bekle
         setTimeout(() => {
           const container = document.getElementById("hotelPhotosContainer");
           if (container) {
             console.log("hotelPhotosContainer bulundu, fotoğraflar yükleniyor");
-            HotelPhotosService.displayHotelPhotos(hotelName, city, "hotelPhotosContainer", isDarkMode);
+
+            // Load and display hotel photos (up to 25 photos)
+            const loadHotelPhotos = async () => {
+              try {
+                // First try to fetch photos using the service
+                const photos = await HotelPhotosService.getHotelPhotos(hotelName, city);
+
+                if (photos && photos.length > 0) {
+                  // Display photos using the service
+                  HotelPhotosService.displayHotelPhotos(hotelName, city, "hotelPhotosContainer", isDarkMode);
+                } else {
+                  // If no photos found, show a message
+                  container.innerHTML = `
+                    <div style="
+                      display: flex;
+                      justify-content: center;
+                      align-items: center;
+                      height: 200px;
+                      color: ${isDarkMode ? "#9ca3af" : "#6b7280"};
+                      text-align: center;
+                      font-style: italic;
+                    ">
+                      Bu otel için fotoğraf bulunamadı
+                    </div>
+                  `;
+                }
+              } catch (error) {
+                console.error("Error loading hotel photos:", error);
+                container.innerHTML = `
+                  <div style="
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 200px;
+                    color: ${isDarkMode ? "#9ca3af" : "#6b7280"};
+                    text-align: center;
+                    font-style: italic;
+                  ">
+                    Fotoğraflar yüklenirken bir hata oluştu
+                  </div>
+                `;
+              }
+            };
+
+            loadHotelPhotos();
           } else {
             console.error("hotelPhotosContainer bulunamadı");
           }
@@ -1487,6 +1531,26 @@ export default function TripDetailsPage() {
                                   }}
                                   onMouseOut={(e) => {
                                     e.currentTarget.style.transform = "scale(1)";
+                                  }}
+                                  onLoad={(e) => {
+                                    // If the image is a placeholder, try to load a real hotel image
+                                    const imgSrc = e.currentTarget.src;
+                                    if (imgSrc.includes("unsplash.com")) {
+                                      // Try to load a real hotel image using HotelPhotosService
+                                      const loadHotelImage = async () => {
+                                        try {
+                                          if (hotel.hotelName && plan?.destination) {
+                                            const photos = await HotelPhotosService.getHotelPhotos(hotel.hotelName, plan.destination);
+                                            if (photos && photos.length > 0) {
+                                              e.currentTarget.src = photos[0];
+                                            }
+                                          }
+                                        } catch (error) {
+                                          console.error("Error loading hotel image:", error);
+                                        }
+                                      };
+                                      loadHotelImage();
+                                    }
                                   }}
                                 />
                                 <Box
@@ -3159,6 +3223,26 @@ export default function TripDetailsPage() {
                     height: "100%",
                     objectFit: "cover",
                   }}
+                  onLoad={(e) => {
+                    // If the image is a placeholder, try to load a real hotel image
+                    const imgSrc = e.currentTarget.src;
+                    if (imgSrc.includes("unsplash.com")) {
+                      // Try to load a real hotel image using HotelPhotosService
+                      const loadHotelImage = async () => {
+                        try {
+                          if (selectedHotelForModal.hotelName && plan?.destination) {
+                            const photos = await HotelPhotosService.getHotelPhotos(selectedHotelForModal.hotelName, plan.destination);
+                            if (photos && photos.length > 0) {
+                              e.currentTarget.src = photos[0];
+                            }
+                          }
+                        } catch (error) {
+                          console.error("Error loading hotel image:", error);
+                        }
+                      };
+                      loadHotelImage();
+                    }
+                  }}
                 />
               </Box>
 
@@ -3360,7 +3444,27 @@ export default function TripDetailsPage() {
                     display: "flex",
                     flexWrap: "wrap",
                     gap: 2,
-                    justifyContent: "center"
+                    justifyContent: "center",
+                    maxHeight: "500px",
+                    overflowY: "auto",
+                    padding: "8px",
+                    borderRadius: "8px",
+                    backgroundColor: isDarkMode ? "rgba(17, 24, 39, 0.5)" : "rgba(241, 245, 249, 0.5)",
+                    border: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"}`,
+                    "&::-webkit-scrollbar": {
+                      width: "8px",
+                    },
+                    "&::-webkit-scrollbar-track": {
+                      backgroundColor: isDarkMode ? "rgba(17, 24, 39, 0.3)" : "rgba(241, 245, 249, 0.5)",
+                      borderRadius: "8px",
+                    },
+                    "&::-webkit-scrollbar-thumb": {
+                      backgroundColor: isDarkMode ? "rgba(147, 197, 253, 0.5)" : "rgba(37, 99, 235, 0.5)",
+                      borderRadius: "8px",
+                      "&:hover": {
+                        backgroundColor: isDarkMode ? "rgba(147, 197, 253, 0.7)" : "rgba(37, 99, 235, 0.7)",
+                      },
+                    },
                   }}
                 >
                   {/* Burada otel fotoğrafları gösterilecek - JavaScript ile doldurulacak */}
@@ -3370,12 +3474,26 @@ export default function TripDetailsPage() {
                       color: isDarkMode ? "#e5e7eb" : "text.secondary",
                       fontStyle: "italic",
                       textAlign: "center",
-                      width: "100%"
+                      width: "100%",
+                      padding: "40px 0"
                     }}
                   >
                     Fotoğraflar yükleniyor...
                   </Typography>
                 </Box>
+
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: "block",
+                    textAlign: "center",
+                    mt: 1,
+                    color: isDarkMode ? "rgba(255, 255, 255, 0.5)" : "rgba(0, 0, 0, 0.5)",
+                    fontStyle: "italic"
+                  }}
+                >
+                  Fotoğraflara tıklayarak tam boyutta görüntüleyebilirsiniz
+                </Typography>
               </Box>
             </Box>
           )}
