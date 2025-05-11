@@ -275,6 +275,43 @@ export default function TripDetailsPage() {
   // Sayfa yüklenirken id parametresini kontrol et
   console.log("Trip ID:", tripId);
 
+  // Modal açıldığında çağrılacak
+  const handleModalOpen = async (hotel: any) => {
+    try {
+      // Önce otel fotoğraflarını yükle
+      if (hotel.hotelName && plan?.destination) {
+        console.log("Modal açılıyor, otel fotoğrafları yükleniyor:", hotel.hotelName);
+        const photos = await HotelPhotosService.getHotelPhotos(hotel.hotelName, plan.destination);
+        if (photos && photos.length > 0) {
+          // Fotoğrafı hotel nesnesine ekle
+          hotel.hotelImageUrl = photos[0];
+        }
+      }
+    } catch (error) {
+      console.error("Otel fotoğrafları yükleme hatası:", error);
+    }
+
+    // Sonra modalı aç
+    setSelectedHotelForModal(hotel);
+    setModalOpen(true);
+
+    // Modal açıldıktan sonra önizleme fotoğraflarını yükle
+    setTimeout(() => {
+      const container = document.getElementById("hotelPhotosContainer");
+      if (container && hotel.hotelName && plan?.destination) {
+        console.log("hotelPhotosContainer bulundu, fotoğraflar yükleniyor");
+        HotelPhotosService.displayHotelPhotos(
+          hotel.hotelName,
+          plan.destination,
+          "hotelPhotosContainer",
+          isDarkMode
+        );
+      } else {
+        console.error("hotelPhotosContainer bulunamadı");
+      }
+    }, 300);
+  };
+
   // Otel detay modalı açıldığında fotoğrafları yükle
   useEffect(() => {
     if (selectedHotelForModal && modalOpen) {
@@ -1478,40 +1515,42 @@ export default function TripDetailsPage() {
                           <Grid item xs={12} md={6} lg={4} key={index}>
                             <Card
                               elevation={0}
-                              onClick={() => {
-                                setSelectedHotelForModal(hotel);
-                                setModalOpen(true);
-                              }}
+                              onClick={() => handleModalOpen(hotel)}
                               sx={{
                                 height: "100%",
                                 background: isDarkMode ? "rgba(17, 24, 39, 0.8)" : "rgba(255, 255, 255, 0.9)",
                                 borderRadius: "12px",
                                 border: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"}`,
-                                transition: "all 0.2s ease",
+                                transition: "all 0.3s ease",
                                 cursor: "pointer",
                                 "&:hover": {
-                                  transform: "translateY(-4px)",
+                                  transform: "translateY(-6px)",
                                   boxShadow: isDarkMode
-                                    ? "0 4px 20px rgba(0, 0, 0, 0.6)"
-                                    : "0 4px 20px rgba(0, 0, 0, 0.1)",
+                                    ? "0 8px 30px rgba(0, 0, 0, 0.7)"
+                                    : "0 8px 30px rgba(0, 0, 0, 0.15)",
                                 },
                                 display: "flex",
                                 flexDirection: "column",
                                 backdropFilter: "blur(10px)",
+                                overflow: "hidden",
+                                boxShadow: isDarkMode
+                                  ? "0 4px 12px rgba(0, 0, 0, 0.4)"
+                                  : "0 4px 12px rgba(0, 0, 0, 0.08)",
                               }}
                             >
-                              {/* Otel Görseli */}
+                              {/* Otel Görseli - Daha büyük ve dikkat çekici */}
                               <Box
                                 sx={{
                                   width: "100%",
-                                  height: 200,
+                                  height: 240, // Daha büyük görsel
                                   position: "relative",
+                                  overflow: "hidden",
                                   borderTopLeftRadius: "12px",
                                   borderTopRightRadius: "12px",
-                                  overflow: "hidden",
                                 }}
                               >
-                                <img
+                                <Box
+                                  component="img"
                                   src={
                                     (hotel.imageUrl || hotel.hotelImageUrl) &&
                                     !(hotel.imageUrl?.includes("sample-image") || hotel.hotelImageUrl?.includes("sample-image") ||
@@ -1520,129 +1559,116 @@ export default function TripDetailsPage() {
                                     : "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070&auto=format&fit=crop"
                                   }
                                   alt={hotel.hotelName}
-                                  style={{
+                                  sx={{
                                     width: "100%",
                                     height: "100%",
                                     objectFit: "cover",
-                                    transition: "transform 0.3s ease",
+                                    transition: "transform 0.5s ease",
+                                    "&:hover": {
+                                      transform: "scale(1.08)",
+                                    },
+                                    filter: "brightness(0.95)",
                                   }}
-                                  onMouseOver={(e) => {
-                                    e.currentTarget.style.transform = "scale(1.05)";
-                                  }}
-                                  onMouseOut={(e) => {
-                                    e.currentTarget.style.transform = "scale(1)";
-                                  }}
-                                  onLoad={(e) => {
-                                    // If the image is a placeholder, try to load a real hotel image
-                                    const imgSrc = e.currentTarget.src;
-                                    if (imgSrc.includes("unsplash.com")) {
-                                      // Try to load a real hotel image using HotelPhotosService
-                                      const loadHotelImage = async () => {
-                                        try {
-                                          if (hotel.hotelName && plan?.destination) {
-                                            const photos = await HotelPhotosService.getHotelPhotos(hotel.hotelName, plan.destination);
-                                            if (photos && photos.length > 0) {
-                                              e.currentTarget.src = photos[0];
-                                            }
-                                          }
-                                        } catch (error) {
-                                          console.error("Error loading hotel image:", error);
-                                        }
-                                      };
-                                      loadHotelImage();
-                                    }
+                                  onLoad={() => {
+                                    // Fotoğraf yükleme özelliği kaldırıldı
                                   }}
                                 />
+                                {/* Otel adı görselin üzerinde */}
                                 <Box
                                   sx={{
-                                    content: '""',
                                     position: "absolute",
                                     bottom: 0,
                                     left: 0,
                                     right: 0,
-                                    height: "50%",
-                                    background: isDarkMode
-                                      ? "linear-gradient(to top, rgba(0,0,0,0.9), transparent)"
-                                      : "linear-gradient(to top, rgba(0,0,0,0.7), transparent)",
-                                    borderBottomLeftRadius: "12px",
-                                    borderBottomRightRadius: "12px",
+                                    background: "linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.3), transparent)",
+                                    padding: "30px 16px 16px",
                                     pointerEvents: "none",
                                   }}
-                                />
-                              </Box>
-                              <CardContent sx={{ p: 3, flex: 1, display: "flex", flexDirection: "column" }}>
-                                <Stack spacing={2}>
+                                >
                                   <Typography
                                     variant="h6"
                                     sx={{
+                                      color: "white",
                                       fontWeight: 700,
+                                      textShadow: "0 2px 4px rgba(0,0,0,0.5)",
                                       fontSize: "1.25rem",
+                                      mb: 0.5,
                                       letterSpacing: "-0.01em",
-                                      color: isDarkMode ? "#93c5fd" : "#2563eb",
                                     }}
                                   >
                                     {hotel.hotelName}
                                   </Typography>
 
-                                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                    <MapPin size={18} style={{ color: isDarkMode ? "#a78bfa" : "#7c3aed" }} />
-                                    <Typography
-                                      variant="body2"
-                                      sx={{
-                                        color: isDarkMode ? "#e5e7eb" : "text.secondary",
-                                        fontSize: "0.875rem",
-                                        lineHeight: 1.5,
-                                      }}
-                                    >
-                                      {hotel.hotelAddress}
-                                    </Typography>
-                                  </Box>
-
                                   {hotel.rating && (
-                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                                       <Rating
                                         value={hotel.rating}
                                         precision={0.1}
                                         readOnly
+                                        size="small"
                                         sx={{
                                           "& .MuiRating-iconFilled": {
-                                            color: isDarkMode ? "#93c5fd" : "#2563eb",
+                                            color: "#FFD700",
                                           },
                                           "& .MuiRating-iconEmpty": {
-                                            color: isDarkMode ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.3)",
+                                            color: "rgba(255, 255, 255, 0.5)",
                                           },
                                         }}
                                       />
                                       <Typography
                                         variant="body2"
                                         sx={{
-                                          color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "text.secondary",
+                                          color: "white",
+                                          fontWeight: 600,
                                           fontSize: "0.875rem",
-                                          lineHeight: 1.5,
                                         }}
                                       >
                                         {hotel.rating.toFixed(1)}
                                       </Typography>
                                     </Box>
                                   )}
+                                </Box>
+                              </Box>
+                              <CardContent sx={{ p: 3, flex: 1, display: "flex", flexDirection: "column" }}>
+                                <Stack spacing={2}>
+                                  {/* Adres */}
+                                  <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+                                    <MapPin size={18} style={{ color: isDarkMode ? "#a78bfa" : "#7c3aed", marginTop: "2px" }} />
+                                    <Typography
+                                      variant="body2"
+                                      sx={{
+                                        color: isDarkMode ? "#e5e7eb" : "text.secondary",
+                                        fontSize: "0.875rem",
+                                        lineHeight: 1.5,
+                                        fontWeight: 500,
+                                      }}
+                                    >
+                                      {hotel.hotelAddress}
+                                    </Typography>
+                                  </Box>
 
-                                  <Typography
-                                    variant="body2"
-                                    sx={{
-                                      p: 1,
-                                      borderRadius: "8px",
-                                      backgroundColor: isDarkMode ? "rgba(37, 99, 235, 0.2)" : "rgba(37, 99, 235, 0.1)",
-                                      color: isDarkMode ? "#93c5fd" : "#2563eb",
-                                      display: "inline-block",
-                                      alignSelf: "flex-start",
-                                      border: `1px solid ${isDarkMode ? "rgba(37, 99, 235, 0.3)" : "transparent"}`,
-                                      fontSize: "0.875rem",
-                                      fontWeight: 500,
-                                    }}
-                                  >
-                                    {hotel.priceRange}
-                                  </Typography>
+                                  {/* Fiyat Aralığı */}
+                                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                                    <Wallet size={18} style={{ color: isDarkMode ? "#a78bfa" : "#7c3aed" }} />
+                                    <Typography
+                                      variant="body2"
+                                      sx={{
+                                        p: 1,
+                                        borderRadius: "8px",
+                                        backgroundColor: isDarkMode ? "rgba(37, 99, 235, 0.2)" : "rgba(37, 99, 235, 0.1)",
+                                        color: isDarkMode ? "#93c5fd" : "#2563eb",
+                                        display: "inline-block",
+                                        border: `1px solid ${isDarkMode ? "rgba(37, 99, 235, 0.3)" : "transparent"}`,
+                                        fontSize: "0.875rem",
+                                        fontWeight: 600,
+                                        boxShadow: isDarkMode ? "0 2px 6px rgba(0, 0, 0, 0.2)" : "0 2px 6px rgba(0, 0, 0, 0.05)",
+                                      }}
+                                    >
+                                      {hotel.priceRange}
+                                    </Typography>
+                                  </Box>
 
+                                  {/* Açıklama - Daha kısa */}
                                   <Typography
                                     variant="body2"
                                     sx={{
@@ -1650,35 +1676,73 @@ export default function TripDetailsPage() {
                                       flex: 1,
                                       fontSize: "0.875rem",
                                       lineHeight: 1.6,
+                                      // Maksimum 3 satır göster
+                                      display: "-webkit-box",
+                                      WebkitLineClamp: 3,
+                                      WebkitBoxOrient: "vertical",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                      mt: 0.5,
+                                      mb: 0.5,
                                     }}
                                   >
                                     {hotel.description}
                                   </Typography>
 
-                                  {hotel.geoCoordinates && (
+                                  {/* Haritada Göster ve Detayları Gör Butonları */}
+                                  <Box sx={{ display: "flex", justifyContent: "space-between", mt: "auto", pt: 1 }}>
+                                    {hotel.geoCoordinates && (
+                                      <Button
+                                        variant="outlined"
+                                        size="small"
+                                        startIcon={<Navigation size={16} />}
+                                        onClick={(e) => {
+                                          e.stopPropagation(); // Kart tıklamasını engelle
+                                          const url = `https://www.google.com/maps/search/?api=1&query=${hotel.geoCoordinates?.latitude},${hotel.geoCoordinates?.longitude}`;
+                                          window.open(url, "_blank");
+                                        }}
+                                        sx={{
+                                          borderColor: isDarkMode ? "#93c5fd" : "#2563eb",
+                                          color: isDarkMode ? "#93c5fd" : "#2563eb",
+                                          borderRadius: "8px",
+                                          textTransform: "none",
+                                          fontWeight: 600,
+                                          boxShadow: isDarkMode ? "0 2px 4px rgba(0, 0, 0, 0.2)" : "0 2px 4px rgba(0, 0, 0, 0.05)",
+                                          "&:hover": {
+                                            borderColor: isDarkMode ? "#60a5fa" : "#1d4ed8",
+                                            backgroundColor: isDarkMode
+                                              ? "rgba(37, 99, 235, 0.2)"
+                                              : "rgba(37, 99, 235, 0.1)",
+                                            transform: "translateY(-2px)",
+                                            transition: "transform 0.2s ease",
+                                          },
+                                        }}
+                                      >
+                                        Haritada Göster
+                                      </Button>
+                                    )}
+
+                                    {/* Detayları Gör Butonu */}
                                     <Button
-                                      variant="outlined"
+                                      variant="contained"
                                       size="small"
-                                      startIcon={<Navigation size={16} />}
-                                      onClick={() => {
-                                        const url = `https://www.google.com/maps/search/?api=1&query=${hotel.geoCoordinates?.latitude},${hotel.geoCoordinates?.longitude}`;
-                                        window.open(url, "_blank");
-                                      }}
                                       sx={{
-                                        mt: "auto",
-                                        borderColor: isDarkMode ? "#93c5fd" : "#2563eb",
-                                        color: isDarkMode ? "#93c5fd" : "#2563eb",
+                                        background: "linear-gradient(45deg, #2563eb, #7c3aed)",
+                                        borderRadius: "8px",
+                                        textTransform: "none",
+                                        fontWeight: 600,
+                                        boxShadow: isDarkMode ? "0 4px 8px rgba(0, 0, 0, 0.3)" : "0 4px 8px rgba(0, 0, 0, 0.1)",
                                         "&:hover": {
-                                          borderColor: isDarkMode ? "#60a5fa" : "#1d4ed8",
-                                          backgroundColor: isDarkMode
-                                            ? "rgba(37, 99, 235, 0.2)"
-                                            : "rgba(37, 99, 235, 0.1)",
+                                          background: "linear-gradient(45deg, #1d4ed8, #6d28d9)",
+                                          transform: "translateY(-2px)",
+                                          transition: "transform 0.2s ease",
+                                          boxShadow: isDarkMode ? "0 6px 12px rgba(0, 0, 0, 0.4)" : "0 6px 12px rgba(0, 0, 0, 0.15)",
                                         },
                                       }}
                                     >
-                                      Haritada Göster
+                                      Detayları Gör
                                     </Button>
-                                  )}
+                                  </Box>
                                 </Stack>
                               </CardContent>
                             </Card>
@@ -3184,66 +3248,57 @@ export default function TripDetailsPage() {
           {/* Otel Detayı */}
           {selectedHotelForModal && (
             <Box sx={{ width: { xs: "100%", md: "900px" }, maxWidth: "100%", maxHeight: "85vh", overflowY: "auto" }}>
-              {/* Otel Başlığı */}
-              <Typography
-                variant="h4"
-                sx={{
-                  mb: 3,
-                  color: isDarkMode ? "#93c5fd" : "#2563eb",
-                  fontWeight: 700,
-                  textAlign: "center"
-                }}
-              >
-                {selectedHotelForModal.hotelName}
-              </Typography>
-
-              {/* Otel Görseli */}
+              {/* Otel Görseli - Geliştirilmiş */}
               <Box
                 sx={{
                   width: "100%",
-                  height: 300,
-                  borderRadius: "12px",
-                  mb: 3,
-                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
-                  overflow: "hidden",
+                  height: 400,
                   position: "relative",
+                  borderRadius: "16px",
+                  overflow: "hidden",
+                  mb: 4,
+                  boxShadow: isDarkMode ? "0 8px 32px rgba(0, 0, 0, 0.5)" : "0 8px 32px rgba(0, 0, 0, 0.15)",
                 }}
               >
-                <img
-                  src={
-                    (selectedHotelForModal.imageUrl || selectedHotelForModal.hotelImageUrl) &&
-                    !(selectedHotelForModal.imageUrl?.includes("sample-image") || selectedHotelForModal.hotelImageUrl?.includes("sample-image") ||
-                      selectedHotelForModal.imageUrl?.includes("placeholder") || selectedHotelForModal.hotelImageUrl?.includes("placeholder"))
-                    ? (selectedHotelForModal.hotelImageUrl || selectedHotelForModal.imageUrl)
-                    : "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070&auto=format&fit=crop"
-                  }
+                <Box
+                  component="img"
+                  src={selectedHotelForModal.hotelImageUrl || "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070&auto=format&fit=crop"}
                   alt={selectedHotelForModal.hotelName}
-                  style={{
+                  sx={{
                     width: "100%",
                     height: "100%",
                     objectFit: "cover",
-                  }}
-                  onLoad={(e) => {
-                    // If the image is a placeholder, try to load a real hotel image
-                    const imgSrc = e.currentTarget.src;
-                    if (imgSrc.includes("unsplash.com")) {
-                      // Try to load a real hotel image using HotelPhotosService
-                      const loadHotelImage = async () => {
-                        try {
-                          if (selectedHotelForModal.hotelName && plan?.destination) {
-                            const photos = await HotelPhotosService.getHotelPhotos(selectedHotelForModal.hotelName, plan.destination);
-                            if (photos && photos.length > 0) {
-                              e.currentTarget.src = photos[0];
-                            }
-                          }
-                        } catch (error) {
-                          console.error("Error loading hotel image:", error);
-                        }
-                      };
-                      loadHotelImage();
-                    }
+                    transition: "transform 10s ease",
+                    "&:hover": {
+                      transform: "scale(1.1)",
+                    },
                   }}
                 />
+
+                {/* Otel adı overlay */}
+                <Box
+                  sx={{
+                    position: "absolute",
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    background: "linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0.4), transparent)",
+                    padding: "30px 20px 20px",
+                    pointerEvents: "none",
+                  }}
+                >
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      color: "white",
+                      fontWeight: 700,
+                      textShadow: "0 2px 4px rgba(0,0,0,0.5)",
+                      fontSize: { xs: "1.5rem", md: "2rem" },
+                    }}
+                  >
+                    {selectedHotelForModal.hotelName}
+                  </Typography>
+                </Box>
               </Box>
 
               {/* Otel Bilgileri */}
@@ -3424,20 +3479,33 @@ export default function TripDetailsPage() {
                 </Grid>
               </Grid>
 
-              {/* Otel Fotoğrafları Bölümü */}
+              {/* Otel Fotoğrafları Bölümü - Geliştirilmiş */}
               <Box sx={{ mt: 4 }}>
                 <Typography
                   variant="h5"
                   sx={{
-                    mb: 2,
+                    mb: 3,
                     color: isDarkMode ? "#93c5fd" : "#2563eb",
                     fontWeight: 600,
-                    textAlign: "center"
+                    textAlign: "center",
+                    position: "relative",
+                    "&::after": {
+                      content: '""',
+                      position: "absolute",
+                      bottom: "-10px",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      width: "60px",
+                      height: "3px",
+                      background: "linear-gradient(45deg, #2563eb, #7c3aed)",
+                      borderRadius: "3px",
+                    }
                   }}
                 >
                   Otel Fotoğrafları
                 </Typography>
 
+                {/* Ana Fotoğraf Galerisi */}
                 <Box
                   id="hotelPhotosContainer"
                   sx={{
@@ -3445,12 +3513,13 @@ export default function TripDetailsPage() {
                     flexWrap: "wrap",
                     gap: 2,
                     justifyContent: "center",
-                    maxHeight: "500px",
+                    maxHeight: "600px",
                     overflowY: "auto",
-                    padding: "8px",
-                    borderRadius: "8px",
+                    padding: "20px",
+                    borderRadius: "12px",
                     backgroundColor: isDarkMode ? "rgba(17, 24, 39, 0.5)" : "rgba(241, 245, 249, 0.5)",
                     border: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"}`,
+                    boxShadow: isDarkMode ? "0 4px 20px rgba(0, 0, 0, 0.3)" : "0 4px 20px rgba(0, 0, 0, 0.1)",
                     "&::-webkit-scrollbar": {
                       width: "8px",
                     },
@@ -3468,18 +3537,44 @@ export default function TripDetailsPage() {
                   }}
                 >
                   {/* Burada otel fotoğrafları gösterilecek - JavaScript ile doldurulacak */}
-                  <Typography
-                    variant="body1"
+                  <Box
                     sx={{
-                      color: isDarkMode ? "#e5e7eb" : "text.secondary",
-                      fontStyle: "italic",
-                      textAlign: "center",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      alignItems: "center",
                       width: "100%",
-                      padding: "40px 0"
+                      padding: "40px 0",
                     }}
                   >
-                    Fotoğraflar yükleniyor...
-                  </Typography>
+                    <Box
+                      sx={{
+                        width: "40px",
+                        height: "40px",
+                        borderRadius: "50%",
+                        border: `3px solid ${isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"}`,
+                        borderTop: `3px solid ${isDarkMode ? "#93c5fd" : "#2563eb"}`,
+                        animation: "spin 1s linear infinite",
+                        mb: 2,
+                      }}
+                    />
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        color: isDarkMode ? "#e5e7eb" : "text.secondary",
+                        fontStyle: "italic",
+                        textAlign: "center",
+                      }}
+                    >
+                      Fotoğraflar yükleniyor...
+                    </Typography>
+                    <style jsx global>{`
+                      @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                      }
+                    `}</style>
+                  </Box>
                 </Box>
 
                 <Typography
@@ -3487,7 +3582,7 @@ export default function TripDetailsPage() {
                   sx={{
                     display: "block",
                     textAlign: "center",
-                    mt: 1,
+                    mt: 2,
                     color: isDarkMode ? "rgba(255, 255, 255, 0.5)" : "rgba(0, 0, 0, 0.5)",
                     fontStyle: "italic"
                   }}
