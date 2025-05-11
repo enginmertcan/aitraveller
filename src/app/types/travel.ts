@@ -37,6 +37,21 @@ export interface Hotel {
   rating?: number;
   description: string;
   bestTimeToVisit?: string;
+  // Yeni eklenen özellikler
+  additionalImages?: string[] | { url: string; caption?: string }[];
+  price?: string;
+  features?: string[];
+  surroundings?: string;
+}
+
+/**
+ * Activity Photo interface
+ */
+export interface ActivityPhoto {
+  imageUrl: string;
+  location: string;
+  description: string;
+  imageData?: string;
 }
 
 export interface LocalTips {

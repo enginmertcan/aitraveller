@@ -64,7 +64,7 @@ import { fetchTravelPlanById, toggleLike, toggleRecommendation } from "../../Ser
 import { getWeatherForecast, WeatherData } from "../../Services/weather-service";
 import HotelPhotosService from "../../Service/HotelPhotosService";
 import HotelLocationService from "../../Service/HotelLocationService";
-import { TravelPlan } from "../../types/travel";
+import { ActivityPhoto, TravelPlan } from "../../types/travel";
 
 function formatItineraryItem(item: any) {
   // Eğer item bir string ise, doğrudan döndür
@@ -271,9 +271,9 @@ export default function TripDetailsPage() {
   const { isDarkMode } = useThemeContext();
   const contentRef = useRef<HTMLDivElement>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedPhotoForModal, setSelectedPhotoForModal] = useState<{ url: string; location?: string; photos?: any[]; currentIndex?: number; loading?: boolean } | null>(null);
+  const [selectedPhotoForModal, setSelectedPhotoForModal] = useState<{ url: string; location?: string; photos?: ActivityPhoto[]; currentIndex?: number; loading?: boolean } | null>(null);
   const [selectedHotelForModal, setSelectedHotelForModal] = useState<any | null>(null);
-  const [activityPhotos, setActivityPhotos] = useState<{[key: string]: any}>({});
+  const [activityPhotos, setActivityPhotos] = useState<{[key: string]: ActivityPhoto[]}>({});
 
   // Sayfa yüklenirken id parametresini kontrol et
   console.log("Trip ID:", tripId);
@@ -284,7 +284,7 @@ export default function TripDetailsPage() {
       // Önce otel fotoğraflarını yükle
       if (hotel.hotelName && plan?.destination) {
         console.log("Modal açılıyor, otel fotoğrafları yükleniyor:", hotel.hotelName);
-        const photos = await HotelPhotosService.getHotelPhotos(hotel.hotelName, plan.destination);
+        const photos = await HotelPhotosService.fetchHotelPhotos(hotel.hotelName, plan.destination);
         if (photos && photos.length > 0) {
           // Fotoğrafı hotel nesnesine ekle
           hotel.hotelImageUrl = photos[0];
@@ -335,7 +335,7 @@ export default function TripDetailsPage() {
             const loadHotelPhotos = async () => {
               try {
                 // First try to fetch photos using the service
-                const photos = await HotelPhotosService.getHotelPhotos(hotelName, city);
+                const photos = await HotelPhotosService.fetchHotelPhotos(hotelName, city);
 
                 if (photos && photos.length > 0) {
                   // Display photos using the service
@@ -394,12 +394,17 @@ export default function TripDetailsPage() {
         if (!activities || activities.length === 0) return;
 
         console.log("Aktivite fotoğrafları yükleniyor...");
-        const ActivityPhotosService = (await import('@/app/Service/ActivityPhotosService')).default;
+        const ActivityPhotosService = (await import('../../Service/ActivityPhotosService')).default;
 
         // Tüm aktiviteler için fotoğrafları önceden yükle
-        const activityNames = activities.map(activity =>
-          activity.placeName || activity.activity || activity.title || activity.name || ""
-        ).filter(name => name !== "");
+        const activityNames = activities.map(activity => {
+          // Aktivite bir string olabilir veya bir obje olabilir
+          if (typeof activity === 'string') {
+            return activity;
+          }
+          // Obje ise, placeName, activity, title veya name özelliklerinden birini kullan
+          return (activity as any).placeName || (activity as any).activity || (activity as any).title || (activity as any).name || "";
+        }).filter(name => name !== "");
 
         // Önce boş bir state oluştur ve yükleniyor durumunu göster
         const initialPhotosMap: {[key: string]: any} = {};
@@ -443,7 +448,7 @@ export default function TripDetailsPage() {
 
             // Hata durumunda kategorize edilmiş yedek fotoğrafları kullan
             const dummyUrls = ActivityPhotosService.getDummyPhotos(activityName, plan.destination || "");
-            const dummyPhotos = dummyUrls.map((url, index) => ({
+            const dummyPhotos = dummyUrls.map((url: string, index: number) => ({
               imageUrl: url,
               location: activityName,
               description: `${activityName} - ${plan.destination} - Fotoğraf ${index + 1}`
@@ -1404,15 +1409,24 @@ export default function TripDetailsPage() {
                                         // Arka planda daha fazla fotoğraf yükle
                                         setTimeout(async () => {
                                           try {
-                                            const ActivityPhotosService = (await import('@/app/Service/ActivityPhotosService')).default;
+                                            const ActivityPhotosService = (await import('../../Service/ActivityPhotosService')).default;
                                             const morePhotos = await ActivityPhotosService.loadActivityPhotos(activityName, city);
 
                                             // Eğer daha fazla fotoğraf yüklendiyse, state'i güncelle
                                             if (morePhotos.length > preloadedPhotos.length) {
-                                              setSelectedPhotoForModal(prev => ({
-                                                ...prev,
-                                                photos: morePhotos
-                                              }));
+                                              setSelectedPhotoForModal(prev => {
+                                                if (prev) {
+                                                  return {
+                                                    ...prev,
+                                                    photos: morePhotos
+                                                  };
+                                                }
+                                                return {
+                                                  url: "",
+                                                  photos: morePhotos,
+                                                  loading: false
+                                                };
+                                              });
 
                                               // ActivityPhotos state'ini de güncelle
                                               setActivityPhotos(prev => ({
@@ -1439,7 +1453,7 @@ export default function TripDetailsPage() {
                                       setModalOpen(true);
 
                                       // ActivityPhotosService'i kullanarak fotoğrafları yükle
-                                      let photos = [];
+                                      let photos: ActivityPhoto[] = [];
 
                                       try {
                                         // Eğer aktivitenin kendi fotoğrafları varsa, onları kullan
@@ -1449,7 +1463,7 @@ export default function TripDetailsPage() {
                                         } else {
                                           console.log('Aktivite fotoğrafları API\'den yükleniyor...');
                                           // ActivityPhotosService'i kullanarak fotoğrafları yükle
-                                          const ActivityPhotosService = (await import('@/app/Service/ActivityPhotosService')).default;
+                                          const ActivityPhotosService = (await import('../../Service/ActivityPhotosService')).default;
                                           photos = await ActivityPhotosService.loadActivityPhotos(activityName, city);
                                           console.log('Yüklenen fotoğraflar:', photos.length);
 
@@ -1464,10 +1478,10 @@ export default function TripDetailsPage() {
                                         if (!photos || photos.length === 0) {
                                           console.log('Fotoğraf bulunamadı, kategorize edilmiş fotoğraflar kullanılıyor');
 
-                                          const ActivityPhotosService = (await import('@/app/Service/ActivityPhotosService')).default;
+                                          const ActivityPhotosService = (await import('../../Service/ActivityPhotosService')).default;
                                           const dummyUrls = ActivityPhotosService.getDummyPhotos(activityName, city);
 
-                                          photos = dummyUrls.map((url, index) => ({
+                                          photos = dummyUrls.map((url: string, index: number) => ({
                                             imageUrl: url,
                                             location: activityName,
                                             description: `${activityName} - ${city} - Fotoğraf ${index + 1}`
@@ -1496,10 +1510,10 @@ export default function TripDetailsPage() {
                                         console.error("Aktivite fotoğrafları gösterme hatası:", error);
 
                                         // Hata durumunda aktivite adına göre kategorize edilmiş fotoğraflar kullan
-                                        const ActivityPhotosService = (await import('@/app/Service/ActivityPhotosService')).default;
+                                        const ActivityPhotosService = (await import('../../Service/ActivityPhotosService')).default;
                                         const dummyUrls = ActivityPhotosService.getDummyPhotos(activityName, city);
 
-                                        photos = dummyUrls.map((url, index) => ({
+                                        photos = dummyUrls.map((url: string, index: number) => ({
                                           imageUrl: url,
                                           location: activityName,
                                           description: `${activityName} - ${city} - Fotoğraf ${index + 1}`
@@ -1914,15 +1928,24 @@ export default function TripDetailsPage() {
                                                 // Arka planda daha fazla fotoğraf yükle
                                                 setTimeout(async () => {
                                                   try {
-                                                    const ActivityPhotosService = (await import('@/app/Service/ActivityPhotosService')).default;
+                                                    const ActivityPhotosService = (await import('../../Service/ActivityPhotosService')).default;
                                                     const morePhotos = await ActivityPhotosService.loadActivityPhotos(activityName, city);
 
                                                     // Eğer daha fazla fotoğraf yüklendiyse, state'i güncelle
                                                     if (morePhotos.length > preloadedPhotos.length) {
-                                                      setSelectedPhotoForModal(prev => ({
-                                                        ...prev,
-                                                        photos: morePhotos
-                                                      }));
+                                                      setSelectedPhotoForModal(prev => {
+                                                        if (prev) {
+                                                          return {
+                                                            ...prev,
+                                                            photos: morePhotos
+                                                          };
+                                                        }
+                                                        return {
+                                                          url: "",
+                                                          photos: morePhotos,
+                                                          loading: false
+                                                        };
+                                                      });
 
                                                       // ActivityPhotos state'ini de güncelle
                                                       setActivityPhotos(prev => ({
@@ -1949,7 +1972,7 @@ export default function TripDetailsPage() {
                                               setModalOpen(true);
 
                                               // ActivityPhotosService'i kullanarak fotoğrafları yükle
-                                              let photos = [];
+                                              let photos: ActivityPhoto[] = [];
 
                                               try {
                                                 // Aktivitenin kendi fotoğrafları varsa, onları kullan
@@ -1959,7 +1982,7 @@ export default function TripDetailsPage() {
                                                 } else {
                                                   console.log('Aktivite fotoğrafları API\'den yükleniyor...');
                                                   // ActivityPhotosService'i kullanarak fotoğrafları yükle
-                                                  const ActivityPhotosService = (await import('@/app/Service/ActivityPhotosService')).default;
+                                                  const ActivityPhotosService = (await import('../../Service/ActivityPhotosService')).default;
                                                   photos = await ActivityPhotosService.loadActivityPhotos(activityName, city);
                                                   console.log('Yüklenen fotoğraflar:', photos.length);
 
@@ -1974,10 +1997,10 @@ export default function TripDetailsPage() {
                                                 if (!photos || photos.length === 0) {
                                                   console.log('Fotoğraf bulunamadı, kategorize edilmiş fotoğraflar kullanılıyor');
 
-                                                  const ActivityPhotosService = (await import('@/app/Service/ActivityPhotosService')).default;
+                                                  const ActivityPhotosService = (await import('../../Service/ActivityPhotosService')).default;
                                                   const dummyUrls = ActivityPhotosService.getDummyPhotos(activityName, city);
 
-                                                  photos = dummyUrls.map((url, index) => ({
+                                                  photos = dummyUrls.map((url: string, index: number) => ({
                                                     imageUrl: url,
                                                     location: activityName,
                                                     description: `${activityName} - ${city} - Fotoğraf ${index + 1}`
@@ -2156,9 +2179,9 @@ export default function TripDetailsPage() {
                         </Typography>
                       </Box>
 
-                      <Grid container spacing={3}>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
                         {hotelOptionsArray.map((hotel: any, index: number) => (
-                          <Grid item xs={12} md={6} lg={4} key={index}>
+                          <Box key={index} sx={{ width: { xs: '100%', md: 'calc(50% - 24px)', lg: 'calc(33.333% - 24px)' } }}>
                             <Card
                               elevation={0}
                               onClick={() => handleModalOpen(hotel)}
@@ -2392,9 +2415,9 @@ export default function TripDetailsPage() {
                                 </Stack>
                               </CardContent>
                             </Card>
-                          </Grid>
+                          </Box>
                         ))}
-                      </Grid>
+                      </Box>
                     </Paper>
                   );
                 }
@@ -2436,9 +2459,9 @@ export default function TripDetailsPage() {
                     </Typography>
                   </Box>
 
-                  <Grid container spacing={3}>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
                     {weatherData.map((weather, index) => (
-                      <Grid item xs={12} sm={6} md={4} key={index}>
+                      <Box key={index} sx={{ width: { xs: '100%', sm: 'calc(50% - 24px)', md: 'calc(33.333% - 24px)' } }}>
                         <Card
                           elevation={0}
                           sx={{
@@ -2507,8 +2530,8 @@ export default function TripDetailsPage() {
                             </Box>
                           </Box>
 
-                          <Grid container spacing={2}>
-                            <Grid item xs={6}>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                            <Box sx={{ width: 'calc(50% - 8px)' }}>
                               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                                 <Thermometer size={20} style={{ color: isDarkMode ? "#93c5fd" : "#2563eb" }} />
                                 <Typography
@@ -2522,8 +2545,8 @@ export default function TripDetailsPage() {
                                   {Math.round(weather.temperature)}°C
                                 </Typography>
                               </Box>
-                            </Grid>
-                            <Grid item xs={6}>
+                            </Box>
+                            <Box sx={{ width: 'calc(50% - 8px)' }}>
                               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                                 <Cloud size={20} style={{ color: isDarkMode ? "#a78bfa" : "#7c3aed" }} />
                                 <Typography
@@ -2537,8 +2560,8 @@ export default function TripDetailsPage() {
                                   Hissedilen: {Math.round(weather.feelsLike)}°C
                                 </Typography>
                               </Box>
-                            </Grid>
-                            <Grid item xs={6}>
+                            </Box>
+                            <Box sx={{ width: 'calc(50% - 8px)' }}>
                               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                                 <Droplets size={20} style={{ color: isDarkMode ? "#93c5fd" : "#2563eb" }} />
                                 <Typography
@@ -2552,8 +2575,8 @@ export default function TripDetailsPage() {
                                   Nem: %{weather.humidity}
                                 </Typography>
                               </Box>
-                            </Grid>
-                            <Grid item xs={6}>
+                            </Box>
+                            <Box sx={{ width: 'calc(50% - 8px)' }}>
                               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                                 <Wind size={20} style={{ color: isDarkMode ? "#a78bfa" : "#7c3aed" }} />
                                 <Typography
@@ -2567,8 +2590,8 @@ export default function TripDetailsPage() {
                                   Rüzgar: {Math.round(weather.windSpeed)} km/s
                                 </Typography>
                               </Box>
-                            </Grid>
-                            <Grid item xs={6}>
+                            </Box>
+                            <Box sx={{ width: 'calc(50% - 8px)' }}>
                               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                                 <Cloud size={20} style={{ color: isDarkMode ? "#93c5fd" : "#2563eb" }} />
                                 <Typography
@@ -2582,12 +2605,12 @@ export default function TripDetailsPage() {
                                   Yağış: %{Math.round(weather.precipitationProbability || 0)}
                                 </Typography>
                               </Box>
-                            </Grid>
-                          </Grid>
+                            </Box>
+                          </Box>
                         </Card>
-                      </Grid>
+                      </Box>
                     ))}
-                  </Grid>
+                  </Box>
                 </Paper>
               )}
 
@@ -4176,8 +4199,8 @@ export default function TripDetailsPage() {
               </Box>
 
               {/* Otel Bilgileri */}
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                <Box sx={{ width: { xs: '100%', md: 'calc(50% - 12px)' } }}>
                   {/* Adres */}
                   <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2, mb: 2 }}>
                     <MapPin size={20} style={{ color: isDarkMode ? "#93c5fd" : "#2563eb", marginTop: "4px" }} />
@@ -4270,9 +4293,9 @@ export default function TripDetailsPage() {
                       </Typography>
                     </Box>
                   )}
-                </Grid>
+                </Box>
 
-                <Grid item xs={12} md={6}>
+                <Box sx={{ width: { xs: '100%', md: 'calc(50% - 12px)' } }}>
                   {/* Açıklama */}
                   <Typography
                     variant="h6"
@@ -4379,8 +4402,8 @@ export default function TripDetailsPage() {
                   >
                     Haritada Göster
                   </Button>
-                </Grid>
-              </Grid>
+                </Box>
+              </Box>
 
               {/* Otel Fotoğrafları Bölümü - Geliştirilmiş */}
               <Box sx={{ mt: 4 }}>

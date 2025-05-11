@@ -4,8 +4,6 @@ import { useState } from "react";
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   Dialog,
   DialogContent,
   DialogTitle,
@@ -17,17 +15,15 @@ import {
   useTheme,
 } from "@mui/material";
 import {
-  Check,
   ChevronLeft,
   ChevronRight,
   Clock,
   DollarSign,
-  Globe,
-  Info,
   MapPin,
   Navigation,
   X,
 } from "lucide-react";
+import { CheckCircle } from "@mui/icons-material";
 
 import { Hotel } from "@/app/types/travel";
 import { useThemeContext } from "@/app/context/ThemeContext";
@@ -235,7 +231,7 @@ export function HotelDetailModal({ open, hotel, onClose }: HotelDetailModalProps
                     {hotel.features.map((feature, index) => (
                       <Grid item xs={12} sm={6} key={index}>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          <Check size={16} style={{ color: isDarkMode ? "#93c5fd" : "#2563eb" }} />
+                          <CheckCircle sx={{ fontSize: 16, color: isDarkMode ? "#93c5fd" : "#2563eb" }} />
                           <Typography variant="body2">{feature}</Typography>
                         </Box>
                       </Grid>
