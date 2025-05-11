@@ -74,6 +74,16 @@ export const HotelPhotosService = {
    * Yüksek kaliteli otel fotoğrafları döndürür (API çağrısı başarısız olduğunda kullanılır)
    * @returns Yüksek kaliteli otel fotoğraf URL'leri
    */
+  /**
+   * Alias for getHotelPhotos for backward compatibility with HotelPhotosService.ts
+   * @param hotelName Hotel name
+   * @param city City name
+   * @returns Promise<string[]> Array of photo URLs
+   */
+  async fetchHotelPhotos(hotelName: string, city: string): Promise<string[]> {
+    return this.getHotelPhotos(hotelName, city);
+  },
+
   getDummyPhotos(): string[] {
     return [
       'https://images.unsplash.com/photo-1618773928121-c32242e63f39?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=90',

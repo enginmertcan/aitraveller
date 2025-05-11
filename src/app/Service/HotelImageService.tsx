@@ -120,9 +120,9 @@ export const HotelImageService = {
         return result.price_level <= 1;
       } else if (budget.toLowerCase() === 'standart' || budget.toLowerCase() === 'moderate' || budget.toLowerCase() === 'medium') {
         return result.price_level >= 1 && result.price_level <= 2;
-      } else {
+      } 
         return result.price_level >= 3;
-      }
+      
     });
   },
 
@@ -159,7 +159,7 @@ export const HotelImageService = {
         updatedHotels[i] = {
           ...hotel,
           hotelImageUrl: imageUrl,
-          imageUrl: imageUrl // Uyumluluk için her iki alanı da güncelle
+          imageUrl // Uyumluluk için her iki alanı da güncelle
         };
         console.log(`${hotel.hotelName} için görsel güncellendi`);
       } else {

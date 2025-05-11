@@ -784,7 +784,7 @@ export async function toggleLike(id: string, userId: string): Promise<boolean> {
 
     // Beğeni sayısını güncelle ve veritabanını güncelle
     await updateDoc(travelPlanRef, {
-      likedBy: likedBy,
+      likedBy,
       likes: likedBy.length,
       updatedAt: serverTimestamp()
     });

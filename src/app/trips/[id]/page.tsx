@@ -10,6 +10,7 @@ import {
   Card,
   CardContent,
   Chip,
+  CircularProgress,
   Container,
   Divider,
   Fade,
@@ -62,6 +63,7 @@ import { useThemeContext } from "../../context/ThemeContext";
 import { fetchTravelPlanById, toggleLike, toggleRecommendation } from "../../Services/travel-plans";
 import { getWeatherForecast, WeatherData } from "../../Services/weather-service";
 import HotelPhotosService from "../../Service/HotelPhotosService";
+import HotelLocationService from "../../Service/HotelLocationService";
 import { TravelPlan } from "../../types/travel";
 
 function formatItineraryItem(item: any) {
@@ -1691,36 +1693,36 @@ export default function TripDetailsPage() {
 
                                   {/* Haritada Göster ve Detayları Gör Butonları */}
                                   <Box sx={{ display: "flex", justifyContent: "space-between", mt: "auto", pt: 1 }}>
-                                    {hotel.geoCoordinates && (
-                                      <Button
-                                        variant="outlined"
-                                        size="small"
-                                        startIcon={<Navigation size={16} />}
-                                        onClick={(e) => {
-                                          e.stopPropagation(); // Kart tıklamasını engelle
-                                          const url = `https://www.google.com/maps/search/?api=1&query=${hotel.geoCoordinates?.latitude},${hotel.geoCoordinates?.longitude}`;
-                                          window.open(url, "_blank");
-                                        }}
-                                        sx={{
-                                          borderColor: isDarkMode ? "#93c5fd" : "#2563eb",
-                                          color: isDarkMode ? "#93c5fd" : "#2563eb",
-                                          borderRadius: "8px",
-                                          textTransform: "none",
-                                          fontWeight: 600,
-                                          boxShadow: isDarkMode ? "0 2px 4px rgba(0, 0, 0, 0.2)" : "0 2px 4px rgba(0, 0, 0, 0.05)",
-                                          "&:hover": {
-                                            borderColor: isDarkMode ? "#60a5fa" : "#1d4ed8",
-                                            backgroundColor: isDarkMode
-                                              ? "rgba(37, 99, 235, 0.2)"
-                                              : "rgba(37, 99, 235, 0.1)",
-                                            transform: "translateY(-2px)",
-                                            transition: "transform 0.2s ease",
-                                          },
-                                        }}
-                                      >
-                                        Haritada Göster
-                                      </Button>
-                                    )}
+                                    <Button
+                                      variant="outlined"
+                                      size="small"
+                                      startIcon={<Navigation size={16} />}
+                                      onClick={(e) => {
+                                        e.stopPropagation(); // Kart tıklamasını engelle
+                                        // Otel adı ve şehir ile doğrudan arama yap
+                                        const searchQuery = encodeURIComponent(`${hotel.hotelName} hotel ${plan?.destination || ''}`);
+                                        const url = `https://www.google.com/maps/search/?api=1&query=${searchQuery}`;
+                                        window.open(url, "_blank");
+                                      }}
+                                      sx={{
+                                        borderColor: isDarkMode ? "#93c5fd" : "#2563eb",
+                                        color: isDarkMode ? "#93c5fd" : "#2563eb",
+                                        borderRadius: "8px",
+                                        textTransform: "none",
+                                        fontWeight: 600,
+                                        boxShadow: isDarkMode ? "0 2px 4px rgba(0, 0, 0, 0.2)" : "0 2px 4px rgba(0, 0, 0, 0.05)",
+                                        "&:hover": {
+                                          borderColor: isDarkMode ? "#60a5fa" : "#1d4ed8",
+                                          backgroundColor: isDarkMode
+                                            ? "rgba(37, 99, 235, 0.2)"
+                                            : "rgba(37, 99, 235, 0.1)",
+                                          transform: "translateY(-2px)",
+                                          transition: "transform 0.2s ease",
+                                        },
+                                      }}
+                                    >
+                                      Haritada Göster
+                                    </Button>
 
                                     {/* Detayları Gör Butonu */}
                                     <Button
@@ -3455,27 +3457,56 @@ export default function TripDetailsPage() {
                   )}
 
                   {/* Haritada Göster Butonu */}
-                  {selectedHotelForModal.geoCoordinates && (
-                    <Button
-                      variant="contained"
-                      startIcon={<Navigation size={18} />}
-                      onClick={() => {
-                        const url = `https://www.google.com/maps/search/?api=1&query=${selectedHotelForModal.geoCoordinates?.latitude},${selectedHotelForModal.geoCoordinates?.longitude}`;
+                  <Button
+                    variant="contained"
+                    startIcon={<Navigation size={18} />}
+                    onClick={async () => {
+                      try {
+                        // Buton metnini "Yükleniyor..." olarak değiştir
+                        const button = document.getElementById('mapButton');
+                        if (button) {
+                          button.innerHTML = '<span class="MuiCircularProgress-root MuiCircularProgress-indeterminate MuiCircularProgress-colorInherit" style="width: 16px; height: 16px;"></span> Yükleniyor...';
+                          button.setAttribute('disabled', 'true');
+                        }
+
+                        // Her zaman otel adı ve şehir ile doğrudan arama yap - en güvenilir yöntem
+                        const searchQuery = encodeURIComponent(`${selectedHotelForModal.hotelName} hotel ${plan?.destination || ''}`);
+                        const url = `https://www.google.com/maps/search/?api=1&query=${searchQuery}`;
                         window.open(url, "_blank");
-                      }}
-                      sx={{
-                        background: "linear-gradient(45deg, #2563eb, #7c3aed)",
-                        borderRadius: "8px",
-                        px: 3,
-                        py: 1,
-                        "&:hover": {
-                          background: "linear-gradient(45deg, #1d4ed8, #6d28d9)",
-                        },
-                      }}
-                    >
-                      Haritada Göster
-                    </Button>
-                  )}
+
+                        // Buton metnini geri değiştir
+                        if (button) {
+                          button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-navigation" style="width: 18px; height: 18px;"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg> Haritada Göster';
+                          button.removeAttribute('disabled');
+                        }
+                      } catch (error) {
+                        console.error('Harita açma hatası:', error);
+                        // Hata durumunda, otel adı ve şehir ile arama yap
+                        const searchQuery = encodeURIComponent(`${selectedHotelForModal.hotelName} hotel ${plan?.destination || ''}`);
+                        const url = `https://www.google.com/maps/search/?api=1&query=${searchQuery}`;
+                        window.open(url, "_blank");
+
+                        // Buton metnini geri değiştir
+                        const button = document.getElementById('mapButton');
+                        if (button) {
+                          button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-navigation" style="width: 18px; height: 18px;"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg> Haritada Göster';
+                          button.removeAttribute('disabled');
+                        }
+                      }
+                    }}
+                    id="mapButton"
+                    sx={{
+                      background: "linear-gradient(45deg, #2563eb, #7c3aed)",
+                      borderRadius: "8px",
+                      px: 3,
+                      py: 1,
+                      "&:hover": {
+                        background: "linear-gradient(45deg, #1d4ed8, #6d28d9)",
+                      },
+                    }}
+                  >
+                    Haritada Göster
+                  </Button>
                 </Grid>
               </Grid>
 

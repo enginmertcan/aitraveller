@@ -255,19 +255,19 @@ export function HotelDetailModal({ open, hotel, onClose }: HotelDetailModalProps
               )}
 
               {/* Map Button */}
-              {hotel.geoCoordinates && (
-                <Button
-                  variant="outlined"
-                  startIcon={<Navigation size={16} />}
-                  onClick={() => {
-                    const url = `https://www.google.com/maps/search/?api=1&query=${hotel.geoCoordinates?.latitude},${hotel.geoCoordinates?.longitude}`;
-                    window.open(url, "_blank");
-                  }}
-                  sx={{ mt: 2 }}
-                >
-                  View on Map
-                </Button>
-              )}
+              <Button
+                variant="outlined"
+                startIcon={<Navigation size={16} />}
+                onClick={() => {
+                  // Otel adı ile doğrudan arama yap
+                  const searchQuery = encodeURIComponent(`${hotel.hotelName} hotel`);
+                  const url = `https://www.google.com/maps/search/?api=1&query=${searchQuery}`;
+                  window.open(url, "_blank");
+                }}
+                sx={{ mt: 2 }}
+              >
+                View on Map
+              </Button>
             </Box>
           </Grid>
 
