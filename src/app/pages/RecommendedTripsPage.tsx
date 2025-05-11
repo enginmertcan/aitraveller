@@ -25,7 +25,7 @@ import { ArrowLeft, ArrowRight, Calendar, Clock, Heart, MapPin, Plane, Star, Use
 import { borderRadius, colors, shadows } from "../components/ThemeRegistry/theme";
 import { useThemeContext } from "../context/ThemeContext";
 import { fetchRecommendedTravelPlans, toggleLike } from "../Services/travel-plans";
-import { TravelPlan } from "../types/travel";
+import { Hotel, TravelPlan } from "../types/travel";
 
 const StyledCard = styled(Card)(({ theme }) => ({
   height: "100%",
@@ -113,7 +113,7 @@ const formatDate = (dateString: string) => {
 };
 
 // Like Button Component
-const LikeButton = styled(IconButton)(({ theme, isLiked }: { theme?: any; isLiked: boolean }) => ({
+const LikeButton = styled(IconButton)(({ isLiked }: { isLiked: boolean }) => ({
   position: "absolute",
   top: 16,
   left: 16,
@@ -126,7 +126,7 @@ const LikeButton = styled(IconButton)(({ theme, isLiked }: { theme?: any; isLike
 }));
 
 // Like Count Badge
-const LikeCountBadge = styled(Box)(({ theme }) => ({
+const LikeCountBadge = styled(Box)(() => ({
   position: "absolute",
   bottom: 16,
   right: 16,
@@ -480,15 +480,15 @@ export default function RecommendedTripsPage() {
                   {trip.hotelOptions && typeof trip.hotelOptions !== 'string' && trip.hotelOptions.length > 0 && (
                     <Box sx={{ mt: 2, mb: 2 }}>
                       <ImageList sx={{ width: "100%", height: 120, m: 0 }} cols={3} rowHeight={120} gap={4}>
-                        {trip.hotelOptions.slice(0, 3).map((hotel: any, hotelIndex: number) => (
+                        {trip.hotelOptions.slice(0, 3).map((hotel: Hotel, hotelIndex: number) => (
                           <ImageListItem key={hotelIndex} sx={{ overflow: "hidden", borderRadius: "8px" }}>
                             <img
                               src={hotel.hotelImageUrl || hotel.imageUrl || '/placeholder-hotel.jpg'}
                               alt={hotel.hotelName}
                               loading="lazy"
-                              style={{ 
-                                width: "100%", 
-                                height: "100%", 
+                              style={{
+                                width: "100%",
+                                height: "100%",
                                 objectFit: "cover"
                               }}
                             />

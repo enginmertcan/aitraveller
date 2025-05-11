@@ -63,7 +63,7 @@ import { useThemeContext } from "../../context/ThemeContext";
 import { fetchTravelPlanById, toggleLike, toggleRecommendation } from "../../Services/travel-plans";
 import { getWeatherForecast, WeatherData } from "../../Services/weather-service";
 import HotelPhotosService from "../../Service/HotelPhotosService";
-import HotelLocationService from "../../Service/HotelLocationService";
+// import HotelLocationService from "../../Service/HotelLocationService";
 import { ActivityPhoto, TravelPlan } from "../../types/travel";
 
 function formatItineraryItem(item: any) {
@@ -1502,7 +1502,7 @@ export default function TripDetailsPage() {
                                         setSelectedPhotoForModal({
                                           url: photoUrl,
                                           location: activityName,
-                                          photos: photos,
+                                          photos,
                                           currentIndex: 0,
                                           loading: false // Yükleme tamamlandı
                                         });
@@ -1528,7 +1528,7 @@ export default function TripDetailsPage() {
                                         setSelectedPhotoForModal({
                                           url: photos[0].imageUrl,
                                           location: activityName,
-                                          photos: photos,
+                                          photos,
                                           currentIndex: 0,
                                           loading: false
                                         });
@@ -2019,7 +2019,7 @@ export default function TripDetailsPage() {
                                                 setSelectedPhotoForModal({
                                                   url: photoUrl,
                                                   location: activityName,
-                                                  photos: photos,
+                                                  photos,
                                                   currentIndex: 0,
                                                   loading: false // Yükleme tamamlandı
                                                 });
@@ -2058,7 +2058,7 @@ export default function TripDetailsPage() {
                                                 setSelectedPhotoForModal({
                                                   url: photos[0].imageUrl,
                                                   location: activityName,
-                                                  photos: photos,
+                                                  photos,
                                                   currentIndex: 0,
                                                   loading: false // Yükleme tamamlandı
                                                 });
@@ -3922,7 +3922,7 @@ export default function TripDetailsPage() {
                       mt: 1
                     }}
                   >
-                    Google Places API'den fotoğraflar getiriliyor
+                    Google Places API&apos;den fotoğraflar getiriliyor
                   </Typography>
                   <style jsx global>{`
                     @keyframes spin {

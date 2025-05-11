@@ -422,7 +422,7 @@ export default function TermsPage() {
               lineHeight: 1.7,
             }}
           >
-            AI Traveller uygulaması "olduğu gibi" ve "mevcut olduğu şekliyle" sunulmaktadır. Hizmetimizle ilgili olarak
+            AI Traveller uygulaması &quot;olduğu gibi&quot; ve &quot;mevcut olduğu şekliyle&quot; sunulmaktadır. Hizmetimizle ilgili olarak
             aşağıdaki hususları kabul edersiniz:
           </Typography>
 
