@@ -271,7 +271,7 @@ export default function TripDetailsPage() {
   const { isDarkMode } = useThemeContext();
   const contentRef = useRef<HTMLDivElement>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedPhotoForModal, setSelectedPhotoForModal] = useState<{ url: string; location?: string } | null>(null);
+  const [selectedPhotoForModal, setSelectedPhotoForModal] = useState<{ url: string; location?: string; photos?: any[]; currentIndex?: number } | null>(null);
   const [selectedHotelForModal, setSelectedHotelForModal] = useState<any | null>(null);
 
   // Sayfa yüklenirken id parametresini kontrol et
@@ -1265,8 +1265,121 @@ export default function TripDetailsPage() {
                                           ? "0 4px 20px rgba(0, 0, 0, 0.6)"
                                           : "0 4px 20px rgba(0, 0, 0, 0.1)",
                                       },
+                                      cursor: "pointer",
+                                      overflow: "hidden",
+                                    }}
+                                    onClick={() => {
+                                      const activityName = (() => {
+                                        if (activity.placeName) return activity.placeName;
+                                        if (activity.activity) return activity.activity;
+                                        if (activity.title) return activity.title;
+                                        if (activity.name) return activity.name;
+                                        return "Aktivite";
+                                      })();
+
+                                      // Aktivite adı ve gezi destinasyonuna göre fotoğraflar oluştur
+                                      const searchTerm = `${activityName} ${plan?.destination || ''}`;
+
+                                      // Unsplash'ten 5 farklı fotoğraf al
+                                      const generatedPhotos = Array.from({ length: 5 }, (_, i) => ({
+                                        imageUrl: `https://source.unsplash.com/featured/?${encodeURIComponent(searchTerm)}&sig=${i}`,
+                                        location: activityName
+                                      }));
+
+                                      // Eğer aktivitenin kendi fotoğrafları varsa, onları kullan
+                                      const photos = (activity.photos && activity.photos.length > 0)
+                                        ? activity.photos
+                                        : generatedPhotos;
+
+                                      // İlk fotoğrafı göster
+                                      const photoUrl = photos[0].imageData
+                                        ? `data:image/jpeg;base64,${photos[0].imageData}`
+                                        : photos[0].imageUrl;
+
+                                      setSelectedPhotoForModal({
+                                        url: photoUrl,
+                                        location: activityName,
+                                        photos: photos,
+                                        currentIndex: 0
+                                      });
+                                      setModalOpen(true);
                                     }}
                                   >
+                                    {/* Aktivite Fotoğrafı - Her zaman göster */}
+                                    <Box
+                                      sx={{
+                                        width: "100%",
+                                        height: 160,
+                                        position: "relative",
+                                        overflow: "hidden",
+                                      }}
+                                    >
+                                      <Box
+                                        component="img"
+                                        src={(() => {
+                                          // Aktivite adını belirle
+                                          const activityName = (() => {
+                                            if (activity.placeName) return activity.placeName;
+                                            if (activity.activity) return activity.activity;
+                                            if (activity.title) return activity.title;
+                                            if (activity.name) return activity.name;
+                                            return "Aktivite";
+                                          })();
+
+                                          // Fotoğraf varsa onu kullan, yoksa Unsplash'ten al
+                                          if (activity.photos && activity.photos.length > 0) {
+                                            if (activity.photos[0].imageData) {
+                                              return `data:image/jpeg;base64,${activity.photos[0].imageData}`;
+                                            } else if (activity.photos[0].imageUrl) {
+                                              return activity.photos[0].imageUrl;
+                                            }
+                                          }
+
+                                          // Varsayılan görsel - Aktivite adı ve gezi destinasyonuna göre
+                                          return `https://source.unsplash.com/featured/?${encodeURIComponent(activityName + ' ' + (plan?.destination || ''))}`;
+                                        })()}
+                                        alt={(() => {
+                                          if (activity.placeName) return activity.placeName;
+                                          if (activity.activity) return activity.activity;
+                                          if (activity.title) return activity.title;
+                                          if (activity.name) return activity.name;
+                                          return "Aktivite";
+                                        })()}
+                                        sx={{
+                                          width: "100%",
+                                          height: "100%",
+                                          objectFit: "cover",
+                                          transition: "transform 0.3s ease",
+                                          "&:hover": {
+                                            transform: "scale(1.05)",
+                                          },
+                                        }}
+                                        onError={(e) => {
+                                          // Görsel yüklenemezse, basit bir yedek görsel kullan
+                                          const target = e.target as HTMLImageElement;
+                                          target.onerror = null; // Sonsuz döngüyü önle
+                                          target.src = "https://source.unsplash.com/featured/?travel";
+                                        }}
+                                      />
+                                      <Box
+                                        sx={{
+                                          position: "absolute",
+                                          top: 8,
+                                          right: 8,
+                                          backgroundColor: "rgba(37, 99, 235, 0.8)",
+                                          color: "white",
+                                          width: 32,
+                                          height: 32,
+                                          borderRadius: "50%",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                                        }}
+                                      >
+                                        <Camera size={18} />
+                                      </Box>
+                                    </Box>
                                     <CardContent>
                                       <Typography
                                         variant="h6"
@@ -1444,6 +1557,114 @@ export default function TripDetailsPage() {
                                             </Typography>
                                           </Box>
                                         )}
+
+                                        {/* Butonlar için container */}
+                                        <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 1 }}>
+                                          {/* Fotoğrafları Gör Butonu - Her zaman göster */}
+                                          <Button
+                                            variant="outlined"
+                                            size="small"
+                                            startIcon={<Camera size={16} />}
+                                            sx={{
+                                              borderColor: isDarkMode ? "#93c5fd" : "#2563eb",
+                                              color: isDarkMode ? "#93c5fd" : "#2563eb",
+                                              borderRadius: "8px",
+                                              textTransform: "none",
+                                              fontWeight: 600,
+                                              fontSize: "0.75rem",
+                                              py: 0.5,
+                                              "&:hover": {
+                                                borderColor: isDarkMode ? "#60a5fa" : "#1d4ed8",
+                                                backgroundColor: isDarkMode
+                                                  ? "rgba(37, 99, 235, 0.2)"
+                                                  : "rgba(37, 99, 235, 0.1)",
+                                              },
+                                            }}
+                                            onClick={(e) => {
+                                              e.stopPropagation(); // Kart tıklamasını engelle
+
+                                              const activityName = (() => {
+                                                if (activity.placeName) return activity.placeName;
+                                                if (activity.activity) return activity.activity;
+                                                if (activity.title) return activity.title;
+                                                if (activity.name) return activity.name;
+                                                return "Aktivite";
+                                              })();
+
+                                              // Aktivite adı ve gezi destinasyonuna göre fotoğraflar oluştur
+                                              const searchTerm = `${activityName} ${plan?.destination || ''}`;
+
+                                              // Unsplash'ten 5 farklı fotoğraf al
+                                              const generatedPhotos = Array.from({ length: 5 }, (_, i) => ({
+                                                imageUrl: `https://source.unsplash.com/featured/?${encodeURIComponent(searchTerm)}&sig=${i}`,
+                                                location: activityName
+                                              }));
+
+                                              // Eğer aktivitenin kendi fotoğrafları varsa, onları kullan
+                                              const photos = (activity.photos && activity.photos.length > 0)
+                                                ? activity.photos
+                                                : generatedPhotos;
+
+                                              // İlk fotoğrafı göster
+                                              const photoUrl = photos[0].imageData
+                                                ? `data:image/jpeg;base64,${photos[0].imageData}`
+                                                : photos[0].imageUrl;
+
+                                              setSelectedPhotoForModal({
+                                                url: photoUrl,
+                                                location: activityName,
+                                                photos: photos,
+                                                currentIndex: 0
+                                              });
+                                              setModalOpen(true);
+                                            }}
+                                          >
+                                            Fotoğrafları Gör
+                                          </Button>
+
+                                          {/* Haritada Göster Butonu */}
+                                          <Button
+                                            variant="outlined"
+                                            size="small"
+                                            startIcon={<Navigation size={16} />}
+                                            sx={{
+                                              borderColor: isDarkMode ? "#a78bfa" : "#7c3aed",
+                                              color: isDarkMode ? "#a78bfa" : "#7c3aed",
+                                              borderRadius: "8px",
+                                              textTransform: "none",
+                                              fontWeight: 600,
+                                              fontSize: "0.75rem",
+                                              py: 0.5,
+                                              "&:hover": {
+                                                borderColor: isDarkMode ? "#8b5cf6" : "#6d28d9",
+                                                backgroundColor: isDarkMode
+                                                  ? "rgba(124, 58, 237, 0.2)"
+                                                  : "rgba(124, 58, 237, 0.1)",
+                                                transform: "translateY(-2px)",
+                                                transition: "transform 0.2s ease",
+                                              },
+                                            }}
+                                            onClick={(e) => {
+                                              e.stopPropagation(); // Kart tıklamasını engelle
+
+                                              // Aktivite adını belirle
+                                              const activityName = (() => {
+                                                if (activity.placeName) return activity.placeName;
+                                                if (activity.activity) return activity.activity;
+                                                if (activity.title) return activity.title;
+                                                if (activity.name) return activity.name;
+                                                return "Aktivite";
+                                              })();
+
+                                              // Konum bilgisini belirle
+                                              const locationQuery = encodeURIComponent(`${activityName} ${plan?.destination || ''}`);
+                                              const url = `https://www.google.com/maps/search/?api=1&query=${locationQuery}`;
+                                              window.open(url, "_blank");
+                                            }}
+                                          >
+                                            Haritada Göster
+                                          </Button>
+                                        </Box>
                                       </Stack>
                                     </CardContent>
                                   </Card>
@@ -2968,7 +3189,7 @@ export default function TripDetailsPage() {
               {/* Trip Photos Gallery - Sadece planı oluşturan kullanıcı görebilir */}
               {(() => {
                 // Parse tripPhotos if it's a string
-                let tripPhotosArray = [];
+                let tripPhotosArray: any[] = [];
 
                 // Kullanıcı kontrolü - sadece planı oluşturan kullanıcı görebilir
                 if (!user || plan.userId !== user.id) {
@@ -2990,12 +3211,14 @@ export default function TripDetailsPage() {
                 }
 
                 // Fotoğrafa tıklama işlemi
-                const handlePhotoClick = (photo: any) => {
+                const handlePhotoClick = (photo: any, index: number) => {
                   const photoUrl = photo.imageData ? `data:image/jpeg;base64,${photo.imageData}` : photo.imageUrl;
 
                   setSelectedPhotoForModal({
                     url: photoUrl,
                     location: photo.location,
+                    photos: tripPhotosArray,
+                    currentIndex: index
                   });
                   setModalOpen(true);
                 };
@@ -3051,7 +3274,7 @@ export default function TripDetailsPage() {
                                 overflow: "hidden",
                                 cursor: "pointer",
                               }}
-                              onClick={() => handlePhotoClick(photo)}
+                              onClick={() => handlePhotoClick(photo, index)}
                             >
                               <Box
                                 sx={{
@@ -3212,7 +3435,7 @@ export default function TripDetailsPage() {
         >
           {/* Fotoğraf Detayı */}
           {selectedPhotoForModal && (
-            <>
+            <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
               <img
                 src={selectedPhotoForModal.url}
                 alt="Büyütülmüş fotoğraf"
@@ -3224,6 +3447,98 @@ export default function TripDetailsPage() {
                   boxShadow: "0 4px 20px rgba(0, 0, 0, 0.25)",
                 }}
               />
+
+              {/* Fotoğraf Navigasyon Butonları - Birden fazla fotoğraf varsa */}
+              {selectedPhotoForModal.photos && selectedPhotoForModal.photos.length > 1 && (
+                <>
+                  {/* Önceki Fotoğraf Butonu */}
+                  <IconButton
+                    sx={{
+                      position: "absolute",
+                      left: 8,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      backgroundColor: "rgba(0, 0, 0, 0.5)",
+                      color: "white",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.7)",
+                      },
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (selectedPhotoForModal.currentIndex !== undefined && selectedPhotoForModal.photos) {
+                        const newIndex = (selectedPhotoForModal.currentIndex - 1 + selectedPhotoForModal.photos.length) % selectedPhotoForModal.photos.length;
+                        const photo = selectedPhotoForModal.photos[newIndex];
+                        const photoUrl = photo.imageData
+                          ? `data:image/jpeg;base64,${photo.imageData}`
+                          : photo.imageUrl;
+
+                        setSelectedPhotoForModal({
+                          ...selectedPhotoForModal,
+                          url: photoUrl,
+                          currentIndex: newIndex
+                        });
+                      }
+                    }}
+                  >
+                    <ArrowLeft size={24} />
+                  </IconButton>
+
+                  {/* Sonraki Fotoğraf Butonu */}
+                  <IconButton
+                    sx={{
+                      position: "absolute",
+                      right: 8,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      backgroundColor: "rgba(0, 0, 0, 0.5)",
+                      color: "white",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.7)",
+                      },
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (selectedPhotoForModal.currentIndex !== undefined && selectedPhotoForModal.photos) {
+                        const newIndex = (selectedPhotoForModal.currentIndex + 1) % selectedPhotoForModal.photos.length;
+                        const photo = selectedPhotoForModal.photos[newIndex];
+                        const photoUrl = photo.imageData
+                          ? `data:image/jpeg;base64,${photo.imageData}`
+                          : photo.imageUrl;
+
+                        setSelectedPhotoForModal({
+                          ...selectedPhotoForModal,
+                          url: photoUrl,
+                          currentIndex: newIndex
+                        });
+                      }
+                    }}
+                  >
+                    <Navigation size={24} />
+                  </IconButton>
+
+                  {/* Fotoğraf Sayacı */}
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: 16,
+                      right: 16,
+                      backgroundColor: "rgba(0, 0, 0, 0.7)",
+                      color: "white",
+                      px: 2,
+                      py: 0.5,
+                      borderRadius: 2,
+                      fontSize: "0.875rem",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {selectedPhotoForModal.currentIndex !== undefined && selectedPhotoForModal.photos ?
+                      `${selectedPhotoForModal.currentIndex + 1} / ${selectedPhotoForModal.photos.length}` : ""}
+                  </Box>
+                </>
+              )}
+
+              {/* Konum Bilgisi */}
               {selectedPhotoForModal.location && (
                 <Box
                   sx={{
@@ -3238,13 +3553,44 @@ export default function TripDetailsPage() {
                     display: "flex",
                     alignItems: "center",
                     boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                    maxWidth: "80%",
                   }}
                 >
-                  <MapPin size={18} style={{ marginRight: "8px" }} />
-                  <Typography variant="body2">{selectedPhotoForModal.location}</Typography>
+                  <MapPin size={18} style={{ marginRight: "8px", flexShrink: 0 }} />
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    {selectedPhotoForModal.location}
+                  </Typography>
                 </Box>
               )}
-            </>
+
+              {/* Kapat Butonu */}
+              <IconButton
+                sx={{
+                  position: "absolute",
+                  top: 8,
+                  left: 8,
+                  backgroundColor: "rgba(0, 0, 0, 0.5)",
+                  color: "white",
+                  "&:hover": {
+                    backgroundColor: "rgba(0, 0, 0, 0.7)",
+                  },
+                }}
+                onClick={() => {
+                  setModalOpen(false);
+                  setSelectedPhotoForModal(null);
+                  setSelectedHotelForModal(null);
+                }}
+              >
+                <CloseIcon size={20} />
+              </IconButton>
+            </Box>
           )}
 
           {/* Otel Detayı */}
