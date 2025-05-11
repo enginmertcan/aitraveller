@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Önce mekan araması yap
+    // Önce mekan araması yap - daha spesifik sonuçlar için
     const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${apiKey}`;
     const searchResponse = await fetch(searchUrl);
     const searchData = await searchResponse.json();
@@ -33,8 +33,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // İlk sonucun place_id'sini al
-    const placeId = searchData.results[0].place_id;
+    // Sonuçları puanlarına göre sırala (rating değeri)
+    const sortedResults = [...searchData.results].sort((a, b) => {
+      // Önce rating değeri olan sonuçları tercih et
+      if (a.rating && !b.rating) return -1;
+      if (!a.rating && b.rating) return 1;
+
+      // İkisinin de rating değeri varsa, yüksek olanı tercih et
+      if (a.rating && b.rating) return b.rating - a.rating;
+
+      // İkisinin de rating değeri yoksa, fotoğrafı olanı tercih et
+      if (a.photos && !b.photos) return -1;
+      if (!a.photos && b.photos) return 1;
+
+      return 0;
+    });
+
+    // En iyi sonucun place_id'sini al
+    const placeId = sortedResults[0].place_id;
 
     // Place Details API ile daha fazla fotoğraf al
     const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=photos&key=${apiKey}`;

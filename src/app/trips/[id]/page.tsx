@@ -271,8 +271,9 @@ export default function TripDetailsPage() {
   const { isDarkMode } = useThemeContext();
   const contentRef = useRef<HTMLDivElement>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedPhotoForModal, setSelectedPhotoForModal] = useState<{ url: string; location?: string; photos?: any[]; currentIndex?: number } | null>(null);
+  const [selectedPhotoForModal, setSelectedPhotoForModal] = useState<{ url: string; location?: string; photos?: any[]; currentIndex?: number; loading?: boolean } | null>(null);
   const [selectedHotelForModal, setSelectedHotelForModal] = useState<any | null>(null);
+  const [activityPhotos, setActivityPhotos] = useState<{[key: string]: any}>({});
 
   // Sayfa yüklenirken id parametresini kontrol et
   console.log("Trip ID:", tripId);
@@ -381,6 +382,86 @@ export default function TripDetailsPage() {
       }
     }
   }, [selectedHotelForModal, modalOpen, plan?.destination, isDarkMode]);
+
+  // Aktivite fotoğraflarını yükle
+  useEffect(() => {
+    async function loadActivityPhotos() {
+      if (!plan || !plan.destination) return;
+
+      try {
+        // Aktiviteleri al
+        const activities = getItineraryItems(plan.itinerary);
+        if (!activities || activities.length === 0) return;
+
+        console.log("Aktivite fotoğrafları yükleniyor...");
+        const ActivityPhotosService = (await import('@/app/Service/ActivityPhotosService')).default;
+
+        // Tüm aktiviteler için fotoğrafları önceden yükle
+        const activityNames = activities.map(activity =>
+          activity.placeName || activity.activity || activity.title || activity.name || ""
+        ).filter(name => name !== "");
+
+        // Önce her aktivite için en az bir fotoğraf yükle (önizleme için)
+        const initialPhotosPromises = activityNames.map(async (activityName) => {
+          try {
+            // Önce önbellekte var mı kontrol et
+            const cacheKey = `photos_${activityName}_${plan.destination}`;
+            const cachedPhotos = sessionStorage.getItem(cacheKey);
+
+            if (cachedPhotos) {
+              return { activityName, photos: JSON.parse(cachedPhotos) };
+            }
+
+            // Yoksa API'den yükle
+            const photos = await ActivityPhotosService.loadActivityPhotos(activityName, plan.destination || "");
+            return { activityName, photos };
+          } catch (error) {
+            console.error(`${activityName} fotoğrafları yüklenirken hata:`, error);
+            return { activityName, photos: [] };
+          }
+        });
+
+        // Tüm önizleme fotoğraflarını bekle
+        const initialResults = await Promise.all(initialPhotosPromises);
+
+        // Sonuçları state'e kaydet
+        const photosMap: {[key: string]: any} = {};
+        initialResults.forEach(result => {
+          if (result && result.activityName) {
+            photosMap[result.activityName] = result.photos;
+          }
+        });
+
+        // State'i güncelle
+        setActivityPhotos(photosMap);
+        console.log("İlk aktivite fotoğrafları yüklendi:", Object.keys(photosMap).length);
+
+        // Arka planda tüm aktivite fotoğraflarını yükle
+        setTimeout(async () => {
+          try {
+            const allPhotosMap = await ActivityPhotosService.preloadActivityPhotos(
+              activityNames,
+              plan.destination || ""
+            );
+
+            // State'i güncelle
+            setActivityPhotos(prevPhotos => ({
+              ...prevPhotos,
+              ...allPhotosMap
+            }));
+
+            console.log("Tüm aktivite fotoğrafları yüklendi:", Object.keys(allPhotosMap).length);
+          } catch (error) {
+            console.error("Tüm aktivite fotoğrafları yüklenirken hata:", error);
+          }
+        }, 500);
+      } catch (error) {
+        console.error("Aktivite fotoğrafları yüklenirken hata:", error);
+      }
+    }
+
+    loadActivityPhotos();
+  }, [plan]);
 
   useEffect(() => {
     async function loadTravelPlan() {
@@ -1277,17 +1358,67 @@ export default function TripDetailsPage() {
                                         return "Aktivite";
                                       })();
 
-                                      // Yükleniyor modalını göster
+                                      // Önceden yüklenmiş fotoğrafları kontrol et
+                                      const city = plan?.destination || "";
+                                      let preloadedPhotos = null;
+
+                                      if (activityPhotos[activityName] && activityPhotos[activityName].length > 0) {
+                                        preloadedPhotos = activityPhotos[activityName];
+                                      }
+
+                                      // Eğer önceden yüklenmiş fotoğraflar varsa, hemen göster
+                                      if (preloadedPhotos && preloadedPhotos.length > 0) {
+                                        const photoUrl = preloadedPhotos[0].imageData
+                                          ? `data:image/jpeg;base64,${preloadedPhotos[0].imageData}`
+                                          : preloadedPhotos[0].imageUrl;
+
+                                        setSelectedPhotoForModal({
+                                          url: photoUrl,
+                                          location: activityName,
+                                          photos: preloadedPhotos,
+                                          currentIndex: 0,
+                                          loading: false
+                                        });
+                                        setModalOpen(true);
+
+                                        // Arka planda daha fazla fotoğraf yükle
+                                        setTimeout(async () => {
+                                          try {
+                                            const ActivityPhotosService = (await import('@/app/Service/ActivityPhotosService')).default;
+                                            const morePhotos = await ActivityPhotosService.loadActivityPhotos(activityName, city);
+
+                                            // Eğer daha fazla fotoğraf yüklendiyse, state'i güncelle
+                                            if (morePhotos.length > preloadedPhotos.length) {
+                                              setSelectedPhotoForModal(prev => ({
+                                                ...prev,
+                                                photos: morePhotos
+                                              }));
+
+                                              // ActivityPhotos state'ini de güncelle
+                                              setActivityPhotos(prev => ({
+                                                ...prev,
+                                                [activityName]: morePhotos
+                                              }));
+                                            }
+                                          } catch (error) {
+                                            console.error('Arka planda fotoğraf yükleme hatası:', error);
+                                          }
+                                        }, 500);
+
+                                        return;
+                                      }
+
+                                      // Yükleniyor modalını göster - Gerçek bir yükleme göstergesi
                                       setSelectedPhotoForModal({
-                                        url: "https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800",
+                                        url: "",
                                         location: `${activityName} - Fotoğraflar yükleniyor...`,
                                         photos: [],
-                                        currentIndex: 0
+                                        currentIndex: 0,
+                                        loading: true // Yükleniyor durumunu belirt
                                       });
                                       setModalOpen(true);
 
                                       // ActivityPhotosService'i kullanarak fotoğrafları yükle
-                                      const city = plan?.destination || "";
                                       let photos = [];
 
                                       try {
@@ -1300,29 +1431,33 @@ export default function TripDetailsPage() {
                                           // ActivityPhotosService'i kullanarak fotoğrafları yükle
                                           const ActivityPhotosService = (await import('@/app/Service/ActivityPhotosService')).default;
                                           photos = await ActivityPhotosService.loadActivityPhotos(activityName, city);
-                                          console.log('Yüklenen fotoğraflar:', photos);
+                                          console.log('Yüklenen fotoğraflar:', photos.length);
+
+                                          // ActivityPhotos state'ini güncelle
+                                          setActivityPhotos(prev => ({
+                                            ...prev,
+                                            [activityName]: photos
+                                          }));
                                         }
 
-                                        // Eğer hala fotoğraf yoksa, statik fotoğraflar kullan
+                                        // Eğer hala fotoğraf yoksa, aktivite adına göre kategorize edilmiş fotoğraflar kullan
                                         if (!photos || photos.length === 0) {
-                                          console.log('Fotoğraf bulunamadı, statik fotoğraflar kullanılıyor');
-                                          photos = [
-                                            {
-                                              imageUrl: 'https://images.pexels.com/photos/1371360/pexels-photo-1371360.jpeg?auto=compress&cs=tinysrgb&w=800',
-                                              location: activityName,
-                                              description: `${activityName} - ${city} - Fotoğraf 1`
-                                            },
-                                            {
-                                              imageUrl: 'https://images.pexels.com/photos/3278215/pexels-photo-3278215.jpeg?auto=compress&cs=tinysrgb&w=800',
-                                              location: activityName,
-                                              description: `${activityName} - ${city} - Fotoğraf 2`
-                                            },
-                                            {
-                                              imageUrl: 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800',
-                                              location: activityName,
-                                              description: `${activityName} - ${city} - Fotoğraf 3`
-                                            }
-                                          ];
+                                          console.log('Fotoğraf bulunamadı, kategorize edilmiş fotoğraflar kullanılıyor');
+
+                                          const ActivityPhotosService = (await import('@/app/Service/ActivityPhotosService')).default;
+                                          const dummyUrls = ActivityPhotosService.getDummyPhotos(activityName, city);
+
+                                          photos = dummyUrls.map((url, index) => ({
+                                            imageUrl: url,
+                                            location: activityName,
+                                            description: `${activityName} - ${city} - Fotoğraf ${index + 1}`
+                                          }));
+
+                                          // ActivityPhotos state'ini güncelle
+                                          setActivityPhotos(prev => ({
+                                            ...prev,
+                                            [activityName]: photos
+                                          }));
                                         }
 
                                         // İlk fotoğrafı göster
@@ -1334,35 +1469,34 @@ export default function TripDetailsPage() {
                                           url: photoUrl,
                                           location: activityName,
                                           photos: photos,
-                                          currentIndex: 0
+                                          currentIndex: 0,
+                                          loading: false // Yükleme tamamlandı
                                         });
                                       } catch (error) {
                                         console.error("Aktivite fotoğrafları gösterme hatası:", error);
 
-                                        // Hata durumunda basit bir hata mesajı göster
-                                        photos = [
-                                          {
-                                            imageUrl: 'https://images.pexels.com/photos/1371360/pexels-photo-1371360.jpeg?auto=compress&cs=tinysrgb&w=800',
-                                            location: activityName,
-                                            description: `${activityName} - ${city} - Fotoğraf 1`
-                                          },
-                                          {
-                                            imageUrl: 'https://images.pexels.com/photos/3278215/pexels-photo-3278215.jpeg?auto=compress&cs=tinysrgb&w=800',
-                                            location: activityName,
-                                            description: `${activityName} - ${city} - Fotoğraf 2`
-                                          },
-                                          {
-                                            imageUrl: 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800',
-                                            location: activityName,
-                                            description: `${activityName} - ${city} - Fotoğraf 3`
-                                          }
-                                        ];
+                                        // Hata durumunda aktivite adına göre kategorize edilmiş fotoğraflar kullan
+                                        const ActivityPhotosService = (await import('@/app/Service/ActivityPhotosService')).default;
+                                        const dummyUrls = ActivityPhotosService.getDummyPhotos(activityName, city);
+
+                                        photos = dummyUrls.map((url, index) => ({
+                                          imageUrl: url,
+                                          location: activityName,
+                                          description: `${activityName} - ${city} - Fotoğraf ${index + 1}`
+                                        }));
+
+                                        // ActivityPhotos state'ini güncelle
+                                        setActivityPhotos(prev => ({
+                                          ...prev,
+                                          [activityName]: photos
+                                        }));
 
                                         setSelectedPhotoForModal({
                                           url: photos[0].imageUrl,
                                           location: activityName,
                                           photos: photos,
-                                          currentIndex: 0
+                                          currentIndex: 0,
+                                          loading: false
                                         });
                                       }
                                     }}
@@ -1376,44 +1510,125 @@ export default function TripDetailsPage() {
                                         overflow: "hidden",
                                       }}
                                     >
-                                      <Box
-                                        component="img"
-                                        src={(() => {
-                                          // Fotoğraf varsa onu kullan, yoksa statik fotoğraf kullan
-                                          if (activity.photos && activity.photos.length > 0) {
-                                            if (activity.photos[0].imageData) {
-                                              return `data:image/jpeg;base64,${activity.photos[0].imageData}`;
-                                            } else if (activity.photos[0].imageUrl) {
-                                              return activity.photos[0].imageUrl;
-                                            }
-                                          }
+                                      {(() => {
+                                        // Aktivite adını belirle
+                                        const activityName = activity.placeName || activity.activity || activity.title || activity.name || "";
 
-                                          // Varsayılan görsel - Statik fotoğraf
-                                          return 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800';
-                                        })()}
-                                        alt={(() => {
-                                          if (activity.placeName) return activity.placeName;
-                                          if (activity.activity) return activity.activity;
-                                          if (activity.title) return activity.title;
-                                          if (activity.name) return activity.name;
-                                          return "Aktivite";
-                                        })()}
-                                        sx={{
-                                          width: "100%",
-                                          height: "100%",
-                                          objectFit: "cover",
-                                          transition: "transform 0.3s ease",
-                                          "&:hover": {
-                                            transform: "scale(1.05)",
-                                          },
-                                        }}
-                                        onError={(e) => {
-                                          // Görsel yüklenemezse, basit bir yedek görsel kullan
-                                          const target = e.target as HTMLImageElement;
-                                          target.onerror = null; // Sonsuz döngüyü önle
-                                          target.src = "https://source.unsplash.com/featured/?travel";
-                                        }}
-                                      />
+                                        // Fotoğraf URL'sini belirle
+                                        let photoUrl = null;
+                                        let isLoading = false;
+
+                                        // Önceden yüklenmiş fotoğrafları kontrol et
+                                        if (activityPhotos[activityName] && activityPhotos[activityName].length > 0) {
+                                          const photo = activityPhotos[activityName][0];
+                                          if (photo.imageData) {
+                                            photoUrl = `data:image/jpeg;base64,${photo.imageData}`;
+                                          } else if (photo.imageUrl) {
+                                            photoUrl = photo.imageUrl;
+                                          }
+                                        }
+                                        // Aktivitenin kendi fotoğrafları varsa kullan
+                                        else if (activity.photos && activity.photos.length > 0) {
+                                          if (activity.photos[0].imageData) {
+                                            photoUrl = `data:image/jpeg;base64,${activity.photos[0].imageData}`;
+                                          } else if (activity.photos[0].imageUrl) {
+                                            photoUrl = activity.photos[0].imageUrl;
+                                          }
+                                        }
+                                        // Fotoğraf yoksa ve aktivite adı varsa, yükleniyor durumunda göster
+                                        else if (activityName) {
+                                          isLoading = true;
+
+                                          // Aktivite adına göre kategorize edilmiş varsayılan fotoğraflar
+                                          const activityNameLower = activityName.toLowerCase();
+
+                                          // Müze veya tarihi yer
+                                          if (activityNameLower.includes('müze') ||
+                                              activityNameLower.includes('müzesi') ||
+                                              activityNameLower.includes('tarihi') ||
+                                              activityNameLower.includes('antik')) {
+                                            photoUrl = 'https://images.pexels.com/photos/2034335/pexels-photo-2034335.jpeg?auto=compress&cs=tinysrgb&w=800';
+                                          }
+                                          // Plaj veya deniz
+                                          else if (activityNameLower.includes('plaj') ||
+                                                  activityNameLower.includes('deniz') ||
+                                                  activityNameLower.includes('sahil')) {
+                                            photoUrl = 'https://images.pexels.com/photos/1032650/pexels-photo-1032650.jpeg?auto=compress&cs=tinysrgb&w=800';
+                                          }
+                                          // Park veya bahçe
+                                          else if (activityNameLower.includes('park') ||
+                                                  activityNameLower.includes('bahçe') ||
+                                                  activityNameLower.includes('doğa')) {
+                                            photoUrl = 'https://images.pexels.com/photos/1319515/pexels-photo-1319515.jpeg?auto=compress&cs=tinysrgb&w=800';
+                                          }
+                                          // Cami veya dini yapı
+                                          else if (activityNameLower.includes('cami') ||
+                                                  activityNameLower.includes('kilise') ||
+                                                  activityNameLower.includes('katedral')) {
+                                            photoUrl = 'https://images.pexels.com/photos/1537086/pexels-photo-1537086.jpeg?auto=compress&cs=tinysrgb&w=800';
+                                          }
+                                          // Varsayılan
+                                          else {
+                                            photoUrl = 'https://images.pexels.com/photos/3278215/pexels-photo-3278215.jpeg?auto=compress&cs=tinysrgb&w=800';
+                                          }
+                                        }
+                                        // Hiçbir şey yoksa varsayılan görsel
+                                        else {
+                                          photoUrl = 'https://images.pexels.com/photos/3278215/pexels-photo-3278215.jpeg?auto=compress&cs=tinysrgb&w=800';
+                                        }
+
+                                        return (
+                                          <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
+                                            <Box
+                                              component="img"
+                                              src={photoUrl}
+                                              alt={(() => {
+                                                if (activity.placeName) return activity.placeName;
+                                                if (activity.activity) return activity.activity;
+                                                if (activity.title) return activity.title;
+                                                if (activity.name) return activity.name;
+                                                return "Aktivite";
+                                              })()}
+                                              sx={{
+                                                width: "100%",
+                                                height: "100%",
+                                                objectFit: "cover",
+                                                transition: "transform 0.3s ease",
+                                                filter: isLoading ? "brightness(0.8)" : "none",
+                                                "&:hover": {
+                                                  transform: "scale(1.05)",
+                                                },
+                                              }}
+                                              onError={(e) => {
+                                                // Görsel yüklenemezse, basit bir yedek görsel kullan
+                                                const target = e.target as HTMLImageElement;
+                                                target.onerror = null; // Sonsuz döngüyü önle
+                                                target.src = "https://images.pexels.com/photos/3278215/pexels-photo-3278215.jpeg?auto=compress&cs=tinysrgb&w=800";
+                                              }}
+                                            />
+
+                                            {/* Yükleniyor göstergesi */}
+                                            {isLoading && (
+                                              <Box
+                                                sx={{
+                                                  position: 'absolute',
+                                                  top: 0,
+                                                  left: 0,
+                                                  width: '100%',
+                                                  height: '100%',
+                                                  display: 'flex',
+                                                  alignItems: 'center',
+                                                  justifyContent: 'center',
+                                                  backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                                                  zIndex: 1,
+                                                }}
+                                              >
+                                                <CircularProgress size={30} sx={{ color: 'white' }} />
+                                              </Box>
+                                            )}
+                                          </Box>
+                                        );
+                                      })()}
                                       <Box
                                         sx={{
                                           position: "absolute",
@@ -1644,21 +1859,71 @@ export default function TripDetailsPage() {
                                                 return "Aktivite";
                                               })();
 
-                                              // Yükleniyor modalını göster
+                                              // Önceden yüklenmiş fotoğrafları kontrol et
+                                              const city = plan?.destination || "";
+                                              let preloadedPhotos = null;
+
+                                              if (activityPhotos[activityName] && activityPhotos[activityName].length > 0) {
+                                                preloadedPhotos = activityPhotos[activityName];
+                                              }
+
+                                              // Eğer önceden yüklenmiş fotoğraflar varsa, hemen göster
+                                              if (preloadedPhotos && preloadedPhotos.length > 0) {
+                                                const photoUrl = preloadedPhotos[0].imageData
+                                                  ? `data:image/jpeg;base64,${preloadedPhotos[0].imageData}`
+                                                  : preloadedPhotos[0].imageUrl;
+
+                                                setSelectedPhotoForModal({
+                                                  url: photoUrl,
+                                                  location: activityName,
+                                                  photos: preloadedPhotos,
+                                                  currentIndex: 0,
+                                                  loading: false
+                                                });
+                                                setModalOpen(true);
+
+                                                // Arka planda daha fazla fotoğraf yükle
+                                                setTimeout(async () => {
+                                                  try {
+                                                    const ActivityPhotosService = (await import('@/app/Service/ActivityPhotosService')).default;
+                                                    const morePhotos = await ActivityPhotosService.loadActivityPhotos(activityName, city);
+
+                                                    // Eğer daha fazla fotoğraf yüklendiyse, state'i güncelle
+                                                    if (morePhotos.length > preloadedPhotos.length) {
+                                                      setSelectedPhotoForModal(prev => ({
+                                                        ...prev,
+                                                        photos: morePhotos
+                                                      }));
+
+                                                      // ActivityPhotos state'ini de güncelle
+                                                      setActivityPhotos(prev => ({
+                                                        ...prev,
+                                                        [activityName]: morePhotos
+                                                      }));
+                                                    }
+                                                  } catch (error) {
+                                                    console.error('Arka planda fotoğraf yükleme hatası:', error);
+                                                  }
+                                                }, 500);
+
+                                                return;
+                                              }
+
+                                              // Önceden yüklenmiş fotoğraf yoksa, yükleniyor modalını göster
                                               setSelectedPhotoForModal({
-                                                url: "https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800",
+                                                url: "",
                                                 location: `${activityName} - Fotoğraflar yükleniyor...`,
                                                 photos: [],
-                                                currentIndex: 0
+                                                currentIndex: 0,
+                                                loading: true // Yükleniyor durumunu belirt
                                               });
                                               setModalOpen(true);
 
                                               // ActivityPhotosService'i kullanarak fotoğrafları yükle
-                                              const city = plan?.destination || "";
                                               let photos = [];
 
                                               try {
-                                                // Eğer aktivitenin kendi fotoğrafları varsa, onları kullan
+                                                // Aktivitenin kendi fotoğrafları varsa, onları kullan
                                                 if (activity.photos && activity.photos.length > 0) {
                                                   console.log('Aktivitenin kendi fotoğrafları kullanılıyor:', activity.photos.length);
                                                   photos = activity.photos;
@@ -1667,39 +1932,27 @@ export default function TripDetailsPage() {
                                                   // ActivityPhotosService'i kullanarak fotoğrafları yükle
                                                   const ActivityPhotosService = (await import('@/app/Service/ActivityPhotosService')).default;
                                                   photos = await ActivityPhotosService.loadActivityPhotos(activityName, city);
-                                                  console.log('Yüklenen fotoğraflar:', photos);
+                                                  console.log('Yüklenen fotoğraflar:', photos.length);
+
+                                                  // ActivityPhotos state'ini güncelle
+                                                  setActivityPhotos(prev => ({
+                                                    ...prev,
+                                                    [activityName]: photos
+                                                  }));
                                                 }
 
-                                                // Eğer hala fotoğraf yoksa, statik fotoğraflar kullan
+                                                // Eğer hala fotoğraf yoksa, aktivite adına göre kategorize edilmiş fotoğraflar kullan
                                                 if (!photos || photos.length === 0) {
-                                                  console.log('Fotoğraf bulunamadı, statik fotoğraflar kullanılıyor');
-                                                  photos = [
-                                                    {
-                                                      imageUrl: 'https://images.pexels.com/photos/1371360/pexels-photo-1371360.jpeg?auto=compress&cs=tinysrgb&w=800',
-                                                      location: activityName,
-                                                      description: `${activityName} - ${city} - Fotoğraf 1`
-                                                    },
-                                                    {
-                                                      imageUrl: 'https://images.pexels.com/photos/3278215/pexels-photo-3278215.jpeg?auto=compress&cs=tinysrgb&w=800',
-                                                      location: activityName,
-                                                      description: `${activityName} - ${city} - Fotoğraf 2`
-                                                    },
-                                                    {
-                                                      imageUrl: 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800',
-                                                      location: activityName,
-                                                      description: `${activityName} - ${city} - Fotoğraf 3`
-                                                    },
-                                                    {
-                                                      imageUrl: 'https://images.pexels.com/photos/2245436/pexels-photo-2245436.png?auto=compress&cs=tinysrgb&w=800',
-                                                      location: activityName,
-                                                      description: `${activityName} - ${city} - Fotoğraf 4`
-                                                    },
-                                                    {
-                                                      imageUrl: 'https://images.pexels.com/photos/2356045/pexels-photo-2356045.jpeg?auto=compress&cs=tinysrgb&w=800',
-                                                      location: activityName,
-                                                      description: `${activityName} - ${city} - Fotoğraf 5`
-                                                    }
-                                                  ];
+                                                  console.log('Fotoğraf bulunamadı, kategorize edilmiş fotoğraflar kullanılıyor');
+
+                                                  const ActivityPhotosService = (await import('@/app/Service/ActivityPhotosService')).default;
+                                                  const dummyUrls = ActivityPhotosService.getDummyPhotos(activityName, city);
+
+                                                  photos = dummyUrls.map((url, index) => ({
+                                                    imageUrl: url,
+                                                    location: activityName,
+                                                    description: `${activityName} - ${city} - Fotoğraf ${index + 1}`
+                                                  }));
                                                 }
 
                                                 console.log('Gösterilecek fotoğraflar:', photos);
@@ -1715,7 +1968,8 @@ export default function TripDetailsPage() {
                                                   url: photoUrl,
                                                   location: activityName,
                                                   photos: photos,
-                                                  currentIndex: 0
+                                                  currentIndex: 0,
+                                                  loading: false // Yükleme tamamlandı
                                                 });
                                               } catch (error) {
                                                 console.error("Aktivite fotoğrafları gösterme hatası:", error);
@@ -1753,7 +2007,8 @@ export default function TripDetailsPage() {
                                                   url: photos[0].imageUrl,
                                                   location: activityName,
                                                   photos: photos,
-                                                  currentIndex: 0
+                                                  currentIndex: 0,
+                                                  loading: false // Yükleme tamamlandı
                                                 });
                                               }
                                             }}
@@ -3575,17 +3830,69 @@ export default function TripDetailsPage() {
           {/* Fotoğraf Detayı */}
           {selectedPhotoForModal && (
             <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
-              <img
-                src={selectedPhotoForModal.url}
-                alt="Büyütülmüş fotoğraf"
-                style={{
-                  maxWidth: "100%",
-                  maxHeight: "80vh",
-                  objectFit: "contain",
-                  borderRadius: "4px",
-                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.25)",
-                }}
-              />
+              {selectedPhotoForModal.loading ? (
+                // Yükleniyor göstergesi
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minHeight: '50vh',
+                    padding: 4
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: "60px",
+                      height: "60px",
+                      borderRadius: "50%",
+                      border: `3px solid ${isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"}`,
+                      borderTop: `3px solid ${isDarkMode ? "#93c5fd" : "#2563eb"}`,
+                      animation: "spin 1s linear infinite",
+                      mb: 3,
+                    }}
+                  />
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      color: isDarkMode ? "#e5e7eb" : "text.primary",
+                      textAlign: 'center'
+                    }}
+                  >
+                    Fotoğraflar yükleniyor...
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.6)",
+                      textAlign: 'center',
+                      mt: 1
+                    }}
+                  >
+                    Google Places API'den fotoğraflar getiriliyor
+                  </Typography>
+                  <style jsx global>{`
+                    @keyframes spin {
+                      0% { transform: rotate(0deg); }
+                      100% { transform: rotate(360deg); }
+                    }
+                  `}</style>
+                </Box>
+              ) : (
+                // Fotoğraf
+                <img
+                  src={selectedPhotoForModal.url}
+                  alt="Büyütülmüş fotoğraf"
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: "80vh",
+                    objectFit: "contain",
+                    borderRadius: "4px",
+                    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.25)",
+                  }}
+                />
+              )}
 
               {/* Fotoğraf Navigasyon Butonları - Birden fazla fotoğraf varsa */}
               {selectedPhotoForModal.photos && selectedPhotoForModal.photos.length > 1 && (
