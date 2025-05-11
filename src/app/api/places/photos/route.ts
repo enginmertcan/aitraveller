@@ -21,20 +21,81 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Önce mekan araması yap - daha spesifik sonuçlar için
-    const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${apiKey}`;
-    const searchResponse = await fetch(searchUrl);
-    const searchData = await searchResponse.json();
+    // Daha fazla sonuç için sorguyu genişlet
+    // Orijinal sorguyu kullan
+    const originalQuery = query;
 
-    if (searchData.status !== 'OK' || !searchData.results || searchData.results.length === 0) {
+    // Sorguyu daha spesifik hale getir - turistik yer, görülecek yer, landmark ekle
+    const enhancedQuery = `${query} tourist attraction landmark`;
+
+    // Türkçe karakterleri normalize et
+    const normalizedQuery = query
+      .replace(/ğ/g, 'g')
+      .replace(/ü/g, 'u')
+      .replace(/ş/g, 's')
+      .replace(/ı/g, 'i')
+      .replace(/ö/g, 'o')
+      .replace(/ç/g, 'c')
+      .replace(/Ğ/g, 'G')
+      .replace(/Ü/g, 'U')
+      .replace(/Ş/g, 'S')
+      .replace(/İ/g, 'I')
+      .replace(/Ö/g, 'O')
+      .replace(/Ç/g, 'C');
+
+    // Özel durumlar için ek sorgular
+    const specialQueries = [];
+    if (query.toLowerCase().includes('pamukkale') || query.toLowerCase().includes('travertenleri')) {
+      specialQueries.push('Pamukkale Travertines Turkey');
+      specialQueries.push('Pamukkale Hierapolis Turkey');
+    } else if (query.toLowerCase().includes('efes') || query.toLowerCase().includes('ephesus')) {
+      specialQueries.push('Ephesus Ancient City Turkey');
+      specialQueries.push('Efes Antik Kenti Turkey');
+    } else if (query.toLowerCase().includes('kapadokya') || query.toLowerCase().includes('cappadocia')) {
+      specialQueries.push('Cappadocia Turkey');
+      specialQueries.push('Kapadokya Balloon Turkey');
+    }
+
+    // Tüm sorgular için URL'ler oluştur
+    const searchUrls = [
+      `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(originalQuery)}&key=${apiKey}`,
+      `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(enhancedQuery)}&key=${apiKey}`,
+      `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(normalizedQuery)}&key=${apiKey}`
+    ];
+
+    // Özel sorgular için URL'ler ekle
+    specialQueries.forEach(specialQuery => {
+      searchUrls.push(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(specialQuery)}&key=${apiKey}`);
+    });
+
+    // Paralel olarak tüm aramaları yap
+    const searchResponses = await Promise.all(searchUrls.map(url => fetch(url)));
+    const searchDataResults = await Promise.all(searchResponses.map(response => response.json()));
+
+    // Tüm sonuçları birleştir
+    let allResults: any[] = [];
+
+    searchDataResults.forEach(searchData => {
+      if (searchData.status === 'OK' && searchData.results && searchData.results.length > 0) {
+        allResults = [...allResults, ...searchData.results];
+      }
+    });
+
+    // Sonuç yoksa hata döndür
+    if (allResults.length === 0) {
       return NextResponse.json(
-        { error: 'No places found', status: searchData.status },
+        { error: 'No places found for any query' },
         { status: 404 }
       );
     }
 
+    // Tekrarlanan sonuçları kaldır (place_id'ye göre)
+    const uniqueResults = Array.from(
+      new Map(allResults.map(item => [item.place_id, item])).values()
+    );
+
     // Sonuçları puanlarına göre sırala (rating değeri)
-    const sortedResults = [...searchData.results].sort((a, b) => {
+    const sortedResults = [...uniqueResults].sort((a, b) => {
       // Önce rating değeri olan sonuçları tercih et
       if (a.rating && !b.rating) return -1;
       if (!a.rating && b.rating) return 1;
@@ -49,80 +110,66 @@ export async function POST(request: NextRequest) {
       return 0;
     });
 
-    // En iyi sonucun place_id'sini al
-    const placeId = sortedResults[0].place_id;
+    // Daha fazla fotoğraf için birden fazla place_id kullan
+    const MAX_PLACES_TO_CHECK = 8; // En iyi 8 yerin fotoğraflarını kontrol et
+    const placeIds = sortedResults.slice(0, MAX_PLACES_TO_CHECK).map(result => result.place_id);
 
-    // Place Details API ile daha fazla fotoğraf al
-    const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=photos&key=${apiKey}`;
-    const detailsResponse = await fetch(detailsUrl);
-    const detailsData = await detailsResponse.json();
+    console.log(`${placeIds.length} farklı yer için fotoğraf aranıyor...`);
 
-    if (detailsData.status !== 'OK' || !detailsData.result || !detailsData.result.photos) {
-      // Eğer detaylar alınamazsa, arama sonuçlarındaki fotoğrafları kullan
-      // Ayrıca diğer sonuçlardaki fotoğrafları da ekle (maksimum 25 fotoğraf)
-      const MAX_PHOTOS = 25;
-      let photoReferences: string[] = [];
+    // Tüm yerler için paralel olarak detay bilgilerini al
+    const detailsUrls = placeIds.map(placeId =>
+      `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=photos,name&key=${apiKey}`
+    );
 
-      // Tüm sonuçlardan fotoğrafları topla
-      const allPhotos: any[] = [];
+    const detailsResponses = await Promise.all(detailsUrls.map(url => fetch(url)));
+    const detailsDataResults = await Promise.all(detailsResponses.map(response => response.json()));
 
-      // İlk sonuçtaki fotoğrafları ekle
-      if (searchData.results[0].photos) {
-        allPhotos.push(...searchData.results[0].photos);
+    // Tüm fotoğrafları topla
+    const allPhotos: any[] = [];
+
+    // Önce arama sonuçlarındaki fotoğrafları ekle
+    sortedResults.forEach(result => {
+      if (result.photos && result.photos.length > 0) {
+        allPhotos.push(...result.photos);
       }
+    });
 
-      // Diğer sonuçlardaki fotoğrafları da ekle
-      let resultIndex = 1;
-      while (resultIndex < searchData.results.length) {
-        if (searchData.results[resultIndex].photos) {
-          allPhotos.push(...searchData.results[resultIndex].photos);
-        }
-        resultIndex++;
+    // Sonra detay sonuçlarındaki fotoğrafları ekle
+    detailsDataResults.forEach(detailsData => {
+      if (detailsData.status === 'OK' && detailsData.result && detailsData.result.photos) {
+        allPhotos.push(...detailsData.result.photos);
       }
+    });
 
-      // Fotoğrafları kalitelerine göre sırala (width ve height değerlerine göre)
-      const sortedPhotos = allPhotos.sort((a: any, b: any) => {
-        const aSize = a.width * a.height;
-        const bSize = b.width * b.height;
-        return bSize - aSize; // Büyükten küçüğe sırala
-      });
-
-      // En kaliteli fotoğrafları seç ve null değerleri filtrele
-      photoReferences = sortedPhotos
-        .slice(0, MAX_PHOTOS)
-        .map((photo: any) => photo.photo_reference)
-        .filter((ref: string) => ref !== null && ref !== undefined && ref !== '');
-
-      // Tekrarlanan fotoğraf referanslarını kaldır
-      photoReferences = Array.from(new Set(photoReferences));
-
-      // Maksimum 25 fotoğraf döndür
-      photoReferences = photoReferences.slice(0, MAX_PHOTOS);
-
-      console.log(`Arama sonuçlarından ${photoReferences.length} adet fotoğraf referansı bulundu`);
-      return NextResponse.json({ photoReferences });
+    // Fotoğraf bulunamadıysa, boş array döndür
+    if (allPhotos.length === 0) {
+      console.log('Hiçbir fotoğraf bulunamadı');
+      return NextResponse.json({ photoReferences: [] });
     }
 
-    // Tüm fotoğraf referanslarını al (maksimum 25 fotoğraf)
-    const MAX_PHOTOS = 25; // Daha fazla fotoğraf göster
+    // Maksimum fotoğraf sayısını artır
+    const MAX_PHOTOS = 50; // Daha fazla fotoğraf göster
 
     // Fotoğrafları kalitelerine göre sırala (width ve height değerlerine göre)
-    const sortedPhotos = detailsData.result.photos.sort((a: any, b: any) => {
+    const sortedPhotos = allPhotos.sort((a: any, b: any) => {
       const aSize = a.width * a.height;
       const bSize = b.width * b.height;
       return bSize - aSize; // Büyükten küçüğe sırala
     });
 
-    // Fotoğraf referanslarını al ve tekrarları kaldır
+    // En kaliteli fotoğrafları seç ve null değerleri filtrele
     let photoReferences = sortedPhotos
-      .slice(0, MAX_PHOTOS) // Maksimum 25 fotoğraf al
+      .slice(0, MAX_PHOTOS)
       .map((photo: any) => photo.photo_reference)
       .filter((ref: string) => ref !== null && ref !== undefined && ref !== '');
 
     // Tekrarlanan fotoğraf referanslarını kaldır
     photoReferences = Array.from(new Set(photoReferences));
 
-    console.log(`${photoReferences.length} adet fotoğraf referansı bulundu`);
+    // Maksimum fotoğraf sayısına göre kes
+    photoReferences = photoReferences.slice(0, MAX_PHOTOS);
+
+    console.log(`Toplam ${photoReferences.length} adet fotoğraf referansı bulundu`);
     return NextResponse.json({ photoReferences });
   } catch (error) {
     console.error('Error in Places Photos API:', error);

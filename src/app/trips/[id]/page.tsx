@@ -383,7 +383,7 @@ export default function TripDetailsPage() {
     }
   }, [selectedHotelForModal, modalOpen, plan?.destination, isDarkMode]);
 
-  // Aktivite fotoğraflarını yükle
+  // Aktivite fotoğraflarını yükle - sayfa yüklendiğinde hemen yükle
   useEffect(() => {
     async function loadActivityPhotos() {
       if (!plan || !plan.destination) return;
@@ -401,60 +401,80 @@ export default function TripDetailsPage() {
           activity.placeName || activity.activity || activity.title || activity.name || ""
         ).filter(name => name !== "");
 
-        // Önce her aktivite için en az bir fotoğraf yükle (önizleme için)
-        const initialPhotosPromises = activityNames.map(async (activityName) => {
+        // Önce boş bir state oluştur ve yükleniyor durumunu göster
+        const initialPhotosMap: {[key: string]: any} = {};
+        activityNames.forEach(name => {
+          // Her aktivite için boş bir array oluştur (yükleniyor durumunu göstermek için)
+          initialPhotosMap[name] = [];
+        });
+
+        // Yükleniyor durumunu göstermek için state'i güncelle
+        setActivityPhotos(initialPhotosMap);
+
+        // Tüm aktiviteler için paralel olarak fotoğrafları yükle
+        const photosPromises = activityNames.map(async (activityName) => {
           try {
             // Önce önbellekte var mı kontrol et
             const cacheKey = `photos_${activityName}_${plan.destination}`;
             const cachedPhotos = sessionStorage.getItem(cacheKey);
 
             if (cachedPhotos) {
-              return { activityName, photos: JSON.parse(cachedPhotos) };
+              // Her aktivite yüklendiğinde hemen state'i güncelle
+              const photos = JSON.parse(cachedPhotos);
+              setActivityPhotos(prev => ({
+                ...prev,
+                [activityName]: photos
+              }));
+              return { activityName, photos };
             }
 
             // Yoksa API'den yükle
             const photos = await ActivityPhotosService.loadActivityPhotos(activityName, plan.destination || "");
+
+            // Her aktivite yüklendiğinde hemen state'i güncelle
+            setActivityPhotos(prev => ({
+              ...prev,
+              [activityName]: photos
+            }));
+
             return { activityName, photos };
           } catch (error) {
             console.error(`${activityName} fotoğrafları yüklenirken hata:`, error);
-            return { activityName, photos: [] };
-          }
-        });
 
-        // Tüm önizleme fotoğraflarını bekle
-        const initialResults = await Promise.all(initialPhotosPromises);
-
-        // Sonuçları state'e kaydet
-        const photosMap: {[key: string]: any} = {};
-        initialResults.forEach(result => {
-          if (result && result.activityName) {
-            photosMap[result.activityName] = result.photos;
-          }
-        });
-
-        // State'i güncelle
-        setActivityPhotos(photosMap);
-        console.log("İlk aktivite fotoğrafları yüklendi:", Object.keys(photosMap).length);
-
-        // Arka planda tüm aktivite fotoğraflarını yükle
-        setTimeout(async () => {
-          try {
-            const allPhotosMap = await ActivityPhotosService.preloadActivityPhotos(
-              activityNames,
-              plan.destination || ""
-            );
-
-            // State'i güncelle
-            setActivityPhotos(prevPhotos => ({
-              ...prevPhotos,
-              ...allPhotosMap
+            // Hata durumunda kategorize edilmiş yedek fotoğrafları kullan
+            const dummyUrls = ActivityPhotosService.getDummyPhotos(activityName, plan.destination || "");
+            const dummyPhotos = dummyUrls.map((url, index) => ({
+              imageUrl: url,
+              location: activityName,
+              description: `${activityName} - ${plan.destination} - Fotoğraf ${index + 1}`
             }));
 
-            console.log("Tüm aktivite fotoğrafları yüklendi:", Object.keys(allPhotosMap).length);
-          } catch (error) {
-            console.error("Tüm aktivite fotoğrafları yüklenirken hata:", error);
+            // Hata durumunda da state'i güncelle
+            setActivityPhotos(prev => ({
+              ...prev,
+              [activityName]: dummyPhotos
+            }));
+
+            return { activityName, photos: dummyPhotos };
           }
-        }, 500);
+        });
+
+        // Tüm fotoğrafların yüklenmesini bekle (arka planda)
+        Promise.all(photosPromises).then(results => {
+          // Sonuçları birleştir
+          const finalPhotosMap: {[key: string]: any} = {};
+          results.forEach(result => {
+            if (result && result.activityName) {
+              finalPhotosMap[result.activityName] = result.photos;
+            }
+          });
+
+          // Son state'i güncelle
+          setActivityPhotos(finalPhotosMap);
+          console.log("Tüm aktivite fotoğrafları yüklendi:", Object.keys(finalPhotosMap).length);
+        }).catch(error => {
+          console.error("Fotoğraf yükleme işlemi tamamlanırken hata:", error);
+        });
       } catch (error) {
         console.error("Aktivite fotoğrafları yüklenirken hata:", error);
       }
@@ -1519,12 +1539,19 @@ export default function TripDetailsPage() {
                                         let isLoading = false;
 
                                         // Önceden yüklenmiş fotoğrafları kontrol et
-                                        if (activityPhotos[activityName] && activityPhotos[activityName].length > 0) {
-                                          const photo = activityPhotos[activityName][0];
-                                          if (photo.imageData) {
-                                            photoUrl = `data:image/jpeg;base64,${photo.imageData}`;
-                                          } else if (photo.imageUrl) {
-                                            photoUrl = photo.imageUrl;
+                                        if (activityPhotos[activityName]) {
+                                          // Eğer fotoğraflar yüklendiyse
+                                          if (activityPhotos[activityName].length > 0) {
+                                            const photo = activityPhotos[activityName][0];
+                                            if (photo.imageData) {
+                                              photoUrl = `data:image/jpeg;base64,${photo.imageData}`;
+                                            } else if (photo.imageUrl) {
+                                              photoUrl = photo.imageUrl;
+                                            }
+                                          }
+                                          // Eğer fotoğraflar henüz yüklenmemişse (boş array)
+                                          else {
+                                            isLoading = true;
                                           }
                                         }
                                         // Aktivitenin kendi fotoğrafları varsa kullan
@@ -1538,8 +1565,10 @@ export default function TripDetailsPage() {
                                         // Fotoğraf yoksa ve aktivite adı varsa, yükleniyor durumunda göster
                                         else if (activityName) {
                                           isLoading = true;
+                                        }
 
-                                          // Aktivite adına göre kategorize edilmiş varsayılan fotoğraflar
+                                        // Yükleniyor durumunda veya fotoğraf yoksa, aktivite adına göre kategorize edilmiş varsayılan fotoğraflar
+                                        if ((isLoading || !photoUrl) && activityName) {
                                           const activityNameLower = activityName.toLowerCase();
 
                                           // Müze veya tarihi yer
@@ -1573,7 +1602,7 @@ export default function TripDetailsPage() {
                                           }
                                         }
                                         // Hiçbir şey yoksa varsayılan görsel
-                                        else {
+                                        else if (!photoUrl) {
                                           photoUrl = 'https://images.pexels.com/photos/3278215/pexels-photo-3278215.jpeg?auto=compress&cs=tinysrgb&w=800';
                                         }
 
@@ -3786,7 +3815,7 @@ export default function TripDetailsPage() {
         </Fade>
       </Container>
 
-      {/* Fotoğraf veya Otel Detay Modalı */}
+      {/* Fotoğraf veya Otel Detay Modalı - Geliştirilmiş */}
       <Modal
         open={modalOpen}
         onClose={() => {
@@ -3800,7 +3829,7 @@ export default function TripDetailsPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backdropFilter: "blur(5px)",
+          backdropFilter: "blur(8px)",
         }}
       >
         <Box
@@ -3811,8 +3840,8 @@ export default function TripDetailsPage() {
             outline: "none",
             bgcolor: isDarkMode ? "rgba(17, 24, 39, 0.95)" : "rgba(255, 255, 255, 0.95)",
             p: 3,
-            borderRadius: 2,
-            boxShadow: 24,
+            borderRadius: "12px",
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
             animation: "fadeIn 0.3s ease-in-out",
             "@keyframes fadeIn": {
               "0%": {
@@ -3880,35 +3909,63 @@ export default function TripDetailsPage() {
                   `}</style>
                 </Box>
               ) : (
-                // Fotoğraf
-                <img
-                  src={selectedPhotoForModal.url}
-                  alt="Büyütülmüş fotoğraf"
-                  style={{
-                    maxWidth: "100%",
-                    maxHeight: "80vh",
-                    objectFit: "contain",
-                    borderRadius: "4px",
-                    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.25)",
+                // Fotoğraf Konteyneri - Geliştirilmiş
+                <Box
+                  sx={{
+                    position: "relative",
+                    width: "100%",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    borderRadius: "8px",
+                    overflow: "hidden",
+                    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.25)",
+                    background: "#000",
+                    minHeight: "60vh",
                   }}
-                />
+                >
+                  <img
+                    src={selectedPhotoForModal.url}
+                    alt={selectedPhotoForModal.location || "Aktivite fotoğrafı"}
+                    style={{
+                      maxWidth: "100%",
+                      maxHeight: "80vh",
+                      objectFit: "contain",
+                      display: "block",
+                      margin: "0 auto",
+                    }}
+                    onError={(e) => {
+                      // Fotoğraf yüklenemezse yedek fotoğraf göster
+                      const target = e.target as HTMLImageElement;
+                      console.error("Fotoğraf yüklenemedi:", target.src);
+                      target.onerror = null; // Sonsuz döngüyü önle
+                      target.src = "https://images.unsplash.com/photo-1533230050368-fbf55584f782?q=80&w=1000"; // Yedek fotoğraf
+                    }}
+                  />
+                </Box>
               )}
 
               {/* Fotoğraf Navigasyon Butonları - Birden fazla fotoğraf varsa */}
               {selectedPhotoForModal.photos && selectedPhotoForModal.photos.length > 1 && (
                 <>
-                  {/* Önceki Fotoğraf Butonu */}
+                  {/* Önceki Fotoğraf Butonu - Geliştirilmiş */}
                   <IconButton
                     sx={{
                       position: "absolute",
-                      left: 8,
+                      left: 16,
                       top: "50%",
                       transform: "translateY(-50%)",
-                      backgroundColor: "rgba(0, 0, 0, 0.5)",
+                      backgroundColor: "rgba(0, 0, 0, 0.6)",
                       color: "white",
+                      width: "48px",
+                      height: "48px",
                       "&:hover": {
-                        backgroundColor: "rgba(0, 0, 0, 0.7)",
+                        backgroundColor: "rgba(0, 0, 0, 0.8)",
+                        transform: "translateY(-50%) scale(1.1)",
                       },
+                      transition: "all 0.2s ease",
+                      zIndex: 10,
+                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -3922,6 +3979,7 @@ export default function TripDetailsPage() {
                         setSelectedPhotoForModal({
                           ...selectedPhotoForModal,
                           url: photoUrl,
+                          location: photo.location || selectedPhotoForModal.location,
                           currentIndex: newIndex
                         });
                       }
@@ -3930,18 +3988,24 @@ export default function TripDetailsPage() {
                     <ArrowLeft size={24} />
                   </IconButton>
 
-                  {/* Sonraki Fotoğraf Butonu */}
+                  {/* Sonraki Fotoğraf Butonu - Geliştirilmiş */}
                   <IconButton
                     sx={{
                       position: "absolute",
-                      right: 8,
+                      right: 16,
                       top: "50%",
                       transform: "translateY(-50%)",
-                      backgroundColor: "rgba(0, 0, 0, 0.5)",
+                      backgroundColor: "rgba(0, 0, 0, 0.6)",
                       color: "white",
+                      width: "48px",
+                      height: "48px",
                       "&:hover": {
-                        backgroundColor: "rgba(0, 0, 0, 0.7)",
+                        backgroundColor: "rgba(0, 0, 0, 0.8)",
+                        transform: "translateY(-50%) scale(1.1)",
                       },
+                      transition: "all 0.2s ease",
+                      zIndex: 10,
+                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -3955,6 +4019,7 @@ export default function TripDetailsPage() {
                         setSelectedPhotoForModal({
                           ...selectedPhotoForModal,
                           url: photoUrl,
+                          location: photo.location || selectedPhotoForModal.location,
                           currentIndex: newIndex
                         });
                       }
@@ -3963,7 +4028,7 @@ export default function TripDetailsPage() {
                     <Navigation size={24} />
                   </IconButton>
 
-                  {/* Fotoğraf Sayacı */}
+                  {/* Fotoğraf Sayacı - Geliştirilmiş */}
                   <Box
                     sx={{
                       position: "absolute",
@@ -3973,33 +4038,41 @@ export default function TripDetailsPage() {
                       color: "white",
                       px: 2,
                       py: 0.5,
-                      borderRadius: 2,
+                      borderRadius: "20px",
                       fontSize: "0.875rem",
-                      fontWeight: 500,
+                      fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+                      zIndex: 10,
                     }}
                   >
+                    <Camera size={16} />
                     {selectedPhotoForModal.currentIndex !== undefined && selectedPhotoForModal.photos ?
                       `${selectedPhotoForModal.currentIndex + 1} / ${selectedPhotoForModal.photos.length}` : ""}
                   </Box>
                 </>
               )}
 
-              {/* Konum Bilgisi */}
+              {/* Konum Bilgisi - Geliştirilmiş */}
               {selectedPhotoForModal.location && (
                 <Box
                   sx={{
                     position: "absolute",
                     bottom: 16,
                     left: 16,
-                    backgroundColor: "rgba(76, 102, 159, 0.85)",
+                    backgroundColor: "rgba(37, 99, 235, 0.85)",
                     color: "white",
                     px: 2,
                     py: 1,
-                    borderRadius: 2,
+                    borderRadius: "8px",
                     display: "flex",
                     alignItems: "center",
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
                     maxWidth: "80%",
+                    zIndex: 10,
+                    backdropFilter: "blur(4px)",
                   }}
                 >
                   <MapPin size={18} style={{ marginRight: "8px", flexShrink: 0 }} />
@@ -4008,7 +4081,8 @@ export default function TripDetailsPage() {
                     sx={{
                       overflow: "hidden",
                       textOverflow: "ellipsis",
-                      whiteSpace: "nowrap"
+                      whiteSpace: "nowrap",
+                      fontWeight: 500,
                     }}
                   >
                     {selectedPhotoForModal.location}
@@ -4016,17 +4090,23 @@ export default function TripDetailsPage() {
                 </Box>
               )}
 
-              {/* Kapat Butonu */}
+              {/* Kapat Butonu - Geliştirilmiş */}
               <IconButton
                 sx={{
                   position: "absolute",
-                  top: 8,
-                  left: 8,
-                  backgroundColor: "rgba(0, 0, 0, 0.5)",
+                  top: 16,
+                  left: 16,
+                  backgroundColor: "rgba(0, 0, 0, 0.6)",
                   color: "white",
+                  width: "36px",
+                  height: "36px",
                   "&:hover": {
-                    backgroundColor: "rgba(0, 0, 0, 0.7)",
+                    backgroundColor: "rgba(0, 0, 0, 0.8)",
+                    transform: "scale(1.1)",
                   },
+                  transition: "all 0.2s ease",
+                  zIndex: 10,
+                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
                 }}
                 onClick={() => {
                   setModalOpen(false);
@@ -4034,7 +4114,7 @@ export default function TripDetailsPage() {
                   setSelectedHotelForModal(null);
                 }}
               >
-                <CloseIcon size={20} />
+                <CloseIcon size={18} />
               </IconButton>
             </Box>
           )}
