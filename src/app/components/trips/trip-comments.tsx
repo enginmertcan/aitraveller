@@ -257,7 +257,25 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
 
   // Fotoğrafa tıklama işlemi
   const handlePhotoClick = (photoUrl: string, photoLocation?: string) => {
-    setSelectedPhotoForModal({ url: photoUrl, location: photoLocation });
+    console.log(`Fotoğrafa tıklandı: ${photoUrl.substring(0, 30)}...`);
+
+    // URL'nin geçerli olup olmadığını kontrol et
+    if (!photoUrl || photoUrl.trim() === '') {
+      console.error('Geçersiz fotoğraf URL\'si');
+      return;
+    }
+
+    // Eğer URL data:image ile başlamıyorsa ve base64 verisi içeriyorsa düzelt
+    let finalUrl = photoUrl;
+    if (!photoUrl.startsWith('data:image') && photoUrl.includes('base64')) {
+      console.log('URL formatı düzeltiliyor...');
+      const base64Part = photoUrl.split('base64,')[1];
+      if (base64Part) {
+        finalUrl = `data:image/jpeg;base64,${base64Part}`;
+      }
+    }
+
+    setSelectedPhotoForModal({ url: finalUrl, location: photoLocation });
     setModalOpen(true);
   };
 
@@ -271,6 +289,25 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
     } catch {
       return "bilinmeyen tarih";
     }
+  };
+
+  // Fotoğraf verisi için doğru URL formatını oluştur
+  const getPhotoUrl = (photoUrl?: string, photoData?: string) => {
+    if (photoUrl && photoUrl.trim() !== '') {
+      return photoUrl;
+    }
+
+    if (photoData && photoData.trim() !== '') {
+      // Eğer data:image ile başlıyorsa, doğrudan kullan
+      if (photoData.startsWith('data:image')) {
+        return photoData;
+      }
+
+      // Değilse, base64 formatına dönüştür
+      return `data:image/jpeg;base64,${photoData}`;
+    }
+
+    return '';
   };
 
   // Kullanıcı avatarı için baş harfler
@@ -376,14 +413,23 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
                           }}
                         >
                           <CommentImage
-                            src={comment.photoUrl || `data:image/jpeg;base64,${comment.photoData}`}
+                            src={getPhotoUrl(comment.photoUrl, comment.photoData)}
                             alt="Yorum fotoğrafı"
                             onClick={() =>
                               handlePhotoClick(
-                                comment.photoUrl || `data:image/jpeg;base64,${comment.photoData}`,
+                                getPhotoUrl(comment.photoUrl, comment.photoData),
                                 comment.photoLocation
                               )
                             }
+                            onError={(e) => {
+                              console.error(`Fotoğraf yükleme hatası: ${comment.id}`);
+                              // Try to fix the URL if it's a base64 image
+                              const img = e.target as HTMLImageElement;
+                              if (comment.photoData && !img.src.startsWith('data:image')) {
+                                console.log('Attempting to fix image URL format');
+                                img.src = `data:image/jpeg;base64,${comment.photoData}`;
+                              }
+                            }}
                           />
                           {comment.photoLocation && (
                             <PhotoLocationBadge>
@@ -591,7 +637,24 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
         >
           {selectedPhotoForModal && (
             <>
-              <ModalImage src={selectedPhotoForModal.url} alt="Büyütülmüş fotoğraf" />
+              <ModalImage
+                src={selectedPhotoForModal.url}
+                alt="Büyütülmüş fotoğraf"
+                onError={(e) => {
+                  console.error('Modal image loading error');
+                  // Try to fix the URL if it's a base64 image
+                  const img = e.target as HTMLImageElement;
+                  if (img.src && !img.src.startsWith('data:image')) {
+                    console.log('Attempting to fix image URL format');
+                    const base64Part = img.src.split('base64,')[1];
+                    if (base64Part) {
+                      img.src = `data:image/jpeg;base64,${base64Part}`;
+                    } else {
+                      img.src = `data:image/jpeg;base64,${img.src}`;
+                    }
+                  }
+                }}
+              />
               {selectedPhotoForModal.location && (
                 <Box
                   sx={{
