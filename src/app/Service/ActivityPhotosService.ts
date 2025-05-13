@@ -1,3 +1,13 @@
+"use client";
+
+import ProxyApiService from './ProxyApiService';
+
+// Google Places API anahtarı
+const GOOGLE_PLACES_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY || 'AIzaSyCuywyLDcnyRENGnIHnit-ym2rhQBnXMJw';
+
+// Maksimum fotoğraf sayısı
+const MAX_PHOTOS = 20;
+
 /**
  * Aktivite fotoğrafları için servis
  * Bu servis, aktivite fotoğraflarını getirmek için kullanılır
@@ -74,39 +84,35 @@ const ActivityPhotosService = {
 
       console.log('Kullanılacak sorgular:', queries);
 
-      // Tüm sorgular için fotoğrafları getir
-      let allPhotoUrls: string[] = [];
-
       // Her sorgu için paralel olarak fotoğrafları getir
       const photoPromises = queries.map(async (queryText) => {
         try {
-          const response = await fetch('/api/places/photos', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ query: queryText }),
-            cache: 'no-store'
-          });
+          // Places API Text Search ile yerleri bul
+          const searchData = await ProxyApiService.placeTextSearch(queryText, GOOGLE_PLACES_API_KEY);
 
-          if (!response.ok) {
-            console.error(`"${queryText}" sorgusu için API isteği başarısız:`, response.status);
+          if (!searchData.results || searchData.results.length === 0) {
             return [];
           }
 
-          const data = await response.json();
+          // İlk sonucu al (en alakalı)
+          const placeId = searchData.results[0].place_id;
 
-          if (!data.photoReferences || data.photoReferences.length === 0) {
-            console.log(`"${queryText}" sorgusu için fotoğraf bulunamadı`);
+          // Fotoğraflar dahil yer detaylarını al
+          const detailsData = await ProxyApiService.placeDetails(placeId, 'photos', GOOGLE_PLACES_API_KEY);
+
+          if (!detailsData.result || !detailsData.result.photos || detailsData.result.photos.length === 0) {
             return [];
           }
 
-          // Fotoğraf referanslarını URL'lere dönüştür
-          return data.photoReferences
-            .filter((photoReference: string) => photoReference !== null && photoReference !== undefined && photoReference !== '')
-            .map((photoReference: string) =>
-              `/api/places/photo?photoReference=${encodeURIComponent(photoReference)}&maxwidth=800`
-            );
+          // Fotoğraf referanslarını al
+          const photoReferences = detailsData.result.photos
+            .slice(0, MAX_PHOTOS / queries.length) // Her sorgu için eşit sayıda fotoğraf
+            .map((photo: any) => photo.photo_reference);
+
+          // Fotoğraf URL'lerini oluştur
+          return photoReferences
+            .filter((ref: string) => ref)
+            .map((ref: string) => ProxyApiService.getPhotoUrl(ref, 1200, GOOGLE_PLACES_API_KEY));
         } catch (error) {
           console.error(`"${queryText}" sorgusu için hata:`, error);
           return [];
@@ -117,17 +123,13 @@ const ActivityPhotosService = {
       const photoUrlsArrays = await Promise.all(photoPromises);
 
       // Tüm sonuçları birleştir ve tekrarlanan URL'leri kaldır
-      const uniquePhotoUrls = new Set<string>();
-      photoUrlsArrays.forEach((urls: string[]) => {
-        urls.forEach((url: string) => uniquePhotoUrls.add(url));
-      });
+      const uniquePhotoUrls = Array.from(new Set(
+        photoUrlsArrays.flat().filter(url => url && url.length > 0)
+      ));
 
-      // Set'i array'e dönüştür
-      allPhotoUrls = Array.from(uniquePhotoUrls);
+      console.log(`Toplam ${uniquePhotoUrls.length} adet benzersiz fotoğraf referansı bulundu`);
 
-      console.log(`Toplam ${allPhotoUrls.length} adet benzersiz fotoğraf referansı bulundu`);
-
-      if (allPhotoUrls.length === 0) {
+      if (uniquePhotoUrls.length === 0) {
         console.log('Hiçbir sorguda fotoğraf bulunamadı, yedek fotoğraflar kullanılıyor');
         const dummyPhotos = this.getDummyPhotos(activityName, city);
         this.photoCache.set(cacheKey, dummyPhotos); // Önbelleğe kaydet
@@ -135,8 +137,8 @@ const ActivityPhotosService = {
       }
 
       // Sonuçları önbelleğe kaydet
-      this.photoCache.set(cacheKey, allPhotoUrls);
-      return allPhotoUrls;
+      this.photoCache.set(cacheKey, uniquePhotoUrls);
+      return uniquePhotoUrls;
     } catch (error) {
       console.error('Aktivite fotoğrafları getirme hatası:', error);
       // Hata durumunda yedek fotoğraflar kullan

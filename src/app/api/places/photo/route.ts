@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
     // URL'den parametreleri al
     const searchParams = request.nextUrl.searchParams;
     const photoReference = searchParams.get('photoReference');
-    const maxwidth = searchParams.get('maxwidth') || 800;
+    const maxwidth = searchParams.get('maxwidth') || 1200;
 
     console.log('Fotoğraf isteği alındı:', photoReference);
 
@@ -35,10 +35,30 @@ export async function GET(request: NextRequest) {
 
     console.log('Fotoğraf URL oluşturuldu, yönlendiriliyor');
 
-    // Doğrudan fotoğraf URL'ini döndür
-    // Burada Response.redirect kullanarak doğrudan fotoğrafa yönlendirme yapıyoruz
-    // Bu, CORS sorunlarını önler ve doğrudan fotoğrafı gösterir
-    return NextResponse.redirect(photoUrl);
+    try {
+      // Önce fotoğrafı getirmeyi dene
+      const photoResponse = await fetch(photoUrl);
+
+      if (!photoResponse.ok) {
+        throw new Error(`Photo API error: ${photoResponse.status}`);
+      }
+
+      // Fotoğraf içeriğini al
+      const photoBlob = await photoResponse.blob();
+
+      // Yeni bir Response oluştur ve fotoğrafı doğrudan döndür
+      return new NextResponse(photoBlob, {
+        headers: {
+          'Content-Type': photoResponse.headers.get('Content-Type') || 'image/jpeg',
+          'Cache-Control': 'public, max-age=86400' // 24 saat önbellek
+        }
+      });
+    } catch (fetchError) {
+      console.error('Fotoğraf getirme hatası, yönlendirme kullanılıyor:', fetchError);
+
+      // Hata durumunda doğrudan yönlendirme yap
+      return NextResponse.redirect(photoUrl);
+    }
   } catch (error) {
     console.error('Error in Places API photo:', error);
     return NextResponse.json(

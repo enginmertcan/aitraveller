@@ -1,5 +1,13 @@
 "use client";
 
+import ProxyApiService from './ProxyApiService';
+
+// Google Places API anahtarı
+const GOOGLE_PLACES_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY || 'AIzaSyCuywyLDcnyRENGnIHnit-ym2rhQBnXMJw';
+
+// Maksimum fotoğraf sayısı
+const MAX_PHOTOS = 20;
+
 /**
  * Google Places API ile otel fotoğrafları getirme servisi
  */
@@ -14,41 +22,40 @@ const HotelPhotosService = {
     try {
       console.log(`Otel fotoğrafları getiriliyor: ${hotelName}, ${city}`);
 
-      // Arama sorgusu oluştur
-      const query = `${hotelName} hotel ${city}`;
+      // Adım 1: Places API Text Search ile oteli bul (Proxy üzerinden)
+      const searchQuery = `${hotelName} hotel ${city}`;
 
-      console.log('Places Photos API isteği gönderiliyor...');
+      // Proxy servisini kullan
+      const searchData = await ProxyApiService.placeTextSearch(searchQuery, GOOGLE_PLACES_API_KEY);
 
-      // Yeni API route'u kullan - daha fazla fotoğraf için
-      const response = await fetch('/api/places/photos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query }),
-      });
-
-      if (!response.ok) {
-        console.error('Places Photos API isteği başarısız:', response.status);
-        // API isteği başarısız olduğunda yüksek kaliteli alternatif fotoğraflar kullan
-        console.log('Yüksek kaliteli alternatif otel fotoğrafları kullanılıyor');
+      if (!searchData.results || searchData.results.length === 0) {
+        console.warn(`Otel için sonuç bulunamadı: ${hotelName}`);
         return this.getDummyPhotos();
       }
 
-      const data = await response.json();
+      // İlk sonucu al (en alakalı)
+      const placeId = searchData.results[0].place_id;
+      console.log(`Otel Place ID: ${placeId}`);
 
-      if (!data.photoReferences || data.photoReferences.length === 0) {
-        console.log('Otel fotoğrafları bulunamadı, yüksek kaliteli alternatif fotoğraflar kullanılıyor');
-        // Her zaman fotoğraf göstermek için yüksek kaliteli alternatif fotoğraflar kullan
+      // Adım 2: Fotoğraflar dahil yer detaylarını al (Proxy üzerinden)
+      const detailsData = await ProxyApiService.placeDetails(placeId, 'photos', GOOGLE_PLACES_API_KEY);
+
+      if (!detailsData.result || !detailsData.result.photos || detailsData.result.photos.length === 0) {
+        console.warn(`Otel için fotoğraf bulunamadı: ${hotelName}`);
         return this.getDummyPhotos();
       }
 
-      // Tüm fotoğraf referanslarını URL'lere dönüştür
-      const photoUrls = data.photoReferences
-        .filter((photoReference: string) => photoReference !== null && photoReference !== undefined && photoReference !== '')
-        .map((photoReference: string) =>
-          `/api/places/photo?photoReference=${encodeURIComponent(photoReference)}&maxwidth=800`
-        );
+      // Tüm mevcut fotoğrafları al (MAX_PHOTOS'a kadar)
+      const photoReferences = detailsData.result.photos
+        .slice(0, MAX_PHOTOS)
+        .map((photo: any) => photo.photo_reference);
+
+      console.log(`${photoReferences.length} fotoğraf referansı bulundu`);
+
+      // Adım 3: Her referans için fotoğraf URL'lerini al
+      const photoUrls = photoReferences
+        .filter((reference: string) => reference !== null && reference !== undefined && reference !== '')
+        .map((reference: string) => ProxyApiService.getPhotoUrl(reference, 1200, GOOGLE_PLACES_API_KEY));
 
       // Eğer hiç geçerli fotoğraf yoksa, yedek fotoğrafları kullan
       if (photoUrls.length === 0) {
@@ -57,7 +64,6 @@ const HotelPhotosService = {
       }
 
       // Ekstra güvenlik için, aynı URL'leri tekrar kontrol et ve kaldır
-      // (API'den gelen referanslar zaten benzersiz olmalı, ama emin olmak için)
       const uniquePhotoUrls: string[] = Array.from(new Set(photoUrls));
 
       console.log(`${uniquePhotoUrls.length} adet benzersiz fotoğraf bulundu`);
