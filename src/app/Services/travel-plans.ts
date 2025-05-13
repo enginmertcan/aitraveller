@@ -278,8 +278,34 @@ export function formatTravelPlan(data: any): Partial<TravelPlan> {
     };
 
     // Temel alanları kontrol et ve düzenle
-    if (!formattedPlan.bestTimeToVisit) {
-      formattedPlan.bestTimeToVisit = "Not specified";
+    // bestTimeToVisit alanını işle
+    if (!formattedPlan.bestTimeToVisit || formattedPlan.bestTimeToVisit === "Not specified") {
+      // Eğer destinationInfo içinde bestTimeToVisit varsa, onu kullan
+      if (formattedPlan.destinationInfo) {
+        if (typeof formattedPlan.destinationInfo === 'string') {
+          try {
+            const destinationInfo = safeParseJSON(formattedPlan.destinationInfo);
+            if (destinationInfo && destinationInfo.bestTimeToVisit) {
+              formattedPlan.bestTimeToVisit = destinationInfo.bestTimeToVisit;
+            }
+          } catch (error) {
+            console.error('destinationInfo parse hatası:', error);
+          }
+        } else if (typeof formattedPlan.destinationInfo === 'object' &&
+                  formattedPlan.destinationInfo.bestTimeToVisit) {
+          formattedPlan.bestTimeToVisit = formattedPlan.destinationInfo.bestTimeToVisit;
+        }
+      }
+
+      // Hala boşsa, mevsimsel bir varsayılan değer ata
+      if (!formattedPlan.bestTimeToVisit || formattedPlan.bestTimeToVisit === "Not specified") {
+        const destination = formattedPlan.destination || '';
+        if (destination.includes('Türkiye') || destination.includes('Turkey')) {
+          formattedPlan.bestTimeToVisit = 'İlkbahar (Nisan-Haziran) ve Sonbahar (Eylül-Ekim) ayları';
+        } else {
+          formattedPlan.bestTimeToVisit = 'İlkbahar ve Sonbahar ayları';
+        }
+      }
     }
 
     if (typeof formattedPlan.duration === "number") {

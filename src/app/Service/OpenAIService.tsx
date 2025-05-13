@@ -14,6 +14,10 @@ const openai = new OpenAI({
 // Seyahat planı oluşturmak için kullanılacak sistem mesajı
 const SYSTEM_PROMPT = `Sen bir seyahat asistanısın. Kullanıcının istediği seyahat planını JSON formatında oluşturmalısın. Tüm yanıtların Türkçe olmalı.
 
+Yanıtın kesinlikle aşağıdaki alanları içermelidir:
+- bestTimeToVisit (destinasyon için en uygun ziyaret zamanı - ZORUNLU ALAN)
+- destinationInfo (destinasyon hakkında genel bilgiler, MUTLAKA bestTimeToVisit alanı içermeli)
+
 Aşağıdaki formatta JSON döndürmelisin:
 {
   "hotelOptions": [
@@ -177,6 +181,16 @@ Kişi: ${groupType}
 Bütçe: ${budget}
 Yaşadığı Ülke: ${residenceCountry}
 Vatandaşlık: ${citizenship}
+
+Yanıtın kesinlikle JSON olmalıdır ve aşağıdaki alanları içermelidir:
+- destinationInfo (destinasyon hakkında genel bilgiler, MUTLAKA bestTimeToVisit alanı içermeli)
+- tripSummary (seyahat özeti)
+- hotelOptions (en az 3 otel önerisi)
+- itinerary (günlük gezi planı)
+- visaInfo (vize ve pasaport bilgileri)
+- culturalDifferences (kültürel farklılıklar)
+- localTips (yerel yaşam önerileri)
+- bestTimeToVisit (destinasyon için en uygun ziyaret zamanı - ZORUNLU ALAN)
 
 NOT: Tüm yanıtınız Türkçe olmalıdır. İngilizce yanıt vermeyin.
 NOT: Vize, pasaport ve kültürel öneriler bölümleri zorunludur ve detaylı olmalıdır.
