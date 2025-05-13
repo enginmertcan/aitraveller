@@ -57,6 +57,15 @@ Aşağıdaki formatta JSON döndürmelisin:
           "alternatives": ["Alternatif 1", "Alternatif 2"]
         }
       ]
+    },
+    {
+      "day": "2. Gün",
+      "plan": [...]
+    },
+    ...
+    {
+      "day": "N. Gün",
+      "plan": [...]
     }
   ],
   "visaInfo": {
@@ -182,11 +191,23 @@ Bütçe: ${budget}
 Yaşadığı Ülke: ${residenceCountry}
 Vatandaşlık: ${citizenship}
 
+ÖNEMLİ: Tam olarak ${duration} günlük bir plan oluştur. Daha az veya daha fazla gün için değil, tam olarak ${duration} gün için plan yap.
+
+UYARI: İtinerary dizisi tam olarak ${duration} gün içermelidir. Her gün için ayrı bir plan oluşturulmalıdır. Eksik gün olmamalıdır.
+
+ÖRNEK FORMAT:
+"itinerary": [
+  { "day": "1. Gün", "plan": [...] },
+  { "day": "2. Gün", "plan": [...] },
+  ...
+  { "day": "${duration}. Gün", "plan": [...] }
+]
+
 Yanıtın kesinlikle JSON olmalıdır ve aşağıdaki alanları içermelidir:
 - destinationInfo (destinasyon hakkında genel bilgiler, MUTLAKA bestTimeToVisit alanı içermeli)
 - tripSummary (seyahat özeti)
 - hotelOptions (en az 3 otel önerisi)
-- itinerary (günlük gezi planı)
+- itinerary (günlük gezi planı - tam olarak ${duration} gün için)
 - visaInfo (vize ve pasaport bilgileri)
 - culturalDifferences (kültürel farklılıklar)
 - localTips (yerel yaşam önerileri)

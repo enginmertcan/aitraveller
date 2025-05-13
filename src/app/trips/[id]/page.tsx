@@ -1262,6 +1262,49 @@ export default function TripDetailsPage() {
                 // Eğer itinerary öğeleri yoksa veya boşsa, gösterme
                 if (!itineraryItems || itineraryItems.length === 0) return null;
 
+                // Beklenen gün sayısını belirle
+                let expectedDays = 1;
+                if (plan.days && typeof plan.days === 'number') {
+                  expectedDays = plan.days;
+                } else if (plan.duration) {
+                  // "3 days" gibi string'den sayıyı çıkar
+                  const durationMatch = String(plan.duration).match(/\d+/);
+                  if (durationMatch) {
+                    expectedDays = parseInt(durationMatch[0], 10);
+                  }
+                }
+
+                console.log(`İtinerary gün sayısı: ${itineraryItems.length}, Beklenen gün sayısı: ${expectedDays}`);
+
+                // Eksik günleri tamamla
+                if (itineraryItems.length < expectedDays) {
+                  console.log(`Eksik günler ekleniyor (${itineraryItems.length} -> ${expectedDays})...`);
+
+                  for (let i = itineraryItems.length + 1; i <= expectedDays; i++) {
+                    itineraryItems.push({
+                      day: `${i}. Gün`,
+                      plan: [
+                        {
+                          time: "09:00 - 17:00",
+                          placeName: `${plan.destination} Keşfi - Gün ${i}`,
+                          placeDetails: "Bu gün için özel bir plan bulunmamaktadır. Şehri keşfedebilir veya rehberli turlara katılabilirsiniz.",
+                          placeImageUrl: "",
+                          geoCoordinates: { latitude: 0, longitude: 0 },
+                          ticketPricing: "Değişken",
+                          timeToTravel: "Değişken",
+                          tips: [
+                            "Yerel rehberlerden bilgi alabilirsiniz.",
+                            "Hava durumuna göre giyinin.",
+                            "Yanınızda su bulundurun."
+                          ],
+                          warnings: ["Değerli eşyalarınıza dikkat edin."],
+                          alternatives: ["Müze ziyareti", "Yerel pazarları gezme", "Şehir turu"]
+                        }
+                      ]
+                    });
+                  }
+                }
+
                 return (
                   <Paper
                     elevation={0}

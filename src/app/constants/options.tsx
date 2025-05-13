@@ -7,6 +7,18 @@ Bütçe: {budget}
 Yaşadığı Ülke: {residenceCountry}
 Vatandaşlık: {citizenship}
 
+ÖNEMLİ: Tam olarak {totalDays} günlük bir plan oluştur. Daha az veya daha fazla gün için değil, tam olarak {totalDays} gün için plan yap.
+
+UYARI: İtinerary dizisi tam olarak {totalDays} gün içermelidir. Her gün için ayrı bir plan oluşturulmalıdır. Eksik gün olmamalıdır.
+
+ÖRNEK FORMAT:
+"itinerary": [
+  { "day": "1. Gün", "plan": [...] },
+  { "day": "2. Gün", "plan": [...] },
+  ...
+  { "day": "{totalDays}. Gün", "plan": [...] }
+]
+
 Lütfen bu bilgilere göre detaylı bir seyahat planı oluştur. Tüm yanıtlar Türkçe olmalıdır.`;
 export const commonIconStyle = { width: "2.5rem", height: "2.5rem", strokeWidth: 1.5 };
 

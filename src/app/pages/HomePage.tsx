@@ -299,7 +299,7 @@ export default function Home(): JSX.Element {
         "{location}",
         formState.city ? `${formState.city.mainText}, ${formState.city.secondaryText}` : "Belirtilmedi"
       )
-        .replace("{totalDays}", `${formState.days}` || "1")
+        .replace(/{totalDays}/g, `${formState.days}` || "1") // Tüm totalDays etiketlerini değiştir
         .replace("{traveller}", formState.companion?.title || "Belirtilmedi")
         .replace("{budget}", formState.budget?.title || "Belirtilmedi")
         .replace("{residenceCountry}", formState.residenceCountry || "Belirtilmedi")
