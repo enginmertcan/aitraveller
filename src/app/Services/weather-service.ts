@@ -65,6 +65,88 @@ function getWeatherIcon(icon: string): string {
   return iconMap[icon] || "01d";
 }
 
+// İngilizce hava durumu açıklamalarını Türkçe'ye çevirme
+function translateWeatherDescription(description: string): string {
+  if (!description) return "Parçalı Bulutlu";
+
+  console.log(`Translating weather description: "${description}"`);
+  const translationMap: { [key: string]: string } = {
+    // Temel hava durumları
+    "Clear": "Açık",
+    "Sunny": "Güneşli",
+    "Partly cloudy": "Parçalı Bulutlu",
+    "Partially cloudy": "Parçalı Bulutlu",
+    "Cloudy": "Bulutlu",
+    "Overcast": "Kapalı",
+    "Rain": "Yağmurlu",
+    "Light rain": "Hafif Yağmurlu",
+    "Heavy rain": "Şiddetli Yağmur",
+    "Drizzle": "Çisenti",
+    "Showers": "Sağanak Yağış",
+    "Thunderstorm": "Gök Gürültülü Fırtına",
+    "Snow": "Karlı",
+    "Light snow": "Hafif Kar",
+    "Heavy snow": "Yoğun Kar",
+    "Sleet": "Karla Karışık Yağmur",
+    "Freezing rain": "Dondurucu Yağmur",
+    "Fog": "Sisli",
+    "Mist": "Puslu",
+    "Haze": "Puslu",
+    "Windy": "Rüzgarlı",
+    "Dust": "Tozlu",
+    "Smoke": "Dumanlı",
+    "Scattered clouds": "Dağınık Bulutlu",
+    "Broken clouds": "Parçalı Bulutlu",
+    "Few clouds": "Az Bulutlu",
+    "Moderate rain": "Orta Şiddetli Yağmur",
+    "Shower rain": "Sağanak Yağış",
+    "Thunderstorm with light rain": "Hafif Yağmurlu Gök Gürültülü Fırtına",
+    "Thunderstorm with rain": "Yağmurlu Gök Gürültülü Fırtına",
+    "Thunderstorm with heavy rain": "Şiddetli Yağmurlu Gök Gürültülü Fırtına",
+    "Light intensity shower rain": "Hafif Sağanak Yağış",
+    "Heavy intensity shower rain": "Şiddetli Sağanak Yağış",
+    "Ragged shower rain": "Düzensiz Sağanak Yağış",
+    "Light intensity drizzle": "Hafif Çisenti",
+    "Drizzle rain": "Çisentili Yağmur",
+    "Heavy intensity drizzle": "Yoğun Çisenti",
+    "Shower drizzle": "Sağanak Çisenti",
+
+    // Kombinasyonlar
+    "Rain, Partially Cloudy": "Yağmurlu, Parçalı Bulutlu",
+    "Rain, Overcast": "Yağmurlu, Kapalı",
+    "Clear, Partially Cloudy": "Açık, Parçalı Bulutlu",
+    "Partially cloudy, Fog": "Parçalı Bulutlu, Sisli",
+    "Thunderstorm, Rain": "Gök Gürültülü Fırtına, Yağmurlu",
+    "Snow, Partially Cloudy": "Karlı, Parçalı Bulutlu",
+    "Snow, Overcast": "Karlı, Kapalı",
+    "Rain, Fog": "Yağmurlu, Sisli",
+    "Clear, Fog": "Açık, Sisli",
+  };
+
+  // Tam eşleşme kontrolü (büyük/küçük harf duyarsız)
+  const lowerDescription = description.toLowerCase();
+
+  for (const [eng, tr] of Object.entries(translationMap)) {
+    if (eng.toLowerCase() === lowerDescription) {
+      console.log(`Tam eşleşme bulundu: "${description}" -> "${tr}"`);
+      return tr;
+    }
+  }
+
+  // Kısmi eşleşme kontrolü (büyük/küçük harf duyarsız)
+  for (const [eng, tr] of Object.entries(translationMap)) {
+    if (lowerDescription.includes(eng.toLowerCase())) {
+      const translated = description.replace(new RegExp(eng, 'i'), tr);
+      console.log(`Kısmi eşleşme bulundu: "${description}" -> "${translated}"`);
+      return translated;
+    }
+  }
+
+  // Çeviri bulunamazsa orijinal açıklamayı döndür
+  console.log(`Çevirisi bulunamayan hava durumu: "${description}"`);
+  return description;
+}
+
 // Veri doğrulama fonksiyonu
 function validateWeatherData(data: any): boolean {
   return (
@@ -141,7 +223,7 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
         date: formattedDate, // DD/MM/YYYY formatında (1 gün eklenmiş)
         temperature: day.temp ?? 20,
         feelsLike: day.feelslike ?? day.temp ?? 20,
-        description: day.conditions ?? "Parçalı Bulutlu",
+        description: day.conditions ? translateWeatherDescription(day.conditions) : "Parçalı Bulutlu",
         icon: getWeatherIcon(day.icon),
         humidity: day.humidity ?? 50,
         windSpeed: day.windspeed ?? 5,
