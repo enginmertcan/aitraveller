@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -13,6 +13,7 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
+  CircularProgress,
 } from "@mui/material";
 import {
   ChevronLeft,
@@ -27,6 +28,8 @@ import { CheckCircle } from "@mui/icons-material";
 
 import { Hotel } from "@/app/types/travel";
 import { useThemeContext } from "@/app/context/ThemeContext";
+import HotelPhotosService from "@/app/Service/HotelPhotosService";
+import AIHotelPhotosService from "@/app/Service/AIHotelPhotosService";
 
 interface HotelDetailModalProps {
   open: boolean;
@@ -36,25 +39,70 @@ interface HotelDetailModalProps {
 
 export function HotelDetailModal({ open, hotel, onClose }: HotelDetailModalProps) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [enhancedHotel, setEnhancedHotel] = useState<Hotel | null>(null);
+  const [loading, setLoading] = useState(false);
   const theme = useTheme();
   const { isDarkMode } = useThemeContext();
   const fullScreen = useMediaQuery(theme.breakpoints.down("md"));
 
+  // Otel fotoğraflarını yükle
+  useEffect(() => {
+    const loadHotelPhotos = async () => {
+      if (!hotel || !open) return;
+
+      // Eğer zaten yeterli fotoğraf varsa, işlem yapma
+      const existingImages = hotel.additionalImages || [];
+      const validExistingImages = existingImages.filter((img) =>
+        img && (typeof img === 'string' ? img.trim() !== '' : (img.url && img.url.trim() !== ''))
+      );
+
+      if (validExistingImages.length >= 5) {
+        setEnhancedHotel(hotel);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        // Otelin bulunduğu şehri belirle
+        const city = hotel.city || hotel.location || '';
+
+        // Otelin AI tarafından önerilip önerilmediğini kontrol et
+        if (hotel.isAIRecommended) {
+          const enhancedHotelData = await AIHotelPhotosService.enhanceHotelWithPhotos(hotel, city);
+          setEnhancedHotel(enhancedHotelData);
+        } else {
+          const enhancedHotelData = await HotelPhotosService.enhanceHotelWithPhotos(hotel, city);
+          setEnhancedHotel(enhancedHotelData);
+        }
+      } catch (error) {
+        console.error("Otel fotoğrafları yükleme hatası:", error);
+        setEnhancedHotel(hotel); // Hata durumunda orijinal oteli kullan
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadHotelPhotos();
+  }, [hotel, open]);
+
   if (!hotel) return null;
+
+  // Görüntülenecek otel verisini belirle
+  const displayHotel = enhancedHotel || hotel;
 
   // Process hotel images
   const hotelImages: { url: string; caption?: string }[] = [];
 
   // Add main image if available
-  if (hotel.imageUrl) {
-    hotelImages.push({ url: hotel.imageUrl });
-  } else if (hotel.hotelImageUrl) {
-    hotelImages.push({ url: hotel.hotelImageUrl });
+  if (displayHotel.imageUrl) {
+    hotelImages.push({ url: displayHotel.imageUrl });
+  } else if (displayHotel.hotelImageUrl) {
+    hotelImages.push({ url: displayHotel.hotelImageUrl });
   }
 
   // Add additional images if available
-  if (hotel.additionalImages && Array.isArray(hotel.additionalImages)) {
-    hotel.additionalImages.forEach((img) => {
+  if (displayHotel.additionalImages && Array.isArray(displayHotel.additionalImages)) {
+    displayHotel.additionalImages.forEach((img) => {
       if (img && typeof img === "string") {
         hotelImages.push({ url: img });
       } else if (img && typeof img === "object" && img.url) {
@@ -105,7 +153,7 @@ export function HotelDetailModal({ open, hotel, onClose }: HotelDetailModalProps
         }}
       >
         <Typography variant="h5" sx={{ fontWeight: 700, color: isDarkMode ? "#93c5fd" : "#2563eb" }}>
-          {hotel.hotelName}
+          {displayHotel.hotelName}
         </Typography>
         <IconButton onClick={onClose} edge="end" aria-label="close">
           <X size={24} />
@@ -117,17 +165,32 @@ export function HotelDetailModal({ open, hotel, onClose }: HotelDetailModalProps
           {/* Image Gallery */}
           <Grid item xs={12} md={6}>
             <Box sx={{ position: "relative", height: { xs: 300, md: "100%" } }}>
-              <Box
-                component="img"
-                src={hotelImages[selectedImageIndex]?.url}
-                alt={`${hotel.hotelName} - Photo ${selectedImageIndex + 1}`}
-                sx={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  display: "block",
-                }}
-              />
+              {loading ? (
+                <Box
+                  sx={{
+                    width: "100%",
+                    height: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    bgcolor: isDarkMode ? "rgba(17, 24, 39, 0.7)" : "rgba(229, 231, 235, 0.7)",
+                  }}
+                >
+                  <CircularProgress size={40} />
+                </Box>
+              ) : (
+                <Box
+                  component="img"
+                  src={hotelImages[selectedImageIndex]?.url}
+                  alt={`${displayHotel.hotelName} - Photo ${selectedImageIndex + 1}`}
+                  sx={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    display: "block",
+                  }}
+                />
+              )}
 
               {/* Navigation Arrows */}
               {hotelImages.length > 1 && (
@@ -136,29 +199,35 @@ export function HotelDetailModal({ open, hotel, onClose }: HotelDetailModalProps
                     onClick={handlePrevImage}
                     sx={{
                       position: "absolute",
-                      left: 8,
+                      left: 16,
                       top: "50%",
                       transform: "translateY(-50%)",
-                      bgcolor: "rgba(0, 0, 0, 0.5)",
+                      bgcolor: "rgba(0, 0, 0, 0.6)",
                       color: "white",
-                      "&:hover": { bgcolor: "rgba(0, 0, 0, 0.7)" },
+                      width: 40,
+                      height: 40,
+                      zIndex: 10,
+                      "&:hover": { bgcolor: "rgba(0, 0, 0, 0.8)" },
                     }}
                   >
-                    <ChevronLeft />
+                    <ChevronLeft size={24} />
                   </IconButton>
                   <IconButton
                     onClick={handleNextImage}
                     sx={{
                       position: "absolute",
-                      right: 8,
+                      right: 16,
                       top: "50%",
                       transform: "translateY(-50%)",
-                      bgcolor: "rgba(0, 0, 0, 0.5)",
+                      bgcolor: "rgba(0, 0, 0, 0.6)",
                       color: "white",
-                      "&:hover": { bgcolor: "rgba(0, 0, 0, 0.7)" },
+                      width: 40,
+                      height: 40,
+                      zIndex: 10,
+                      "&:hover": { bgcolor: "rgba(0, 0, 0, 0.8)" },
                     }}
                   >
-                    <ChevronRight />
+                    <ChevronRight size={24} />
                   </IconButton>
                 </>
               )}
@@ -187,29 +256,29 @@ export function HotelDetailModal({ open, hotel, onClose }: HotelDetailModalProps
             <Box sx={{ p: 3, height: "100%", overflowY: "auto" }}>
               {/* Rating */}
               <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                <Rating value={hotel.rating} precision={0.5} readOnly />
+                <Rating value={displayHotel.rating} precision={0.5} readOnly />
                 <Typography variant="body2" sx={{ ml: 1, color: "text.secondary" }}>
-                  {hotel.rating ? `${hotel.rating} / 5` : "No rating"}
+                  {displayHotel.rating ? `${displayHotel.rating} / 5` : "No rating"}
                 </Typography>
               </Box>
 
               {/* Address */}
               <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, mb: 2 }}>
                 <MapPin size={18} style={{ color: isDarkMode ? "#a78bfa" : "#7c3aed", marginTop: 4 }} />
-                <Typography variant="body1">{hotel.hotelAddress}</Typography>
+                <Typography variant="body1">{displayHotel.hotelAddress}</Typography>
               </Box>
 
               {/* Price */}
               <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, mb: 2 }}>
                 <DollarSign size={18} style={{ color: isDarkMode ? "#a78bfa" : "#7c3aed", marginTop: 4 }} />
-                <Typography variant="body1">{hotel.priceRange || hotel.price || "Price not specified"}</Typography>
+                <Typography variant="body1">{displayHotel.priceRange || displayHotel.price || "Price not specified"}</Typography>
               </Box>
 
               {/* Best Time to Visit */}
-              {hotel.bestTimeToVisit && (
+              {displayHotel.bestTimeToVisit && (
                 <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, mb: 2 }}>
                   <Clock size={18} style={{ color: isDarkMode ? "#a78bfa" : "#7c3aed", marginTop: 4 }} />
-                  <Typography variant="body1">{hotel.bestTimeToVisit}</Typography>
+                  <Typography variant="body1">{displayHotel.bestTimeToVisit}</Typography>
                 </Box>
               )}
 
@@ -218,17 +287,17 @@ export function HotelDetailModal({ open, hotel, onClose }: HotelDetailModalProps
                 <Typography variant="h6" gutterBottom>
                   Description
                 </Typography>
-                <Typography variant="body1">{hotel.description}</Typography>
+                <Typography variant="body1">{displayHotel.description}</Typography>
               </Box>
 
               {/* Features */}
-              {hotel.features && hotel.features.length > 0 && (
+              {displayHotel.features && displayHotel.features.length > 0 && (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="h6" gutterBottom>
                     Features
                   </Typography>
                   <Grid container spacing={1}>
-                    {hotel.features.map((feature, index) => (
+                    {displayHotel.features.map((feature, index) => (
                       <Grid item xs={12} sm={6} key={index}>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                           <CheckCircle sx={{ fontSize: 16, color: isDarkMode ? "#93c5fd" : "#2563eb" }} />
@@ -241,12 +310,12 @@ export function HotelDetailModal({ open, hotel, onClose }: HotelDetailModalProps
               )}
 
               {/* Surroundings */}
-              {hotel.surroundings && (
+              {displayHotel.surroundings && (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="h6" gutterBottom>
                     Surroundings
                   </Typography>
-                  <Typography variant="body1">{hotel.surroundings}</Typography>
+                  <Typography variant="body1">{displayHotel.surroundings}</Typography>
                 </Box>
               )}
 
@@ -256,7 +325,7 @@ export function HotelDetailModal({ open, hotel, onClose }: HotelDetailModalProps
                 startIcon={<Navigation size={16} />}
                 onClick={() => {
                   // Otel adı ile doğrudan arama yap
-                  const searchQuery = encodeURIComponent(`${hotel.hotelName} hotel`);
+                  const searchQuery = encodeURIComponent(`${displayHotel.hotelName} hotel`);
                   const url = `https://www.google.com/maps/search/?api=1&query=${searchQuery}`;
                   window.open(url, "_blank");
                 }}

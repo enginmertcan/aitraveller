@@ -33,6 +33,8 @@ import {
   Bus,
   Calendar,
   Camera,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   X as CloseIcon,
   Cloud,
@@ -4008,7 +4010,7 @@ export default function TripDetailsPage() {
                       }
                     }}
                   >
-                    <ArrowLeft size={24} />
+                    <ChevronLeft size={24} />
                   </IconButton>
 
                   {/* Sonraki Fotoğraf Butonu - Geliştirilmiş */}
@@ -4048,7 +4050,7 @@ export default function TripDetailsPage() {
                       }
                     }}
                   >
-                    <Navigation size={24} />
+                    <ChevronRight size={24} />
                   </IconButton>
 
                   {/* Fotoğraf Sayacı - Geliştirilmiş */}

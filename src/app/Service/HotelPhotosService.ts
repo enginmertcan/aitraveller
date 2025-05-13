@@ -3,7 +3,7 @@
 /**
  * Google Places API ile otel fotoğrafları getirme servisi
  */
-export const HotelPhotosService = {
+const HotelPhotosService = {
   /**
    * Otel için fotoğrafları getirir
    * @param hotelName Otel adı
@@ -219,6 +219,96 @@ export const HotelPhotosService = {
    * @param allPhotos Tüm fotoğraflar
    * @param isDarkMode Karanlık mod aktif mi
    */
+  /**
+   * Otel için ek fotoğraflar getirir ve mevcut otel nesnesini günceller
+   * @param hotel - Otel nesnesi
+   * @param city - Otelin bulunduğu şehir
+   * @returns Promise<any> - Güncellenmiş otel nesnesi
+   */
+  async enhanceHotelWithPhotos(hotel: any, city: string): Promise<any> {
+    try {
+      if (!hotel || !hotel.hotelName) {
+        console.warn("Geçersiz otel nesnesi");
+        return hotel;
+      }
+
+      // Mevcut additionalImages dizisini kontrol et
+      const existingImages = hotel.additionalImages || [];
+
+      // Eğer zaten yeterli fotoğraf varsa, işlem yapma
+      // Geçerli fotoğrafları say (null veya geçersiz olanları sayma)
+      const validExistingImages = existingImages.filter((img: any) =>
+        img && (typeof img === 'string' ? img.trim() !== '' : (img.url && img.url.trim() !== ''))
+      );
+
+      if (validExistingImages.length >= 10) {
+        console.log(`Otel zaten ${validExistingImages.length} geçerli fotoğrafa sahip, ek fotoğraf getirilmiyor`);
+        return hotel;
+      }
+
+      try {
+        // Ek fotoğraflar getir
+        const photoUrls = await this.getHotelPhotos(hotel.hotelName, city);
+
+        if (photoUrls.length === 0) {
+          console.log("Ek fotoğraf bulunamadı");
+          return hotel;
+        }
+
+        // Mevcut fotoğrafların URL'lerini topla
+        const existingUrls = existingImages.map((img: any) =>
+          typeof img === 'string' ? img : img.url
+        );
+
+        // Sadece yeni fotoğrafları ekle (tekrarları önle)
+        const newPhotoUrls = photoUrls.filter((url: string) => !existingUrls.includes(url));
+
+        // Yeni fotoğrafları additionalImages dizisine ekle
+        const newImages = newPhotoUrls.map((url: string) => ({ url }));
+        const updatedHotel = {
+          ...hotel,
+          additionalImages: [...existingImages, ...newImages]
+        };
+
+        console.log(`Otele ${newImages.length} yeni fotoğraf eklendi`);
+        return updatedHotel;
+      } catch (fetchError) {
+        console.error("Otel fotoğrafları getirme hatası:", fetchError);
+        return hotel;
+      }
+    } catch (error) {
+      console.error("Otel fotoğrafları ile zenginleştirme hatası:", error);
+      return hotel;
+    }
+  },
+
+  /**
+   * Bir otel listesindeki tüm oteller için fotoğrafları zenginleştirir
+   * @param hotels - Otel nesneleri dizisi
+   * @param city - Otellerin bulunduğu şehir
+   * @returns Promise<any[]> - Güncellenmiş otel nesneleri dizisi
+   */
+  async enhanceHotelsWithPhotos(hotels: any[], city: string): Promise<any[]> {
+    if (!hotels || !Array.isArray(hotels) || hotels.length === 0) {
+      return [];
+    }
+
+    try {
+      console.log(`${hotels.length} otel için fotoğraflar zenginleştiriliyor`);
+
+      // Her otel için fotoğrafları zenginleştir
+      const enhancedHotels = await Promise.all(
+        hotels.map(async (hotel) => await this.enhanceHotelWithPhotos(hotel, city))
+      );
+
+      console.log("Oteller fotoğraflarla zenginleştirildi");
+      return enhancedHotels;
+    } catch (error) {
+      console.error("Otelleri fotoğraflarla zenginleştirme hatası:", error);
+      return hotels; // Hata durumunda orijinal otelleri döndür
+    }
+  },
+
   openFullSizeImage(photoUrl: string, hotelName: string, index: number, allPhotos: string[], isDarkMode: boolean): void {
     // isDarkMode değişkenini kullan
     const modal = document.createElement('div');
