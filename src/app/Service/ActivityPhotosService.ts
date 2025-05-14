@@ -14,7 +14,7 @@ const MAX_PHOTOS = 20;
  */
 const ActivityPhotosService = {
   // Fotoğraf önbelleği - aynı sorguları tekrar tekrar yapmamak için
-  photoCache: new Map<string, string[]>(),
+  photoCache: new Map<string, any[]>(),
 
   /**
    * Metindeki Türkçe karakterleri İngilizce karakterlere dönüştürür
@@ -112,7 +112,7 @@ const ActivityPhotosService = {
           // Fotoğraf URL'lerini oluştur
           return photoReferences
             .filter((ref: string) => ref)
-            .map((ref: string) => ProxyApiService.getPhotoUrl(ref, GOOGLE_PLACES_API_KEY, 1200));
+            .map((ref: string) => ProxyApiService.getPhotoUrl(ref, 1200, GOOGLE_PLACES_API_KEY));
         } catch (error) {
           console.error(`"${queryText}" sorgusu için hata:`, error);
           return [];
@@ -233,15 +233,25 @@ const ActivityPhotosService = {
    */
   async loadActivityPhotos(activityName: string, city: string): Promise<any[]> {
     try {
+      // Önbellek anahtarı oluştur
+      const cacheKey = `photos_${activityName}_${city}`;
+
+      // Önbellekte varsa, önbellekten döndür
+      if (this.photoCache.has(cacheKey)) {
+        console.log(`Önbellekten aktivite fotoğrafları alınıyor: ${activityName}, ${city}`);
+        return this.photoCache.get(cacheKey) || [];
+      }
+
       // Aktivite adı veya şehir yoksa, varsayılan fotoğrafları döndür
       if (!activityName || !city) {
         console.log('Aktivite adı veya şehir bilgisi eksik, varsayılan fotoğraflar kullanılıyor');
         const dummyUrls = this.getDummyPhotos('', '');
-        return dummyUrls.map((url: string, index: number) => ({
+        const dummyPhotos = dummyUrls.map((url: string, index: number) => ({
           imageUrl: url,
           location: activityName || 'Aktivite',
           description: `${activityName || 'Aktivite'} - Fotoğraf ${index + 1}`
         }));
+        return dummyPhotos;
       }
 
       console.log(`Aktivite fotoğrafları yükleniyor: ${activityName}, ${city}`);
@@ -256,6 +266,8 @@ const ActivityPhotosService = {
         description: `${activityName} - ${city} - Fotoğraf ${index + 1}`
       }));
 
+      // Önbelleğe kaydet
+      this.photoCache.set(cacheKey, activityPhotos);
       return activityPhotos;
     } catch (error) {
       console.error('Aktivite fotoğrafları yükleme hatası:', error);

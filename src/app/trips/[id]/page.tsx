@@ -2061,10 +2061,29 @@ export default function TripDetailsPage() {
 
                                                 console.log('İlk fotoğraf URL:', photoUrl);
 
+                                                // Fotoğraf URL'lerinin geçerliliğini kontrol et
+                                                const validatedPhotos = photos.map(photo => {
+                                                  // Eğer imageData varsa, base64 olarak kullan
+                                                  if (photo.imageData) {
+                                                    return {
+                                                      ...photo,
+                                                      imageUrl: `data:image/jpeg;base64,${photo.imageData}`
+                                                    };
+                                                  }
+                                                  // Eğer imageUrl yoksa veya geçersizse, yedek fotoğraf kullan
+                                                  if (!photo.imageUrl || photo.imageUrl.includes('undefined') || photo.imageUrl.includes('null')) {
+                                                    return {
+                                                      ...photo,
+                                                      imageUrl: 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800'
+                                                    };
+                                                  }
+                                                  return photo;
+                                                });
+
                                                 setSelectedPhotoForModal({
                                                   url: photoUrl,
                                                   location: activityName,
-                                                  photos,
+                                                  photos: validatedPhotos,
                                                   currentIndex: 0,
                                                   loading: false // Yükleme tamamlandı
                                                 });
@@ -2283,8 +2302,10 @@ export default function TripDetailsPage() {
                                     },
                                     filter: "brightness(0.95)",
                                   }}
-                                  onLoad={() => {
-                                    // Fotoğraf yükleme özelliği kaldırıldı
+                                  onError={(e) => {
+                                    // Fotoğraf yüklenemezse yedek fotoğraf kullan
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070&auto=format&fit=crop";
                                   }}
                                 />
                                 {/* Otel adı görselin üzerinde */}
@@ -3788,6 +3809,13 @@ export default function TripDetailsPage() {
                                       transform: "scale(1.05)",
                                     },
                                   }}
+                                  onError={(e) => {
+                                    // Fotoğraf yüklenemezse yedek fotoğraf kullan
+                                    const target = e.target as HTMLImageElement;
+                                    console.error("Seyahat fotoğrafı yüklenemedi:", target.src);
+                                    target.onerror = null; // Sonsuz döngüyü önle
+                                    target.src = "https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800";
+                                  }}
                                 />
                               </Box>
                               <CardContent>
@@ -4214,6 +4242,13 @@ export default function TripDetailsPage() {
                     "&:hover": {
                       transform: "scale(1.1)",
                     },
+                  }}
+                  onError={(e) => {
+                    // Fotoğraf yüklenemezse yedek fotoğraf kullan
+                    const target = e.target as HTMLImageElement;
+                    console.error("Otel fotoğrafı yüklenemedi:", target.src);
+                    target.onerror = null; // Sonsuz döngüyü önle
+                    target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070&auto=format&fit=crop";
                   }}
                 />
 

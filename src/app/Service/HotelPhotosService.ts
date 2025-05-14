@@ -55,7 +55,7 @@ const HotelPhotosService = {
       // Adım 3: Her referans için fotoğraf URL'lerini al
       const photoUrls = photoReferences
         .filter((reference: string) => reference !== null && reference !== undefined && reference !== '')
-        .map((reference: string) => ProxyApiService.getPhotoUrl(reference, GOOGLE_PLACES_API_KEY, 1200));
+        .map((reference: string) => ProxyApiService.getPhotoUrl(reference, 1200, GOOGLE_PLACES_API_KEY));
 
       // Eğer hiç geçerli fotoğraf yoksa, yedek fotoğrafları kullan
       if (photoUrls.length === 0) {
@@ -87,7 +87,13 @@ const HotelPhotosService = {
    * @returns Promise<string[]> Array of photo URLs
    */
   async fetchHotelPhotos(hotelName: string, city: string): Promise<string[]> {
-    return this.getHotelPhotos(hotelName, city);
+    try {
+      console.log(`Otel fotoğrafları getiriliyor (fetchHotelPhotos): ${hotelName}, ${city}`);
+      return await this.getHotelPhotos(hotelName, city);
+    } catch (error) {
+      console.error('Otel fotoğrafları getirme hatası (fetchHotelPhotos):', error);
+      return this.getDummyPhotos();
+    }
   },
 
   getDummyPhotos(): string[] {
