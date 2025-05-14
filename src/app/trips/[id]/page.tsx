@@ -537,9 +537,9 @@ export default function TripDetailsPage() {
           console.log(`Parsed start date: ${parsedStartDate.format("YYYY-MM-DD")}`);
 
           const weatherPromises = Array.from({ length: days }, (_, index) => {
-            // Tarihi bir gün ileri al (zaman dilimi farkını düzeltmek için)
-            const date = parsedStartDate.add(index, "day");
-            console.log(`Fetching weather for day ${index + 1}: ${date.format("YYYY-MM-DD")}`);
+            // Web uygulamasında tarih bir gün geriden geldiği için bir gün ileri alıyoruz
+            const date = parsedStartDate.add(1, "day").add(index, "day");
+            console.log(`Fetching weather for day ${index + 1}: ${date.format("YYYY-MM-DD")} (1 gün ileri alındı)`);
             return getWeatherForecast(travelPlan.destination!, date.toDate());
           });
 

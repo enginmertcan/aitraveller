@@ -1,7 +1,9 @@
 const API_KEY = process.env.NEXT_PUBLIC_VISUAL_CROSSING_API_KEY;
 
 export interface WeatherData {
-  date: string;
+  date: string; // DD/MM/YYYY formatı (API çağrıları için)
+  dateISO?: string; // ISO formatı (YYYY-MM-DD)
+  dateTurkish?: string; // Türkçe format (30 Nisan 2025 Pazartesi)
   temperature: number;
   feelsLike: number;
   description: string;
@@ -14,15 +16,24 @@ export interface WeatherData {
 
 // Tarihi DD/MM/YYYY formatına dönüştüren yardımcı fonksiyon
 function formatDateToDDMMYYYY(date: Date): string {
-  const day = date.getDate().toString().padStart(2, "0");
-  const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  const year = date.getFullYear();
+  // UTC kullanarak tarih formatla - gün kayması sorununu önlemek için
+  const day = date.getUTCDate().toString().padStart(2, "0");
+  const month = (date.getUTCMonth() + 1).toString().padStart(2, "0");
+  const year = date.getUTCFullYear();
   return `${day}/${month}/${year}`;
 }
 
 // Yedek hava durumu verisi
+const today = new Date();
 const fallbackWeatherData: WeatherData = {
-  date: formatDateToDDMMYYYY(new Date()), // DD/MM/YYYY formatında
+  date: formatDateToDDMMYYYY(today), // DD/MM/YYYY formatında
+  dateISO: today.toISOString().split('T')[0], // ISO formatı (YYYY-MM-DD)
+  dateTurkish: today.toLocaleDateString('tr-TR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    weekday: 'long'
+  }), // Türkçe format (30 Nisan 2025 Pazartesi)
   temperature: 20,
   feelsLike: 20,
   description: "Hava durumu verisi alınamadı",
@@ -209,18 +220,30 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
     // Veriyi dönüştür ve tarihi formatla - Mobil uygulama ile uyumlu olması için DD/MM/YYYY formatını kullan
     return data.days.map((day: any) => {
       // API'den gelen datetime değerini Date objesine çevir (YYYY-MM-DD formatında)
-      const dayDate = new Date(day.datetime);
+      // UTC kullanarak tarih oluştur - gün kayması sorununu önlemek için
+      const [year, month, dayNum] = day.datetime.split('-').map(Number);
+      const dayDate = new Date(Date.UTC(year, month - 1, dayNum));
 
-      // Tarihi bir gün ileri al (zaman dilimi farkını düzeltmek için)
-      dayDate.setDate(dayDate.getDate() + 1);
-
-      // Tarihi DD/MM/YYYY formatına dönüştür (mobil uyumluluğu için)
+      // Tarihi DD/MM/YYYY formatına dönüştür (API çağrıları için)
       const formattedDate = formatDateToDDMMYYYY(dayDate);
 
-      console.log(`Formatting weather date: ${day.datetime} -> ${formattedDate} (1 gün eklendi)`);
+      // Tarihi ISO formatına dönüştür (YYYY-MM-DD)
+      const isoDate = day.datetime;
+
+      // Tarihi Türkçe formatına dönüştür (görüntüleme için)
+      const turkishDate = dayDate.toLocaleDateString('tr-TR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        weekday: 'long'
+      });
+
+      console.log(`Formatting weather date: ${day.datetime} -> ${formattedDate} (DD/MM/YYYY), ${turkishDate} (Türkçe)`);
 
       return {
-        date: formattedDate, // DD/MM/YYYY formatında (1 gün eklenmiş)
+        date: formattedDate, // DD/MM/YYYY formatı (API çağrıları için)
+        dateISO: isoDate, // ISO formatı (YYYY-MM-DD)
+        dateTurkish: turkishDate, // Türkçe format (30 Nisan 2025 Pazartesi)
         temperature: day.temp ?? 20,
         feelsLike: day.feelslike ?? day.temp ?? 20,
         description: day.conditions ? translateWeatherDescription(day.conditions) : "Parçalı Bulutlu",
