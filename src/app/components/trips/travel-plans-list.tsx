@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Box, Button, Grid, Paper, Typography, ImageList, ImageListItem } from "@mui/material";
-import { Calendar, DollarSign, MapPin, Users } from "lucide-react";
+import { Badge, Box, Button, Chip, Paper, Stack, Tooltip, Typography, ImageList, ImageListItem } from "@mui/material";
+import { Calendar, DollarSign, Heart, MapPin, Star, ThumbsUp, Users } from "lucide-react";
 
 import { useThemeContext } from "../../context/ThemeContext";
 import { TravelPlan, Hotel } from "../../types/travel";
@@ -16,9 +16,9 @@ export function TravelPlansList({ plans }: TravelPlansListProps) {
   const { isDarkMode } = useThemeContext();
 
   return (
-    <Grid container spacing={3}>
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
       {plans.map(plan => (
-        <Grid item xs={12} sm={6} md={4} key={plan.id || `plan-${Math.random()}`}>
+        <Box key={plan.id || `plan-${Math.random()}`} sx={{ width: { xs: '100%', sm: 'calc(50% - 12px)', md: 'calc(33.333% - 16px)' } }}>
           <Paper
             elevation={0}
             sx={{
@@ -38,16 +38,40 @@ export function TravelPlansList({ plans }: TravelPlansListProps) {
             }}
           >
             <Box sx={{ mb: 2 }}>
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 600,
-                  mb: 1,
-                  color: isDarkMode ? "#fff" : "inherit",
-                }}
-              >
-                {plan.destination || "Bilinmeyen Destinasyon"}
-              </Typography>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 600,
+                    color: isDarkMode ? "#fff" : "inherit",
+                  }}
+                >
+                  {plan.destination || "Bilinmeyen Destinasyon"}
+                </Typography>
+
+                <Stack direction="row" spacing={1}>
+                  {plan.isFavorite && (
+                    <Tooltip title="Favorilerinizde">
+                      <Heart size={18} fill="#ec4899" color="#ec4899" />
+                    </Tooltip>
+                  )}
+
+                  {plan.isRecommended && (
+                    <Tooltip title="Önerildi">
+                      <Star size={18} fill="#f59e0b" color="#f59e0b" />
+                    </Tooltip>
+                  )}
+
+                  {plan.likes && plan.likes > 0 && (
+                    <Tooltip title={`${plan.likes} beğeni`}>
+                      <Badge badgeContent={plan.likes} color="primary" sx={{ "& .MuiBadge-badge": { fontSize: "0.7rem" } }}>
+                        <ThumbsUp size={18} />
+                      </Badge>
+                    </Tooltip>
+                  )}
+                </Stack>
+              </Box>
+
               <Box
                 sx={{
                   display: "flex",
@@ -111,9 +135,9 @@ export function TravelPlansList({ plans }: TravelPlansListProps) {
                         src={hotel.hotelImageUrl || hotel.imageUrl || '/placeholder-hotel.jpg'}
                         alt={hotel.hotelName}
                         loading="lazy"
-                        style={{ 
-                          width: "100%", 
-                          height: "100%", 
+                        style={{
+                          width: "100%",
+                          height: "100%",
                           objectFit: "cover"
                         }}
                       />
@@ -144,8 +168,8 @@ export function TravelPlansList({ plans }: TravelPlansListProps) {
               </Button>
             </Box>
           </Paper>
-        </Grid>
+        </Box>
       ))}
-    </Grid>
+    </Box>
   );
 }

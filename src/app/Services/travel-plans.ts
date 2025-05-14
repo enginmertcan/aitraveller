@@ -1226,6 +1226,101 @@ export async function toggleLike(id: string, userId: string): Promise<boolean> {
 }
 
 /**
+ * Bir seyahat planını favorilere ekleme veya favorilerden çıkarma
+ * Kullanıcı sadece kendi seyahat planlarını favorilere ekleyebilir
+ */
+export async function toggleFavorite(id: string, userId: string): Promise<boolean> {
+  try {
+    console.log(`Toggling favorite for travel plan: ${id} by user: ${userId}`);
+
+    if (!id?.trim() || !userId?.trim()) {
+      console.warn("Invalid travel plan ID or user ID");
+      return false;
+    }
+
+    const travelPlanRef = doc(db, TRAVEL_PLANS_COLLECTION, id);
+
+    // Önce planı getir
+    const docSnap = await getDoc(travelPlanRef);
+
+    if (!docSnap.exists()) {
+      console.warn("Travel plan not found:", id);
+      return false;
+    }
+
+    const planData = docSnap.data();
+
+    // Kullanıcı kontrolü - sadece kendi planlarını favorilere ekleyebilir
+    if (planData.userId !== userId) {
+      console.warn("Permission error: Users can only favorite their own travel plans");
+      return false;
+    }
+
+    // Favori durumunu tersine çevir
+    const isFavorite = !planData.isFavorite;
+
+    // Veritabanını güncelle
+    await updateDoc(travelPlanRef, {
+      isFavorite,
+      updatedAt: serverTimestamp()
+    });
+
+    console.log(`Travel plan favorite status updated to: ${isFavorite}`);
+
+    return true;
+  } catch (error) {
+    console.error("Error updating travel plan favorite status:", error);
+    return false;
+  }
+}
+
+/**
+ * Kullanıcının favori seyahat planlarını getirir
+ */
+export async function fetchFavoriteTravelPlans(userId: string): Promise<Partial<TravelPlan>[]> {
+  try {
+    if (!userId?.trim()) {
+      console.warn("Invalid user ID provided");
+      return [];
+    }
+
+    const travelPlansRef = collection(db, TRAVEL_PLANS_COLLECTION);
+    const q = query(
+      travelPlansRef,
+      where("userId", "==", userId),
+      where("isFavorite", "==", true)
+    );
+
+    const querySnapshot = await getDocs(q);
+    console.log(`Found ${querySnapshot.size} favorite plans for user: ${userId}`);
+
+    const plans = await Promise.all(
+      querySnapshot.docs.map(async (doc) => {
+        const rawData = doc.data();
+
+        // Eksik alanları varsayılan değerlerle doldur
+        if (!rawData.bestTimeToVisit) {
+          const destination = rawData.destination || '';
+          if (destination.includes('Türkiye') || destination.includes('Turkey')) {
+            rawData.bestTimeToVisit = "İlkbahar (Nisan-Haziran) ve Sonbahar (Eylül-Ekim) ayları";
+          } else {
+            rawData.bestTimeToVisit = "İlkbahar ve Sonbahar ayları";
+          }
+        }
+
+        return formatTravelPlan({ ...rawData, id: doc.id });
+      })
+    );
+
+    // Sadece geçerli planları döndür
+    return plans.filter(plan => plan.id && plan.destination);
+  } catch (error) {
+    console.error("Error fetching favorite travel plans:", error);
+    return [];
+  }
+}
+
+/**
  * Önerilen seyahat planlarını getirir
  */
 export async function fetchRecommendedTravelPlans(): Promise<Partial<TravelPlan>[]> {

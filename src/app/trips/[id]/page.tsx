@@ -58,11 +58,12 @@ import {
   Wallet,
   Wind,
 } from "lucide-react";
+import RecommendationModal from "../../components/trips/RecommendationModal";
 
 import TripComments from "../../components/trips/trip-comments";
 import { LoadingSpinner } from "../../components/ui/loading-spinner";
 import { useThemeContext } from "../../context/ThemeContext";
-import { fetchTravelPlanById, toggleLike, toggleRecommendation } from "../../Services/travel-plans";
+import { fetchTravelPlanById, toggleLike, toggleRecommendation, toggleFavorite } from "../../Services/travel-plans";
 import { getWeatherForecast, WeatherData } from "../../Services/weather-service";
 import HotelPhotosService from "../../Service/HotelPhotosService";
 // import HotelLocationService from "../../Service/HotelLocationService";
@@ -276,6 +277,8 @@ export default function TripDetailsPage() {
   const [selectedPhotoForModal, setSelectedPhotoForModal] = useState<{ url: string; location?: string; photos?: ActivityPhoto[]; currentIndex?: number; loading?: boolean } | null>(null);
   const [selectedHotelForModal, setSelectedHotelForModal] = useState<any | null>(null);
   const [activityPhotos, setActivityPhotos] = useState<{[key: string]: ActivityPhoto[]}>({});
+  const [recommendationModalOpen, setRecommendationModalOpen] = useState(false);
+  const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
 
   // Sayfa yüklenirken id parametresini kontrol et
   console.log("Trip ID:", tripId);
@@ -699,71 +702,93 @@ export default function TripDetailsPage() {
               </Button>
 
               <Box sx={{ display: "flex", gap: 2 }}>
-                {/* Öner Butonu - Sadece plan sahibi görebilir */}
+                {/* Butonlar - Sadece plan sahibi görebilir */}
                 {plan.userId === user?.id && (
-                  <Button
-                    onClick={async () => {
-                      try {
-                        const newRecommendedStatus = !(plan.isRecommended || false);
-                        // Daha önce tanımladığımız tripId değişkenini kullan
-                        if (!tripId) {
-                          console.error("Trip ID is missing");
-                          alert("Seyahat planı ID'si bulunamadı.");
-                          return;
-                        }
+                  <Stack direction="row" spacing={2}>
+                    {/* Öner Butonu */}
+                    <Button
+                      onClick={() => setRecommendationModalOpen(true)}
+                      startIcon={plan.isRecommended ? <Star /> : <StarOutline />}
+                      variant={plan.isRecommended ? "contained" : "outlined"}
+                      sx={{
+                        borderRadius: "12px",
+                        px: 3,
+                        py: 1,
+                        ...(plan.isRecommended
+                          ? {
+                              background: "linear-gradient(45deg, #f59e0b, #d97706)",
+                              "&:hover": {
+                                background: "linear-gradient(45deg, #d97706, #b45309)",
+                                transform: "translateY(-2px)",
+                                boxShadow: "0 4px 12px rgba(245, 158, 11, 0.3)",
+                              },
+                              transition: "all 0.2s ease",
+                            }
+                          : {
+                              borderColor: "#f59e0b",
+                              color: "#f59e0b",
+                              "&:hover": {
+                                borderColor: "#d97706",
+                                backgroundColor: "rgba(245, 158, 11, 0.1)",
+                                transform: "translateY(-2px)",
+                              },
+                              transition: "all 0.2s ease",
+                            }),
+                      }}
+                    >
+                      {plan.isRecommended ? "Önerildi" : "Öner"}
+                    </Button>
 
-                        // Kullanıcı kontrolü - sadece planı oluşturan kullanıcı değiştirebilir
-                        if (plan.userId !== user?.id) {
-                          alert("Sadece planı oluşturan kullanıcı öneri durumunu değiştirebilir.");
-                          return;
-                        }
-
-                        const success = await toggleRecommendation(tripId, newRecommendedStatus, user?.id);
-
-                        if (success) {
-                          setPlan({
-                            ...plan,
-                            isRecommended: newRecommendedStatus,
-                          });
-
-                          alert(
-                            newRecommendedStatus
-                              ? "Seyahat planınız başarıyla önerilenlere eklendi."
-                              : "Seyahat planınız önerilerden kaldırıldı."
-                          );
-                        } else {
-                          alert("Yetki hatası: Sadece planı oluşturan kullanıcı öneri durumunu değiştirebilir.");
-                        }
-                      } catch (error) {
-                        console.error("Öneri durumu değiştirme hatası:", error);
-                        alert("İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.");
-                      }
-                    }}
-                    startIcon={plan.isRecommended ? <Star /> : <StarOutline />}
-                    variant={plan.isRecommended ? "contained" : "outlined"}
-                    sx={{
-                      borderRadius: "12px",
-                      px: 3,
-                      py: 1,
-                      ...(plan.isRecommended
-                        ? {
-                            background: "linear-gradient(45deg, #f59e0b, #d97706)",
-                            "&:hover": {
-                              background: "linear-gradient(45deg, #d97706, #b45309)",
-                            },
+                    {/* Favorilere Ekle/Çıkar Butonu */}
+                    <Button
+                      onClick={async () => {
+                        try {
+                          if (!user?.id) {
+                            console.error("Kullanıcı ID'si bulunamadı");
+                            return;
                           }
-                        : {
-                            borderColor: "#f59e0b",
-                            color: "#f59e0b",
-                            "&:hover": {
-                              borderColor: "#d97706",
-                              backgroundColor: "rgba(245, 158, 11, 0.1)",
-                            },
-                          }),
-                    }}
-                  >
-                    {plan.isRecommended ? "Önerildi" : "Öner"}
-                  </Button>
+                          const success = await toggleFavorite(tripId, user.id);
+                          if (success) {
+                            setPlan({
+                              ...plan,
+                              isFavorite: !plan.isFavorite,
+                            });
+                          }
+                        } catch (error) {
+                          console.error("Favori durumu değiştirme hatası:", error);
+                        }
+                      }}
+                      startIcon={plan.isFavorite ? <Heart fill="#ec4899" /> : <Heart />}
+                      variant={plan.isFavorite ? "contained" : "outlined"}
+                      sx={{
+                        borderRadius: "12px",
+                        px: 3,
+                        py: 1,
+                        ...(plan.isFavorite
+                          ? {
+                              background: "linear-gradient(45deg, #ec4899, #be185d)",
+                              "&:hover": {
+                                background: "linear-gradient(45deg, #db2777, #9d174d)",
+                                transform: "translateY(-2px)",
+                                boxShadow: "0 4px 12px rgba(236, 72, 153, 0.3)",
+                              },
+                              transition: "all 0.2s ease",
+                            }
+                          : {
+                              borderColor: "#ec4899",
+                              color: "#ec4899",
+                              "&:hover": {
+                                borderColor: "#db2777",
+                                backgroundColor: "rgba(236, 72, 153, 0.1)",
+                                transform: "translateY(-2px)",
+                              },
+                              transition: "all 0.2s ease",
+                            }),
+                      }}
+                    >
+                      {plan.isFavorite ? "Favorilerimde" : "Favorilere Ekle"}
+                    </Button>
+                  </Stack>
                 )}
 
                 {/* Beğeni Butonu ve Sayısı - Önerilen planlarda göster */}
@@ -4622,6 +4647,46 @@ export default function TripDetailsPage() {
           </IconButton>
         </Box>
       </Modal>
+
+      {/* Önerme/Öneriden Kaldırma Modalı */}
+      {plan && (
+        <RecommendationModal
+          open={recommendationModalOpen}
+          onClose={() => setRecommendationModalOpen(false)}
+          isCurrentlyRecommended={plan.isRecommended || false}
+          planTitle={plan.destination || "Seyahat Planı"}
+          onConfirm={async () => {
+            try {
+              const newRecommendedStatus = !(plan.isRecommended || false);
+
+              if (!tripId) {
+                console.error("Trip ID is missing");
+                return false;
+              }
+
+              // Kullanıcı kontrolü - sadece planı oluşturan kullanıcı değiştirebilir
+              if (plan.userId !== user?.id) {
+                return false;
+              }
+
+              const success = await toggleRecommendation(tripId, newRecommendedStatus, user?.id);
+
+              if (success) {
+                setPlan({
+                  ...plan,
+                  isRecommended: newRecommendedStatus,
+                });
+                return true;
+              } else {
+                return false;
+              }
+            } catch (error) {
+              console.error("Öneri durumu değiştirme hatası:", error);
+              return false;
+            }
+          }}
+        />
+      )}
     </Box>
   );
 }

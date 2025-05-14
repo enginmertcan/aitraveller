@@ -124,6 +124,7 @@ export interface TravelPlan {
   isRecommended?: boolean;
   likes?: number;
   likedBy?: string[];
+  isFavorite?: boolean;
   itinerary: { [key: string]: DayPlan | Activity[] } | string;
   hotelOptions: Hotel[] | string;
   bestTimeToVisit?: string;
