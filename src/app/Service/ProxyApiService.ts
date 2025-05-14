@@ -81,7 +81,7 @@ const ProxyApiService = {
         const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${apiKey}`;
         const response = await fetch(`${ALTERNATIVE_PROXIES[0]}${encodeURIComponent(searchUrl)}`);
         return await response.json();
-      } catch (altError) {
+      } catch {
         // Hata durumunda boş bir sonuç döndür
         return { results: [] };
       }
@@ -95,7 +95,7 @@ const ProxyApiService = {
    * @param apiKey - Google Places API anahtarı
    * @returns Promise<any> - API yanıtı
    */
-  async placeDetails(placeId: string, fields: string = 'photos', apiKey: string): Promise<any> {
+  async placeDetails(placeId: string, apiKey: string, fields: string = 'photos'): Promise<any> {
     try {
       console.log(`Place Details isteği yapılıyor: ${placeId}`);
 
@@ -149,7 +149,7 @@ const ProxyApiService = {
         const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=${fields}&key=${apiKey}`;
         const response = await fetch(`${ALTERNATIVE_PROXIES[0]}${encodeURIComponent(detailsUrl)}`);
         return await response.json();
-      } catch (altError) {
+      } catch {
         // Hata durumunda boş bir sonuç döndür
         return { result: { photos: [] } };
       }
@@ -163,7 +163,7 @@ const ProxyApiService = {
    * @param apiKey - Google Places API anahtarı
    * @returns string - Fotoğraf URL'i
    */
-  getPhotoUrl(photoReference: string, maxWidth: number = 1200, apiKey: string): string {
+  getPhotoUrl(photoReference: string, apiKey: string, maxWidth: number = 1200): string {
     // Fotoğraf URL'i doğrudan kullanılabilir (CORS sorunu yok)
     return `/api/places/photo?photoReference=${encodeURIComponent(photoReference)}&maxwidth=${maxWidth}`;
   },
@@ -175,7 +175,7 @@ const ProxyApiService = {
    * @param apiKey - Google Places API anahtarı
    * @returns string - Proxy üzerinden fotoğraf URL'i
    */
-  getProxyPhotoUrl(photoReference: string, maxWidth: number = 1200, apiKey: string): string {
+  getProxyPhotoUrl(photoReference: string, apiKey: string, maxWidth: number = 1200): string {
     const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${maxWidth}&photoreference=${photoReference}&key=${apiKey}`;
     return `${CORS_PROXY_URL}${encodeURIComponent(photoUrl)}`;
   }

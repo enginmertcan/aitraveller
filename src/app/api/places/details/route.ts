@@ -52,12 +52,12 @@ export async function POST(request: NextRequest) {
       const detailsData = await detailsResponse.json();
 
       return NextResponse.json(detailsData);
-    } else {
-      return NextResponse.json(
-        { error: 'Either placeId or query parameter is required' },
-        { status: 400 }
-      );
     }
+
+    return NextResponse.json(
+      { error: 'Either placeId or query parameter is required' },
+      { status: 400 }
+    );
   } catch (error) {
     console.error('Error in Places API details:', error);
     return NextResponse.json(

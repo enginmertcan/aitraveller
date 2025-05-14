@@ -80,8 +80,14 @@ export function parseItinerary(data: any) {
         console.log("Parsed itinerary keys:", Object.keys(parsedItinerary));
       }
 
-      // Extract visaInfo, culturalDifferences, and localTips from the itinerary JSON string
+      // Extract visaInfo, culturalDifferences, localTips, and bestTimeToVisit from the itinerary JSON string
       if (parsedItinerary && typeof parsedItinerary === "object") {
+        // Extract bestTimeToVisit - AITravellerMobile ile uyumlu olması için
+        if (parsedItinerary.bestTimeToVisit) {
+          console.log("Found bestTimeToVisit in itinerary:", parsedItinerary.bestTimeToVisit);
+          parsedData.bestTimeToVisit = parsedItinerary.bestTimeToVisit;
+        }
+
         // Extract visaInfo
         if (parsedItinerary.visaInfo) {
           console.log("Found visaInfo in itinerary");
@@ -251,6 +257,12 @@ export function parseItinerary(data: any) {
         const parsedDestinationInfo = safeParseJSON(data.destinationInfo);
         if (parsedDestinationInfo && typeof parsedDestinationInfo === "object") {
           parsedData.destinationInfo = parsedDestinationInfo;
+
+          // AITravellerMobile ile uyumlu olması için bestTimeToVisit alanını da çıkar
+          if (parsedDestinationInfo.bestTimeToVisit && (!parsedData.bestTimeToVisit || parsedData.bestTimeToVisit === "Not specified")) {
+            console.log("Found bestTimeToVisit in destinationInfo:", parsedDestinationInfo.bestTimeToVisit);
+            parsedData.bestTimeToVisit = parsedDestinationInfo.bestTimeToVisit;
+          }
         }
       } catch (error) {
         console.error("Error parsing destinationInfo:", error);
@@ -278,35 +290,67 @@ export function formatTravelPlan(data: any): Partial<TravelPlan> {
     };
 
     // Temel alanları kontrol et ve düzenle
-    // bestTimeToVisit alanını işle
-    if (!formattedPlan.bestTimeToVisit || formattedPlan.bestTimeToVisit === "Not specified") {
-      // Eğer destinationInfo içinde bestTimeToVisit varsa, onu kullan
+    // bestTimeToVisit alanını işle - AITravellerMobile ile aynı mantığı kullan
+    console.log("İşlenmeden önce bestTimeToVisit:", formattedPlan.bestTimeToVisit);
+
+    // 1. Önce doğrudan bestTimeToVisit alanını kontrol et
+    let bestTimeToVisit = formattedPlan.bestTimeToVisit;
+
+    // 2. Eğer bestTimeToVisit boşsa veya "Not specified" ise, destinationInfo içinde ara
+    if (!bestTimeToVisit || bestTimeToVisit === "Not specified") {
+      console.log("bestTimeToVisit boş, destinationInfo içinde aranıyor...");
+
       if (formattedPlan.destinationInfo) {
         if (typeof formattedPlan.destinationInfo === 'string') {
           try {
             const destinationInfo = safeParseJSON(formattedPlan.destinationInfo);
             if (destinationInfo && destinationInfo.bestTimeToVisit) {
-              formattedPlan.bestTimeToVisit = destinationInfo.bestTimeToVisit;
+              bestTimeToVisit = destinationInfo.bestTimeToVisit;
+              console.log("destinationInfo string içinde bestTimeToVisit bulundu:", bestTimeToVisit);
             }
           } catch (error) {
             console.error('destinationInfo parse hatası:', error);
           }
         } else if (typeof formattedPlan.destinationInfo === 'object' &&
                   formattedPlan.destinationInfo.bestTimeToVisit) {
-          formattedPlan.bestTimeToVisit = formattedPlan.destinationInfo.bestTimeToVisit;
-        }
-      }
-
-      // Hala boşsa, mevsimsel bir varsayılan değer ata
-      if (!formattedPlan.bestTimeToVisit || formattedPlan.bestTimeToVisit === "Not specified") {
-        const destination = formattedPlan.destination || '';
-        if (destination.includes('Türkiye') || destination.includes('Turkey')) {
-          formattedPlan.bestTimeToVisit = 'İlkbahar (Nisan-Haziran) ve Sonbahar (Eylül-Ekim) ayları';
-        } else {
-          formattedPlan.bestTimeToVisit = 'İlkbahar ve Sonbahar ayları';
+          bestTimeToVisit = formattedPlan.destinationInfo.bestTimeToVisit;
+          console.log("destinationInfo object içinde bestTimeToVisit bulundu:", bestTimeToVisit);
         }
       }
     }
+
+    // 3. Eğer itinerary içinde bestTimeToVisit varsa, onu kullan
+    if ((!bestTimeToVisit || bestTimeToVisit === "Not specified") &&
+        formattedPlan.itinerary && typeof formattedPlan.itinerary === 'string') {
+      console.log("bestTimeToVisit hala boş, itinerary içinde aranıyor...");
+
+      try {
+        const parsedItinerary = safeParseJSON(formattedPlan.itinerary);
+        if (parsedItinerary && parsedItinerary.bestTimeToVisit) {
+          bestTimeToVisit = parsedItinerary.bestTimeToVisit;
+          console.log("itinerary içinde bestTimeToVisit bulundu:", bestTimeToVisit);
+        }
+      } catch (error) {
+        console.error('itinerary parse hatası:', error);
+      }
+    }
+
+    // 4. Hala boşsa, mevsimsel bir varsayılan değer ata
+    if (!bestTimeToVisit || bestTimeToVisit === "Not specified") {
+      console.log("bestTimeToVisit hala boş, varsayılan değer atanıyor...");
+
+      const destination = formattedPlan.destination || '';
+      if (destination.includes('Türkiye') || destination.includes('Turkey')) {
+        bestTimeToVisit = 'İlkbahar (Nisan-Haziran) ve Sonbahar (Eylül-Ekim) ayları';
+      } else {
+        bestTimeToVisit = 'İlkbahar ve Sonbahar ayları';
+      }
+      console.log("Varsayılan bestTimeToVisit atandı:", bestTimeToVisit);
+    }
+
+    // 5. Son değeri formattedPlan'a ata
+    formattedPlan.bestTimeToVisit = bestTimeToVisit;
+    console.log("Son bestTimeToVisit değeri:", formattedPlan.bestTimeToVisit);
 
     if (typeof formattedPlan.duration === "number") {
       formattedPlan.duration = `${formattedPlan.duration} days`;
@@ -409,6 +453,17 @@ export function formatTravelPlan(data: any): Partial<TravelPlan> {
       "destinationInfo",
     ];
 
+    // bestTimeToVisit alanını itinerary içine de ekle - AITravellerMobile ile uyumlu olması için
+    if (formattedPlan.itinerary && typeof formattedPlan.itinerary === "object") {
+      const itineraryObj = formattedPlan.itinerary as any;
+
+      // bestTimeToVisit alanını itinerary içine ekle
+      if (formattedPlan.bestTimeToVisit && formattedPlan.bestTimeToVisit !== "Not specified") {
+        console.log("Adding bestTimeToVisit to itinerary:", formattedPlan.bestTimeToVisit);
+        itineraryObj.bestTimeToVisit = formattedPlan.bestTimeToVisit;
+      }
+    }
+
     // Önce bu alanları itinerary'den çıkaralım (eğer varsa)
     if (formattedPlan.itinerary && typeof formattedPlan.itinerary === "object") {
       const itineraryObj = formattedPlan.itinerary as any;
@@ -431,6 +486,13 @@ export function formatTravelPlan(data: any): Partial<TravelPlan> {
         console.log("Moving localTips from itinerary to top level");
         formattedPlan.localTips = itineraryObj.localTips;
         delete itineraryObj.localTips;
+      }
+
+      // bestTimeToVisit alanını itinerary'den çıkar (eğer varsa)
+      if (itineraryObj.bestTimeToVisit && (!formattedPlan.bestTimeToVisit || formattedPlan.bestTimeToVisit === "Not specified")) {
+        console.log("Moving bestTimeToVisit from itinerary to top level:", itineraryObj.bestTimeToVisit);
+        formattedPlan.bestTimeToVisit = itineraryObj.bestTimeToVisit;
+        // bestTimeToVisit'i silme, hem itinerary'de hem de üst seviyede olsun
       }
     }
 
@@ -463,6 +525,15 @@ export function formatTravelPlan(data: any): Partial<TravelPlan> {
       (Array.isArray(formattedPlan.itinerary) || typeof formattedPlan.itinerary === "object")
     ) {
       try {
+        // Ensure bestTimeToVisit is included in the itinerary object before stringifying
+        if (typeof formattedPlan.itinerary === "object" && !Array.isArray(formattedPlan.itinerary)) {
+          const itineraryObj = formattedPlan.itinerary as any;
+          if (formattedPlan.bestTimeToVisit && formattedPlan.bestTimeToVisit !== "Not specified") {
+            console.log("Adding bestTimeToVisit to itinerary before stringifying:", formattedPlan.bestTimeToVisit);
+            itineraryObj.bestTimeToVisit = formattedPlan.bestTimeToVisit;
+          }
+        }
+
         formattedPlan.itinerary = JSON.stringify(formattedPlan.itinerary);
         console.log("itinerary converted to JSON string");
       } catch (error) {
@@ -494,11 +565,18 @@ export async function fetchUserTravelPlans(userId: string): Promise<Partial<Trav
       querySnapshot.docs.map(async doc => {
         const rawData = doc.data();
 
-        // Özel işleme: itinerary içindeki visaInfo, culturalDifferences ve localTips alanlarını çıkar
+        // Özel işleme: itinerary içindeki visaInfo, culturalDifferences, localTips ve bestTimeToVisit alanlarını çıkar
         if (rawData.itinerary && typeof rawData.itinerary === "string") {
           try {
             const parsedItinerary = safeParseJSON(rawData.itinerary);
             if (parsedItinerary && typeof parsedItinerary === "object") {
+              // bestTimeToVisit alanını itinerary'den çıkar - AITravellerMobile ile uyumlu olması için
+              if (parsedItinerary.bestTimeToVisit) {
+                console.log("Extracting bestTimeToVisit from itinerary:", parsedItinerary.bestTimeToVisit);
+                // Her zaman itinerary'deki değeri kullan, daha güncel olabilir
+                rawData.bestTimeToVisit = parsedItinerary.bestTimeToVisit;
+              }
+
               // visaInfo, culturalDifferences ve localTips alanlarını itinerary'den çıkar
               // ve üst seviye alanlara taşı
               if (parsedItinerary.visaInfo && !rawData.visaInfo) {
@@ -518,6 +596,21 @@ export async function fetchUserTravelPlans(userId: string): Promise<Partial<Trav
             }
           } catch (error) {
             console.error("Error parsing itinerary:", error);
+          }
+        }
+
+        // Eğer bestTimeToVisit hala boşsa veya "Not specified" ise, varsayılan bir değer ata
+        if (!rawData.bestTimeToVisit || rawData.bestTimeToVisit === "Not specified") {
+          console.log("Setting default bestTimeToVisit for mobile compatibility");
+          const destination = rawData.destination || '';
+          if (destination.includes('İstanbul') || destination.includes('Istanbul')) {
+            rawData.bestTimeToVisit = "İlkbahar (Nisan-Haziran) ve Sonbahar (Eylül-Ekim) ayları";
+          } else if (destination.includes('Antalya') || destination.includes('Muğla') || destination.includes('Bodrum')) {
+            rawData.bestTimeToVisit = "Yaz ayları (Haziran-Eylül)";
+          } else if (destination.includes('Türkiye') || destination.includes('Turkey')) {
+            rawData.bestTimeToVisit = "İlkbahar (Nisan-Haziran) ve Sonbahar (Eylül-Ekim) ayları";
+          } else {
+            rawData.bestTimeToVisit = "İlkbahar ve Sonbahar ayları";
           }
         }
 
@@ -551,11 +644,18 @@ export async function fetchTravelPlanById(id: string): Promise<Partial<TravelPla
     const rawData = docSnap.data();
     console.log("Raw data from Firebase:", rawData);
 
-    // Özel işleme: itinerary içindeki visaInfo, culturalDifferences ve localTips alanlarını çıkar
+    // Özel işleme: itinerary içindeki visaInfo, culturalDifferences, localTips ve bestTimeToVisit alanlarını çıkar
     if (rawData.itinerary && typeof rawData.itinerary === "string") {
       try {
         const parsedItinerary = safeParseJSON(rawData.itinerary);
         if (parsedItinerary && typeof parsedItinerary === "object") {
+          // bestTimeToVisit alanını itinerary'den çıkar - AITravellerMobile ile uyumlu olması için
+          if (parsedItinerary.bestTimeToVisit) {
+            console.log("Extracting bestTimeToVisit from itinerary:", parsedItinerary.bestTimeToVisit);
+            // Her zaman itinerary'deki değeri kullan, daha güncel olabilir
+            rawData.bestTimeToVisit = parsedItinerary.bestTimeToVisit;
+          }
+
           // visaInfo, culturalDifferences ve localTips alanlarını itinerary'den çıkar
           // ve üst seviye alanlara taşı
           if (parsedItinerary.visaInfo && !rawData.visaInfo) {
@@ -575,6 +675,21 @@ export async function fetchTravelPlanById(id: string): Promise<Partial<TravelPla
         }
       } catch (error) {
         console.error("Error parsing itinerary:", error);
+      }
+    }
+
+    // Eğer bestTimeToVisit hala boşsa veya "Not specified" ise, varsayılan bir değer ata
+    if (!rawData.bestTimeToVisit || rawData.bestTimeToVisit === "Not specified") {
+      console.log("Setting default bestTimeToVisit for mobile compatibility");
+      const destination = rawData.destination || '';
+      if (destination.includes('İstanbul') || destination.includes('Istanbul')) {
+        rawData.bestTimeToVisit = "İlkbahar (Nisan-Haziran) ve Sonbahar (Eylül-Ekim) ayları";
+      } else if (destination.includes('Antalya') || destination.includes('Muğla') || destination.includes('Bodrum')) {
+        rawData.bestTimeToVisit = "Yaz ayları (Haziran-Eylül)";
+      } else if (destination.includes('Türkiye') || destination.includes('Turkey')) {
+        rawData.bestTimeToVisit = "İlkbahar (Nisan-Haziran) ve Sonbahar (Eylül-Ekim) ayları";
+      } else {
+        rawData.bestTimeToVisit = "İlkbahar ve Sonbahar ayları";
       }
     }
 
@@ -1130,11 +1245,18 @@ export async function fetchRecommendedTravelPlans(): Promise<Partial<TravelPlan>
       querySnapshot.docs.map(async doc => {
         const rawData = doc.data();
 
-        // Özel işleme: itinerary içindeki visaInfo, culturalDifferences ve localTips alanlarını çıkar
+        // Özel işleme: itinerary içindeki visaInfo, culturalDifferences, localTips ve bestTimeToVisit alanlarını çıkar
         if (rawData.itinerary && typeof rawData.itinerary === "string") {
           try {
             const parsedItinerary = safeParseJSON(rawData.itinerary);
             if (parsedItinerary && typeof parsedItinerary === "object") {
+              // bestTimeToVisit alanını itinerary'den çıkar - AITravellerMobile ile uyumlu olması için
+              if (parsedItinerary.bestTimeToVisit) {
+                console.log("Extracting bestTimeToVisit from itinerary:", parsedItinerary.bestTimeToVisit);
+                // Her zaman itinerary'deki değeri kullan, daha güncel olabilir
+                rawData.bestTimeToVisit = parsedItinerary.bestTimeToVisit;
+              }
+
               // visaInfo, culturalDifferences ve localTips alanlarını itinerary'den çıkar
               // ve üst seviye alanlara taşı
               if (parsedItinerary.visaInfo && !rawData.visaInfo) {
@@ -1154,6 +1276,21 @@ export async function fetchRecommendedTravelPlans(): Promise<Partial<TravelPlan>
             }
           } catch (error) {
             console.error("Error parsing itinerary:", error);
+          }
+        }
+
+        // Eğer bestTimeToVisit hala boşsa veya "Not specified" ise, varsayılan bir değer ata
+        if (!rawData.bestTimeToVisit || rawData.bestTimeToVisit === "Not specified") {
+          console.log("Setting default bestTimeToVisit for mobile compatibility");
+          const destination = rawData.destination || '';
+          if (destination.includes('İstanbul') || destination.includes('Istanbul')) {
+            rawData.bestTimeToVisit = "İlkbahar (Nisan-Haziran) ve Sonbahar (Eylül-Ekim) ayları";
+          } else if (destination.includes('Antalya') || destination.includes('Muğla') || destination.includes('Bodrum')) {
+            rawData.bestTimeToVisit = "Yaz ayları (Haziran-Eylül)";
+          } else if (destination.includes('Türkiye') || destination.includes('Turkey')) {
+            rawData.bestTimeToVisit = "İlkbahar (Nisan-Haziran) ve Sonbahar (Eylül-Ekim) ayları";
+          } else {
+            rawData.bestTimeToVisit = "İlkbahar ve Sonbahar ayları";
           }
         }
 

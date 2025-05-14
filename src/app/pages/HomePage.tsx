@@ -310,6 +310,25 @@ export default function Home(): JSX.Element {
       const aiResponse = await chatSession.sendMessage(FINAL_PROMPT);
       const aiItinerary = await aiResponse?.response?.text();
 
+      // Determine a better default value for bestTimeToVisit based on destination
+      let defaultBestTimeToVisit = "Not specified";
+      const destination = formState.city ? `${formState.city.mainText}, ${formState.city.secondaryText}` : "";
+
+      if (destination.includes("İstanbul") || destination.includes("Istanbul")) {
+        defaultBestTimeToVisit = "İlkbahar (Nisan-Haziran) ve Sonbahar (Eylül-Ekim) ayları";
+      } else if (destination.includes("Antalya") || destination.includes("Muğla") || destination.includes("Bodrum") || destination.includes("Marmaris")) {
+        defaultBestTimeToVisit = "Yaz ayları (Haziran-Eylül)";
+      } else if (destination.includes("Kapadokya") || destination.includes("Cappadocia") || destination.includes("Nevşehir")) {
+        defaultBestTimeToVisit = "İlkbahar (Nisan-Haziran) ve Sonbahar (Eylül-Ekim) ayları";
+      } else if (destination.includes("Erzurum") || destination.includes("Kars") || destination.includes("Uludağ")) {
+        defaultBestTimeToVisit = "Kış ayları (Aralık-Mart)";
+      } else if (formState.isDomestic) {
+        defaultBestTimeToVisit = "İlkbahar (Nisan-Haziran) ve Sonbahar (Eylül-Ekim) ayları";
+      } else {
+        // For international destinations, provide a generic response
+        defaultBestTimeToVisit = "İlkbahar ve Sonbahar ayları";
+      }
+
       const travelPlanData = {
         id: new Date().getTime().toString(),
         destination: formState.city ? `${formState.city.mainText}, ${formState.city.secondaryText}` : "Not selected",
@@ -320,7 +339,7 @@ export default function Home(): JSX.Element {
         groupType: formState.companion?.title || "Not selected",
         numberOfPeople: formState.companion?.people || "Not specified",
         itinerary: aiItinerary,
-        bestTimeToVisit: "Not specified",
+        bestTimeToVisit: defaultBestTimeToVisit,
         hotelOptions: [],
         isDomestic: formState.isDomestic,
         country: formState.city?.country || (formState.isDomestic ? "Turkey" : "Not specified"),

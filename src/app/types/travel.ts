@@ -42,6 +42,9 @@ export interface Hotel {
   price?: string;
   features?: string[];
   surroundings?: string;
+  city?: string;
+  location?: string;
+  isAIRecommended?: boolean;
 }
 
 /**

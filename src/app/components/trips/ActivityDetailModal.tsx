@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import {
   Box,
-  Button,
   Dialog,
   DialogContent,
   DialogTitle,
@@ -34,7 +33,6 @@ interface ActivityDetailModalProps {
 export function ActivityDetailModal({ open, activity, city, onClose }: ActivityDetailModalProps) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [activityPhotos, setActivityPhotos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   const theme = useTheme();
   const { isDarkMode } = useThemeContext();
   const fullScreen = useMediaQuery(theme.breakpoints.down("md"));
@@ -43,14 +41,11 @@ export function ActivityDetailModal({ open, activity, city, onClose }: ActivityD
     const fetchActivityPhotos = async () => {
       if (!activity || !activity.placeName) return;
 
-      setLoading(true);
       try {
         const photos = await ActivityPhotosService.loadActivityPhotos(activity.placeName, city);
         setActivityPhotos(photos);
       } catch (error) {
         console.error("Aktivite fotoğrafları yükleme hatası:", error);
-      } finally {
-        setLoading(false);
       }
     };
 

@@ -112,7 +112,7 @@ const ActivityPhotosService = {
           // Fotoğraf URL'lerini oluştur
           return photoReferences
             .filter((ref: string) => ref)
-            .map((ref: string) => ProxyApiService.getPhotoUrl(ref, 1200, GOOGLE_PLACES_API_KEY));
+            .map((ref: string) => ProxyApiService.getPhotoUrl(ref, GOOGLE_PLACES_API_KEY, 1200));
         } catch (error) {
           console.error(`"${queryText}" sorgusu için hata:`, error);
           return [];

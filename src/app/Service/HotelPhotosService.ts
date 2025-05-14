@@ -55,7 +55,7 @@ const HotelPhotosService = {
       // Adım 3: Her referans için fotoğraf URL'lerini al
       const photoUrls = photoReferences
         .filter((reference: string) => reference !== null && reference !== undefined && reference !== '')
-        .map((reference: string) => ProxyApiService.getPhotoUrl(reference, 1200, GOOGLE_PLACES_API_KEY));
+        .map((reference: string) => ProxyApiService.getPhotoUrl(reference, GOOGLE_PLACES_API_KEY, 1200));
 
       // Eğer hiç geçerli fotoğraf yoksa, yedek fotoğrafları kullan
       if (photoUrls.length === 0) {

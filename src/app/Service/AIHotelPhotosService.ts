@@ -117,7 +117,7 @@ const AIHotelPhotosService = {
             const newImages = newPhotoUrls.map(url => ({ url }));
 
             // Ana fotoğrafı ayarla (eğer yoksa)
-            let updatedHotel = { ...hotel };
+            const updatedHotel = { ...hotel };
 
             if (!hotel.imageUrl && newPhotoUrls.length > 0) {
               updatedHotel.imageUrl = newPhotoUrls[0];
@@ -163,7 +163,7 @@ const AIHotelPhotosService = {
 
       // Eğer zaten yeterli fotoğraf varsa, işlem yapma
       // Geçerli fotoğrafları say (null veya geçersiz olanları sayma)
-      const validExistingImages = existingImages.filter(img =>
+      const validExistingImages = existingImages.filter((img: any) =>
         img && (typeof img === 'string' ? img.trim() !== '' : (img.url && img.url.trim() !== ''))
       );
 
@@ -190,7 +190,7 @@ const AIHotelPhotosService = {
       const newImages = newPhotoUrls.map(url => ({ url }));
 
       // Ana fotoğrafı ayarla (eğer yoksa)
-      let updatedHotel = { ...hotel };
+      const updatedHotel = { ...hotel };
 
       if (!hotel.imageUrl && newPhotoUrls.length > 0) {
         updatedHotel.imageUrl = newPhotoUrls[0];
