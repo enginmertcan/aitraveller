@@ -91,6 +91,12 @@ export interface TripPhoto {
   [key: string]: any; // Allow for additional fields
 }
 
+export interface CommentPhoto {
+  url?: string; // Fotoğraf URL'i
+  data?: string; // Fotoğraf base64 verisi
+  location?: string; // Fotoğrafın çekildiği konum
+}
+
 export interface TripComment {
   id: string; // Yorum ID'si
   travelPlanId: string; // Hangi seyahat planına ait olduğu
@@ -98,9 +104,10 @@ export interface TripComment {
   userName: string; // Kullanıcı adı (görüntüleme için)
   userPhotoUrl?: string; // Kullanıcı profil fotoğrafı (opsiyonel)
   content: string; // Yorum içeriği
-  photoUrl?: string; // Yorum fotoğrafı URL'i (opsiyonel)
-  photoData?: string; // Yorum fotoğrafı base64 verisi (opsiyonel)
-  photoLocation?: string; // Fotoğrafın çekildiği konum (opsiyonel)
+  photoUrl?: string; // Yorum fotoğrafı URL'i (opsiyonel, geriye uyumluluk için)
+  photoData?: string; // Yorum fotoğrafı base64 verisi (opsiyonel, geriye uyumluluk için)
+  photoLocation?: string; // Fotoğrafın çekildiği konum (opsiyonel, geriye uyumluluk için)
+  photosJson?: string; // Yorum fotoğrafları JSON string formatında (Firestore uyumluluğu için)
   rating?: number; // Değerlendirme puanı (1-5 arası, opsiyonel)
   createdAt: string; // Oluşturulma zamanı
   updatedAt?: string; // Güncellenme zamanı (opsiyonel)

@@ -494,39 +494,7 @@ export default function Home(): JSX.Element {
                             },
                           },
                         }}
-                        InputProps={{
-                          startAdornment: !formState.residenceCountry ? (
-                            <Box
-                              sx={{
-                                position: "sticky",
-                                top: 0,
-                                bgcolor: isDarkMode ? "rgba(18, 18, 18, 0.95)" : "rgba(255, 255, 255, 0.95)",
-                                p: 1,
-                                width: "100%",
-                                zIndex: 1,
-                                borderBottom: 1,
-                                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
-                              }}
-                            >
-                              <input
-                                type="text"
-                                placeholder="Ülke ara..."
-                                value={searchText.residence}
-                                onChange={e => handleSearch("residence", e.target.value)}
-                                style={{
-                                  border: "none",
-                                  padding: "8px",
-                                  width: "100%",
-                                  background: "transparent",
-                                  color: isDarkMode ? "#fff" : "inherit",
-                                  outline: "none",
-                                  fontSize: "0.9rem",
-                                }}
-                                onClick={e => e.stopPropagation()}
-                              />
-                            </Box>
-                          ) : null,
-                        }}
+                       
                         sx={{
                           "& .MuiOutlinedInput-root": {
                             backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.8)" : "rgba(255, 255, 255, 0.8)",
@@ -601,39 +569,7 @@ export default function Home(): JSX.Element {
                             },
                           },
                         }}
-                        InputProps={{
-                          startAdornment: !formState.citizenship ? (
-                            <Box
-                              sx={{
-                                position: "sticky",
-                                top: 0,
-                                bgcolor: isDarkMode ? "rgba(18, 18, 18, 0.95)" : "rgba(255, 255, 255, 0.95)",
-                                p: 1,
-                                width: "100%",
-                                zIndex: 1,
-                                borderBottom: 1,
-                                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
-                              }}
-                            >
-                              <input
-                                type="text"
-                                placeholder="Ülke ara..."
-                                value={searchText.citizenship}
-                                onChange={e => handleSearch("citizenship", e.target.value)}
-                                style={{
-                                  border: "none",
-                                  padding: "8px",
-                                  width: "100%",
-                                  background: "transparent",
-                                  color: isDarkMode ? "#fff" : "inherit",
-                                  outline: "none",
-                                  fontSize: "0.9rem",
-                                }}
-                                onClick={e => e.stopPropagation()}
-                              />
-                            </Box>
-                          ) : null,
-                        }}
+                        
                         sx={{
                           "& .MuiOutlinedInput-root": {
                             backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.8)" : "rgba(255, 255, 255, 0.8)",
