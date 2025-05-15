@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Badge, Box, Button, Chip, Paper, Stack, Tooltip, Typography, ImageList, ImageListItem } from "@mui/material";
+import { Badge, Box, Button, Paper, Stack, Tooltip, Typography, ImageList, ImageListItem } from "@mui/material";
 import { Calendar, DollarSign, Heart, MapPin, Star, ThumbsUp, Users } from "lucide-react";
 
 import { useThemeContext } from "../../context/ThemeContext";

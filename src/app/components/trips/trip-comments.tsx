@@ -592,8 +592,6 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
     }
   };
 
-
-
   // Tarih formatı
   const formatDate = (dateString: string) => {
     try {

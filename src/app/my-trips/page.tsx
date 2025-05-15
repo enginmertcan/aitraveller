@@ -14,8 +14,6 @@ import {
   MenuItem,
   Paper,
   Select,
-  Tab,
-  Tabs,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -42,9 +40,7 @@ export default function TripsPage() {
   const cityOptions = Array.from(new Set(plans.map(plan => plan.destination)));
   const favoriteCityOptions = Array.from(new Set(favoritePlans.map(plan => plan.destination)));
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
-  };
+  // Tab change is now handled directly by button clicks
 
   useEffect(() => {
     async function loadTravelPlans() {
@@ -408,7 +404,7 @@ export default function TripsPage() {
                           color: isDarkMode ? "rgba(255, 255, 255, 0.7)" : "text.secondary",
                         }}
                       >
-                        Seyahat detay sayfasında "Favorilere Ekle" butonunu kullanarak seyahatlerinizi favorilerinize ekleyebilirsiniz.
+                        Seyahat detay sayfasında &quot;Favorilere Ekle&quot; butonunu kullanarak seyahatlerinizi favorilerinize ekleyebilirsiniz.
                       </Typography>
                     </Box>
                   ) : (

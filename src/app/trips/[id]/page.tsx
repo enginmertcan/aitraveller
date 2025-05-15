@@ -278,7 +278,7 @@ export default function TripDetailsPage() {
   const [selectedHotelForModal, setSelectedHotelForModal] = useState<any | null>(null);
   const [activityPhotos, setActivityPhotos] = useState<{[key: string]: ActivityPhoto[]}>({});
   const [recommendationModalOpen, setRecommendationModalOpen] = useState(false);
-  const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
+  // Favorite modal is not used in this component
 
   // Sayfa yüklenirken id parametresini kontrol et
   console.log("Trip ID:", tripId);
@@ -4677,9 +4677,8 @@ export default function TripDetailsPage() {
                   isRecommended: newRecommendedStatus,
                 });
                 return true;
-              } else {
-                return false;
               }
+              return false;
             } catch (error) {
               console.error("Öneri durumu değiştirme hatası:", error);
               return false;

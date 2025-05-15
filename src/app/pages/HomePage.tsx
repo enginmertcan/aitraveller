@@ -85,7 +85,7 @@ export default function Home(): JSX.Element {
     }>
   >([]);
 
-  const [searchText, setSearchText] = useState({ residence: "", citizenship: "" });
+  const [_searchText, setSearchText] = useState({ residence: "", citizenship: "" });
   const [filteredCountries, setFilteredCountries] = useState({
     residence: [] as typeof countries,
     citizenship: [] as typeof countries,
@@ -257,23 +257,7 @@ export default function Home(): JSX.Element {
     setSearchText(prev => ({ ...prev, citizenship: "" })); // Reset search text after selection
   };
 
-  const handleSearch = (type: "residence" | "citizenship", value: string) => {
-    setSearchText(prev => ({ ...prev, [type]: value }));
-
-    const searchValue = value.toLowerCase().trim();
-    if (!searchValue) {
-      setFilteredCountries(prev => ({ ...prev, [type]: countries }));
-      return;
-    }
-
-    const filtered = countries.filter(
-      country =>
-        country.name.common.toLowerCase().includes(searchValue) ||
-        country.name.official.toLowerCase().includes(searchValue)
-    );
-
-    setFilteredCountries(prev => ({ ...prev, [type]: filtered }));
-  };
+  // Search functionality is now handled directly by select components
 
   const handleCreatePlan = async () => {
     const errors = validateForm();
@@ -494,7 +478,7 @@ export default function Home(): JSX.Element {
                             },
                           },
                         }}
-                       
+
                         sx={{
                           "& .MuiOutlinedInput-root": {
                             backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.8)" : "rgba(255, 255, 255, 0.8)",
@@ -569,7 +553,7 @@ export default function Home(): JSX.Element {
                             },
                           },
                         }}
-                        
+
                         sx={{
                           "& .MuiOutlinedInput-root": {
                             backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.8)" : "rgba(255, 255, 255, 0.8)",

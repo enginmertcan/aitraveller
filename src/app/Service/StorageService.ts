@@ -18,7 +18,7 @@ const firebaseConfig = {
 let app;
 try {
   app = getApp();
-} catch (error) {
+} catch {
   app = initializeApp(firebaseConfig);
 }
 
@@ -151,7 +151,7 @@ const StorageService = {
     try {
       new URL(url);
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
