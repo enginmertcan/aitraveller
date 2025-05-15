@@ -355,10 +355,16 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
       }
 
       // Yorumu sil
-      await deleteComment(commentToDelete);
+      const success = await deleteComment(commentToDelete);
+
+      if (success) {
+        // Yerel state'i güncelle - silinen yorumu kaldır
+        setComments(prevComments => prevComments.filter(c => c.id !== commentToDelete));
+      }
+
       setDeleteDialogOpen(false);
       setCommentToDelete(null);
-      await loadComments(); // Yorumları yeniden yükle
+      // await loadComments(); // Yorumları yeniden yükleme kaldırıldı
     } catch (error) {
       console.error("Yorum silme hatası:", error);
     } finally {
@@ -422,14 +428,30 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
         updateData.photoLocation = photos[0].location;
       }
 
-      await updateComment(photoToDelete.commentId, updateData);
+      const success = await updateComment(photoToDelete.commentId, updateData);
+
+      if (success) {
+        // Yerel state'i güncelle - yorumu güncelle
+        setComments(prevComments => prevComments.map(c => {
+          if (c.id === photoToDelete.commentId) {
+            // Güncellenmiş yorumu döndür
+            return {
+              ...c,
+              photosJson: photos.length > 0 ? JSON.stringify(photos) : "",
+              photoUrl: photos.length > 0 ? photos[0].url : "",
+              photoLocation: photos.length > 0 ? photos[0].location : ""
+            };
+          }
+          return c;
+        }));
+      }
 
       // Dialogu kapat ve state'i temizle
       setPhotoDeleteDialogOpen(false);
       setPhotoToDelete(null);
 
-      // Yorumları yeniden yükle
-      await loadComments();
+      // Yorumları yeniden yükleme kaldırıldı
+      // await loadComments();
     } catch (error) {
       console.error("Fotoğraf silme hatası:", error);
       alert("Fotoğraf silinirken bir hata oluştu.");
