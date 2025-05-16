@@ -53,11 +53,13 @@ const CommentImage = styled("img")(({ theme }) => ({
   borderRadius: theme.shape.borderRadius,
   marginTop: theme.spacing(2),
   cursor: "pointer",
-  transition: "transform 0.3s ease",
+  transition: "all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1)",
   boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+  filter: "brightness(0.97)",
   "&:hover": {
-    transform: "scale(1.05)",
-    boxShadow: "0 8px 20px rgba(0,0,0,0.25)",
+    transform: "scale(1.03) translateY(-4px)",
+    boxShadow: "0 12px 24px rgba(0,0,0,0.2)",
+    filter: "brightness(1.03)",
   },
 }));
 
@@ -526,7 +528,7 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
     }
   };
 
-  // Fotoğrafa tıklama işlemi
+  // Fotoğrafa tıklama işlemi - Geliştirilmiş versiyon
   const handlePhotoClick = (photoUrl: string, photoLocation?: string, photos?: Array<{url: string, location?: string}>, index?: number) => {
     console.log(`Fotoğrafa tıklandı: ${photoUrl.substring(0, 30)}...`);
 
@@ -536,23 +538,79 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
       return;
     }
 
-    // Eğer URL data:image ile başlamıyorsa ve base64 verisi içeriyorsa düzelt
+    // URL formatını düzelt
     let finalUrl = photoUrl;
-    if (!photoUrl.startsWith('data:image') && photoUrl.includes('base64')) {
-      console.log('URL formatı düzeltiliyor...');
-      const base64Part = photoUrl.split('base64,')[1];
-      if (base64Part) {
-        finalUrl = `data:image/jpeg;base64,${base64Part}`;
+
+    // 1. Data URI formatı kontrolü
+    if (!photoUrl.startsWith('data:image')) {
+      // Base64 verisi içeren URL
+      if (photoUrl.includes('base64')) {
+        console.log('URL içinde base64 verisi bulundu, düzeltiliyor...');
+        const base64Part = photoUrl.split('base64,')[1];
+        if (base64Part) {
+          finalUrl = `data:image/jpeg;base64,${base64Part}`;
+        }
+      }
+      // Doğrudan base64 verisi (uzun string)
+      else if (photoUrl.length > 100 && /^[A-Za-z0-9+/=]+$/.test(photoUrl.substring(0, 20))) {
+        console.log('URL doğrudan base64 verisi içeriyor, düzeltiliyor...');
+        finalUrl = `data:image/jpeg;base64,${photoUrl}`;
+      }
+      // Firebase Storage URL'i
+      else if (photoUrl.includes('firebasestorage.googleapis.com')) {
+        console.log('Firebase Storage URL\'i kullanılıyor');
+        // URL'nin geçerli olduğundan emin ol
+        if (!photoUrl.includes('alt=media')) {
+          // alt=media parametresi ekle
+          finalUrl = photoUrl.includes('?')
+            ? `${photoUrl}&alt=media`
+            : `${photoUrl}?alt=media`;
+        }
       }
     }
+
+    console.log(`İşlenmiş URL: ${finalUrl.substring(0, 30)}...`);
 
     // Durumları sıfırla
     setIsImageZoomed(false);
     setIsImageLoading(true);
 
+    // Galeri fotoğraflarını işle
+    let processedPhotos = photos;
+    if (photos && photos.length > 0) {
+      // Her fotoğraf URL'sini düzelt
+      processedPhotos = photos.map(photo => {
+        let url = photo.url;
+
+        // URL formatını düzelt
+        if (url && !url.startsWith('data:image')) {
+          // Base64 verisi içeren URL
+          if (url.includes('base64')) {
+            const base64Part = url.split('base64,')[1];
+            if (base64Part) {
+              url = `data:image/jpeg;base64,${base64Part}`;
+            }
+          }
+          // Doğrudan base64 verisi
+          else if (url.length > 100 && /^[A-Za-z0-9+/=]+$/.test(url.substring(0, 20))) {
+            url = `data:image/jpeg;base64,${url}`;
+          }
+          // Firebase Storage URL'i
+          else if (url.includes('firebasestorage.googleapis.com') && !url.includes('alt=media')) {
+            url = url.includes('?') ? `${url}&alt=media` : `${url}?alt=media`;
+          }
+        }
+
+        return {
+          url,
+          location: photo.location
+        };
+      });
+    }
+
     // Eğer fotoğraf galerisi varsa, galeriyi ve mevcut indeksi ayarla
-    if (photos && photos.length > 0 && typeof index === 'number') {
-      setPhotoGallery(photos);
+    if (processedPhotos && processedPhotos.length > 0 && typeof index === 'number') {
+      setPhotoGallery(processedPhotos);
       setCurrentPhotoIndex(index);
       setSelectedPhotoForModal({ url: finalUrl, location: photoLocation, index });
     } else {
@@ -626,23 +684,109 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
     }
   };
 
-  // Fotoğraf verisi için doğru URL formatını oluştur
+  // Fotoğraf verisi için doğru URL formatını oluştur - Geliştirilmiş versiyon
   const getPhotoUrl = (photoUrl?: string, photoData?: string) => {
-    if (photoUrl && photoUrl.trim() !== '') {
-      return photoUrl;
-    }
+    try {
+      // 1. Önce photoUrl'i kontrol et
+      if (photoUrl && photoUrl.trim() !== '') {
+        // Firebase Storage URL'i
+        if (photoUrl.includes('firebasestorage.googleapis.com')) {
+          console.log('Firebase Storage URL kullanılıyor');
+          // URL'nin geçerli olduğundan emin ol
+          if (!photoUrl.includes('alt=media')) {
+            // alt=media parametresi ekle
+            return photoUrl.includes('?')
+              ? `${photoUrl}&alt=media`
+              : `${photoUrl}?alt=media`;
+          }
+          return photoUrl;
+        }
 
-    if (photoData && photoData.trim() !== '') {
-      // Eğer data:image ile başlıyorsa, doğrudan kullan
-      if (photoData.startsWith('data:image')) {
+        // HTTP/HTTPS URL
+        if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
+          console.log('HTTP/HTTPS URL kullanılıyor');
+          return photoUrl;
+        }
+
+        // Data URI (base64)
+        if (photoUrl.startsWith('data:image')) {
+          console.log('Data URI kullanılıyor');
+          return photoUrl;
+        }
+
+        // Base64 verisi içeren URL (prefix olmadan)
+        if (photoUrl.length > 100) {
+          console.log('Base64 verisi prefix eklenerek kullanılıyor');
+
+          // Önce mevcut formatı temizle
+          let cleanBase64 = photoUrl;
+
+          // Data URI prefix'i varsa kaldır
+          if (cleanBase64.includes('data:image')) {
+            cleanBase64 = cleanBase64.split('base64,')[1] || cleanBase64;
+          }
+
+          // Base64 olmayan karakterleri temizle
+          cleanBase64 = cleanBase64.replace(/[^A-Za-z0-9+/=]/g, '');
+
+          // Doğrudan base64 verisi
+          return `data:image/jpeg;base64,${cleanBase64}`;
+        }
+
+        // Diğer URL formatları
+        return photoUrl;
+      }
+
+      // 2. photoData'yı kontrol et
+      if (photoData && photoData.trim() !== '') {
+        console.log('photoData kullanılıyor');
+
+        // Data URI (base64)
+        if (photoData.startsWith('data:image')) {
+          return photoData;
+        }
+
+        // Base64 verisi (prefix olmadan)
+        if (photoData.length > 100) {
+          // Önce mevcut formatı temizle
+          let cleanBase64 = photoData;
+
+          // Data URI prefix'i varsa kaldır
+          if (cleanBase64.includes('data:image')) {
+            cleanBase64 = cleanBase64.split('base64,')[1] || cleanBase64;
+          }
+
+          // Base64 olmayan karakterleri temizle
+          cleanBase64 = cleanBase64.replace(/[^A-Za-z0-9+/=]/g, '');
+
+          return `data:image/jpeg;base64,${cleanBase64}`;
+        }
+
+        // Diğer formatlar
         return photoData;
       }
 
-      // Değilse, base64 formatına dönüştür
-      return `data:image/jpeg;base64,${photoData}`;
-    }
+      return '';
+    } catch (error) {
+      console.error('getPhotoUrl hatası:', error);
 
-    return '';
+      // Hata durumunda en basit yaklaşımı dene
+      if (photoUrl && photoUrl.trim() !== '') {
+        if (photoUrl.length > 100 && !photoUrl.startsWith('data:image') && !photoUrl.startsWith('http')) {
+          return `data:image/jpeg;base64,${photoUrl}`;
+        }
+        return photoUrl;
+      }
+
+      if (photoData && photoData.trim() !== '') {
+        if (photoData.length > 100 && !photoData.startsWith('data:image')) {
+          return `data:image/jpeg;base64,${photoData}`;
+        }
+        return photoData;
+      }
+
+      return '';
+    }
   };
 
   // Kullanıcı avatarı için baş harfler
@@ -846,27 +990,44 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
                         <Box sx={{ mt: 2 }}>
                           {/* Birden fazla fotoğraf varsa grid olarak göster */}
                           <Box sx={{
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: 1.5,
-                            justifyContent: 'center'
+                            display: 'grid',
+                            gridTemplateColumns: photos.length > 1
+                              ? { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)' }
+                              : { xs: '1fr', sm: '350px' },
+                            gap: 2,
+                            justifyContent: photos.length === 1 ? 'center' : 'flex-start',
+                            width: '100%'
                           }}>
                             {photos.map((photo, index) => (
                               <Box
                                 key={index}
                                 sx={{
                                   position: "relative",
-                                  borderRadius: 1,
+                                  borderRadius: 2,
                                   overflow: "hidden",
-                                  width: photos.length > 1
-                                    ? { xs: "calc(50% - 8px)", sm: "calc(33.33% - 8px)" }
-                                    : { xs: "100%", sm: "350px" },
-                                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                                  transition: "all 0.3s ease",
+                                  width: '100%',
+                                  boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                                  transition: "all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1)",
+                                  transform: "translateZ(0)",
+                                  backfaceVisibility: "hidden",
                                   "&:hover": {
-                                    boxShadow: "0 4px 8px rgba(0,0,0,0.15)",
-                                    transform: "translateY(-2px)",
+                                    boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+                                    transform: "translateY(-6px)",
                                   },
+                                  "&::after": {
+                                    content: '""',
+                                    position: "absolute",
+                                    top: 0,
+                                    left: 0,
+                                    width: "100%",
+                                    height: "100%",
+                                    background: "linear-gradient(to bottom, rgba(0,0,0,0) 70%, rgba(0,0,0,0.4) 100%)",
+                                    opacity: 0,
+                                    transition: "opacity 0.4s ease",
+                                  },
+                                  "&:hover::after": {
+                                    opacity: 1,
+                                  }
                                 }}
                               >
                                 <CommentImage
@@ -881,8 +1042,75 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
                                     // Tıklanan fotoğrafla başlayarak galeriyi göster
                                     handlePhotoClick(photo.url || '', photo.location, photoGalleryItems, index);
                                   }}
-                                  onError={() => {
+                                  onLoad={() => {
+                                    console.log(`Fotoğraf başarıyla yüklendi: ${comment.id}`);
+                                  }}
+                                  onError={(e) => {
                                     console.error(`Fotoğraf yükleme hatası: ${comment.id}`);
+
+                                    // Detaylı hata ayıklama bilgisi
+                                    if (photo.url) {
+                                      console.log(`URL: ${photo.url.substring(0, 50)}${photo.url.length > 50 ? '...' : ''}`);
+                                      console.log(`URL uzunluğu: ${photo.url.length}`);
+                                      console.log(`URL tipi: ${typeof photo.url}`);
+
+                                      if (photo.url.startsWith('http')) {
+                                        console.log('URL tipi: HTTP/HTTPS');
+                                      } else if (photo.url.startsWith('data:image')) {
+                                        console.log('URL tipi: Data URI');
+                                      } else if (photo.url.length > 100) {
+                                        console.log('URL tipi: Muhtemelen base64 verisi');
+                                      }
+                                    } else {
+                                      console.log('URL değeri yok veya boş');
+                                    }
+
+                                    // Hata durumunda URL'yi düzeltmeyi dene
+                                    const img = e.target as HTMLImageElement;
+
+                                    // 1. Mobil uygulamadan gelen base64 verisi için özel düzeltme
+                                    if (photo.url && photo.url.length > 100) {
+                                      // Base64 verisi olabilecek uzun string
+                                      try {
+                                        // Önce mevcut formatı temizle
+                                        let cleanBase64 = photo.url;
+
+                                        // Data URI prefix'i varsa kaldır
+                                        if (cleanBase64.includes('data:image')) {
+                                          cleanBase64 = cleanBase64.split('base64,')[1] || cleanBase64;
+                                        }
+
+                                        // Base64 olmayan karakterleri temizle
+                                        cleanBase64 = cleanBase64.replace(/[^A-Za-z0-9+/=]/g, '');
+
+                                        console.log('Temizlenmiş base64 verisi ile yeniden deneniyor...');
+                                        img.src = `data:image/jpeg;base64,${cleanBase64}`;
+                                        return;
+                                      } catch (cleanError) {
+                                        console.error('Base64 temizleme hatası:', cleanError);
+                                      }
+                                    }
+
+                                    // 2. Firebase Storage URL'i düzeltmeyi dene
+                                    if (photo.url && photo.url.includes('firebasestorage.googleapis.com')) {
+                                      try {
+                                        // Token ekle veya yenile
+                                        const urlParts = photo.url.split('?');
+                                        if (urlParts.length > 0) {
+                                          const baseUrl = urlParts[0];
+                                          const newUrl = `${baseUrl}?alt=media&token=${Date.now()}`;
+                                          console.log('Firebase URL yenilendi:', newUrl);
+                                          img.src = newUrl;
+                                          return;
+                                        }
+                                      } catch (urlError) {
+                                        console.error('URL düzeltme hatası:', urlError);
+                                      }
+                                    }
+
+                                    // 3. Yedek görüntü kullan - güvenilir bir CDN kullan
+                                    console.log('Yedek görüntü kullanılıyor...');
+                                    img.src = 'https://placehold.co/300x200/4c669f/ffffff?text=Resim+Yuklenemedi';
                                   }}
                                   sx={{
                                     height: photos.length > 1 ? 180 : 220,
@@ -967,14 +1195,115 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
                               const photoUrl = getPhotoUrl(comment.photoUrl, comment.photoData);
                               handlePhotoClick(photoUrl, comment.photoLocation);
                             }}
+                            onLoad={() => {
+                              console.log(`Fotoğraf başarıyla yüklendi: ${comment.id}`);
+                            }}
                             onError={(e) => {
                               console.error(`Fotoğraf yükleme hatası: ${comment.id}`);
-                              // Try to fix the URL if it's a base64 image
-                              const img = e.target as HTMLImageElement;
-                              if (comment.photoData && !img.src.startsWith('data:image')) {
-                                console.log('Attempting to fix image URL format');
-                                img.src = `data:image/jpeg;base64,${comment.photoData}`;
+
+                              // Detaylı hata ayıklama bilgisi
+                              console.log('Mevcut veri:');
+                              if (comment.photoUrl) {
+                                console.log(`photoUrl: ${comment.photoUrl.substring(0, 50)}${comment.photoUrl.length > 50 ? '...' : ''}`);
+                                console.log(`photoUrl uzunluğu: ${comment.photoUrl.length}`);
+                              } else {
+                                console.log('photoUrl değeri yok');
                               }
+
+                              if (comment.photoData) {
+                                console.log(`photoData: ${comment.photoData.substring(0, 50)}${comment.photoData.length > 50 ? '...' : ''}`);
+                                console.log(`photoData uzunluğu: ${comment.photoData.length}`);
+                              } else {
+                                console.log('photoData değeri yok');
+                              }
+
+                              if (comment.photosJson) {
+                                console.log('photosJson mevcut');
+                              }
+
+                              // Hata durumunda URL'yi düzeltmeyi dene
+                              const img = e.target as HTMLImageElement;
+
+                              // 1. Önce photoData ile düzeltmeyi dene
+                              if (comment.photoData && comment.photoData.trim() !== '') {
+                                console.log('photoData ile düzeltme deneniyor');
+                                try {
+                                  // Önce mevcut formatı temizle
+                                  let cleanBase64 = comment.photoData;
+
+                                  // Data URI prefix'i varsa kaldır
+                                  if (cleanBase64.includes('data:image')) {
+                                    cleanBase64 = cleanBase64.split('base64,')[1] || cleanBase64;
+                                  }
+
+                                  // Base64 olmayan karakterleri temizle
+                                  cleanBase64 = cleanBase64.replace(/[^A-Za-z0-9+/=]/g, '');
+
+                                  console.log('Temizlenmiş photoData ile yeniden deneniyor...');
+                                  img.src = `data:image/jpeg;base64,${cleanBase64}`;
+                                  return;
+                                } catch (cleanError) {
+                                  console.error('photoData temizleme hatası:', cleanError);
+                                }
+                              }
+
+                              // 2. photoUrl ile düzeltmeyi dene
+                              if (comment.photoUrl && comment.photoUrl.trim() !== '') {
+                                console.log('photoUrl ile düzeltme deneniyor');
+                                try {
+                                  // Base64 verisi içeren URL
+                                  if (comment.photoUrl.length > 100 && !comment.photoUrl.startsWith('data:image')) {
+                                    // Önce mevcut formatı temizle
+                                    let cleanBase64 = comment.photoUrl;
+
+                                    // Data URI prefix'i varsa kaldır
+                                    if (cleanBase64.includes('data:image')) {
+                                      cleanBase64 = cleanBase64.split('base64,')[1] || cleanBase64;
+                                    }
+
+                                    // Base64 olmayan karakterleri temizle
+                                    cleanBase64 = cleanBase64.replace(/[^A-Za-z0-9+/=]/g, '');
+
+                                    console.log('Temizlenmiş photoUrl ile yeniden deneniyor...');
+                                    img.src = `data:image/jpeg;base64,${cleanBase64}`;
+                                    return;
+                                  }
+
+                                  // Firebase Storage URL'i düzeltmeyi dene
+                                  if (comment.photoUrl.includes('firebasestorage.googleapis.com')) {
+                                    // Token ekle veya yenile
+                                    const urlParts = comment.photoUrl.split('?');
+                                    if (urlParts.length > 0) {
+                                      const baseUrl = urlParts[0];
+                                      const newUrl = `${baseUrl}?alt=media&token=${Date.now()}`;
+                                      console.log('Firebase URL yenilendi:', newUrl);
+                                      img.src = newUrl;
+                                      return;
+                                    }
+                                  }
+                                } catch (urlError) {
+                                  console.error('photoUrl düzeltme hatası:', urlError);
+                                }
+                              }
+
+                              // 3. photosJson'dan veri çıkarmayı dene
+                              if (comment.photosJson) {
+                                console.log('photosJson ile düzeltme deneniyor');
+                                try {
+                                  const photos = JSON.parse(comment.photosJson);
+                                  if (Array.isArray(photos) && photos.length > 0 && photos[0].url) {
+                                    console.log('photosJson içinden ilk fotoğraf URL\'si kullanılıyor');
+                                    img.src = photos[0].url;
+                                    return;
+                                  }
+                                } catch (jsonError) {
+                                  console.error('photosJson parse hatası:', jsonError);
+                                }
+                              }
+
+                              // 4. Yedek görüntü kullan - güvenilir bir CDN kullan
+                              console.log('Yedek görüntü kullanılıyor...');
+                              img.src = 'https://placehold.co/300x200/4c669f/ffffff?text=Resim+Yuklenemedi';
                             }}
                           />
                           {comment.photoLocation && (
@@ -1237,7 +1566,7 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backdropFilter: "blur(3px)",
+          backdropFilter: "blur(8px)",
         }}
       >
         <Box
@@ -1246,14 +1575,16 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
             maxWidth: "95%",
             maxHeight: "95%",
             outline: "none",
-            bgcolor: "rgba(0, 0, 0, 0.9)",
+            bgcolor: "rgba(0, 0, 0, 0.85)",
             p: 3,
-            borderRadius: 3,
-            animation: "fadeIn 0.3s ease-in-out",
+            borderRadius: 4,
+            boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
+            animation: "fadeIn 0.4s cubic-bezier(0.165, 0.84, 0.44, 1)",
+            overflow: "hidden",
             "@keyframes fadeIn": {
               "0%": {
                 opacity: 0,
-                transform: "scale(0.95)",
+                transform: "scale(0.92)",
               },
               "100%": {
                 opacity: 1,
@@ -1303,14 +1634,16 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
                   width: "auto",
                   height: "auto",
                   objectFit: "contain",
-                  borderRadius: "8px",
-                  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.35)",
-                  transition: "all 0.5s ease-in-out",
+                  borderRadius: "12px",
+                  boxShadow: "0 16px 40px rgba(0, 0, 0, 0.5)",
+                  transition: "all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1)",
                   cursor: isImageZoomed ? "zoom-out" : "zoom-in",
                   transform: isImageZoomed ? "scale(1.8)" : "scale(1)",
                   opacity: isImageLoading ? 0.3 : 1,
+                  filter: "brightness(1.05)",
                   "&:hover": {
-                    boxShadow: "0 12px 40px rgba(0, 0, 0, 0.5)",
+                    boxShadow: "0 20px 60px rgba(0, 0, 0, 0.6)",
+                    filter: "brightness(1.1)",
                   },
                 }}
                 onLoad={() => setIsImageLoading(false)}
@@ -1337,26 +1670,27 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
                     position: "absolute",
                     bottom: 20,
                     left: 20,
-                    backgroundColor: "rgba(76, 102, 159, 0.9)",
+                    background: "linear-gradient(135deg, rgba(76, 102, 159, 0.85), rgba(59, 130, 246, 0.85))",
                     color: "white",
                     px: 2.5,
                     py: 1.5,
-                    borderRadius: 3,
+                    borderRadius: 4,
                     display: "flex",
                     alignItems: "center",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
-                    backdropFilter: "blur(4px)",
+                    boxShadow: "0 8px 20px rgba(0,0,0,0.3)",
+                    backdropFilter: "blur(8px)",
                     border: "1px solid rgba(255, 255, 255, 0.2)",
-                    transition: "all 0.3s ease",
+                    transition: "all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1)",
                     "&:hover": {
-                      transform: "translateY(-3px)",
-                      boxShadow: "0 6px 16px rgba(0,0,0,0.5)",
+                      transform: "translateY(-5px)",
+                      boxShadow: "0 12px 24px rgba(0,0,0,0.4)",
+                      background: "linear-gradient(135deg, rgba(76, 102, 159, 0.9), rgba(59, 130, 246, 0.9))",
                     },
                     zIndex: 10,
                   }}
                 >
-                  <LocationIcon sx={{ fontSize: 22, mr: 1.5 }} />
-                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{selectedPhotoForModal.location}</Typography>
+                  <LocationIcon sx={{ fontSize: 22, mr: 1.5, filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.2))" }} />
+                  <Typography variant="body1" sx={{ fontWeight: 600, textShadow: "0 1px 2px rgba(0,0,0,0.2)" }}>{selectedPhotoForModal.location}</Typography>
                 </Box>
               )}
 
@@ -1368,15 +1702,23 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
                     top: 20,
                     left: "50%",
                     transform: "translateX(-50%)",
-                    backgroundColor: "rgba(0, 0, 0, 0.6)",
+                    backgroundColor: "rgba(255, 255, 255, 0.15)",
                     color: "white",
-                    px: 2,
-                    py: 0.5,
-                    borderRadius: 10,
+                    px: 2.5,
+                    py: 0.8,
+                    borderRadius: 20,
                     fontSize: 14,
+                    fontWeight: 500,
                     zIndex: 10,
+                    backdropFilter: "blur(4px)",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
+                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
                   }}
                 >
+                  <ImageIcon sx={{ fontSize: 16 }} />
                   {currentPhotoIndex + 1} / {photoGallery.length}
                 </Box>
               )}
@@ -1389,18 +1731,24 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
                     onClick={handlePreviousPhoto}
                     sx={{
                       position: "absolute",
-                      left: 10,
+                      left: 16,
                       top: "50%",
                       transform: "translateY(-50%)",
-                      backgroundColor: "rgba(0, 0, 0, 0.5)",
+                      backgroundColor: "rgba(255, 255, 255, 0.15)",
+                      backdropFilter: "blur(4px)",
                       color: "white",
+                      width: 48,
+                      height: 48,
+                      transition: "all 0.3s ease",
                       "&:hover": {
-                        backgroundColor: "rgba(0, 0, 0, 0.7)",
+                        backgroundColor: "rgba(255, 255, 255, 0.25)",
+                        transform: "translateY(-50%) scale(1.1)",
+                        boxShadow: "0 0 20px rgba(255, 255, 255, 0.2)",
                       },
                       zIndex: 10,
                     }}
                   >
-                    <ArrowBackIcon />
+                    <ArrowBackIcon fontSize="medium" />
                   </IconButton>
 
                   {/* Sonraki buton */}
@@ -1408,18 +1756,24 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
                     onClick={handleNextPhoto}
                     sx={{
                       position: "absolute",
-                      right: 10,
+                      right: 16,
                       top: "50%",
                       transform: "translateY(-50%)",
-                      backgroundColor: "rgba(0, 0, 0, 0.5)",
+                      backgroundColor: "rgba(255, 255, 255, 0.15)",
+                      backdropFilter: "blur(4px)",
                       color: "white",
+                      width: 48,
+                      height: 48,
+                      transition: "all 0.3s ease",
                       "&:hover": {
-                        backgroundColor: "rgba(0, 0, 0, 0.7)",
+                        backgroundColor: "rgba(255, 255, 255, 0.25)",
+                        transform: "translateY(-50%) scale(1.1)",
+                        boxShadow: "0 0 20px rgba(255, 255, 255, 0.2)",
                       },
                       zIndex: 10,
                     }}
                   >
-                    <ArrowForwardIcon />
+                    <ArrowForwardIcon fontSize="medium" />
                   </IconButton>
                 </>
               )}
@@ -1559,9 +1913,13 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
                         height: 120,
                         objectFit: "cover",
                         cursor: "pointer",
-                        transition: "transform 0.3s ease",
+                        transition: "all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1)",
+                        filter: "brightness(0.97)",
+                        borderRadius: 1,
                         "&:hover": {
-                          transform: "scale(1.05)",
+                          transform: "scale(1.05) translateY(-2px)",
+                          filter: "brightness(1.03)",
+                          boxShadow: "0 8px 16px rgba(0,0,0,0.15)",
                         },
                       }}
                     />
@@ -1570,14 +1928,20 @@ export default function TripComments({ travelPlanId }: TripCommentsProps) {
                       size="small"
                       sx={{
                         position: "absolute",
-                        top: 4,
-                        right: 4,
-                        backgroundColor: "rgba(255, 255, 255, 0.8)",
-                        width: 24,
-                        height: 24,
+                        top: 6,
+                        right: 6,
+                        backgroundColor: "rgba(255, 255, 255, 0.85)",
+                        backdropFilter: "blur(4px)",
+                        width: 28,
+                        height: 28,
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                        transition: "all 0.3s ease",
+                        border: "1px solid rgba(255, 255, 255, 0.3)",
                         "&:hover": {
-                          backgroundColor: "rgba(255, 255, 255, 0.9)",
-                          color: "red"
+                          backgroundColor: "rgba(255, 255, 255, 0.95)",
+                          color: "#e53935",
+                          transform: "rotate(90deg)",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
                         },
                       }}
                       onClick={(e) => {

@@ -2,7 +2,6 @@
 
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import { getApp, initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
 
 // Firebase yapılandırması
 const firebaseConfig = {
@@ -23,7 +22,6 @@ try {
   app = initializeApp(firebaseConfig);
 }
 
-const auth = getAuth(app);
 const storage = getStorage(app, 'gs://ai-traveller-67214.firebasestorage.app');
 
 /**
