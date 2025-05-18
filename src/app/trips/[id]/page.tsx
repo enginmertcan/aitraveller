@@ -63,11 +63,19 @@ import RecommendationModal from "../../components/trips/RecommendationModal";
 import TripComments from "../../components/trips/trip-comments";
 import { LoadingSpinner } from "../../components/ui/loading-spinner";
 import { useThemeContext } from "../../context/ThemeContext";
-import { fetchTravelPlanById, toggleLike, toggleRecommendation, toggleFavorite } from "../../Services/travel-plans";
+import {
+  fetchTravelPlanById,
+  toggleLike,
+  toggleRecommendation,
+  toggleFavorite,
+  getBudgetByTravelPlanId
+} from "../../Services/travel-plans";
 import { getWeatherForecast, WeatherData } from "../../Services/weather-service";
 import HotelPhotosService from "../../Service/HotelPhotosService";
 // import HotelLocationService from "../../Service/HotelLocationService";
 import { ActivityPhoto, TravelPlan } from "../../types/travel";
+import { Budget } from "../../types/budget";
+import CurrencyService from "../../Services/currency.service";
 
 function formatItineraryItem(item: any) {
   // Eğer item bir string ise, doğrudan döndür
@@ -278,6 +286,8 @@ export default function TripDetailsPage() {
   const [selectedHotelForModal, setSelectedHotelForModal] = useState<any | null>(null);
   const [activityPhotos, setActivityPhotos] = useState<{[key: string]: ActivityPhoto[]}>({});
   const [recommendationModalOpen, setRecommendationModalOpen] = useState(false);
+  const [budget, setBudget] = useState<Budget | null>(null);
+  const [loadingBudget, setLoadingBudget] = useState(false);
   // Favorite modal is not used in this component
 
   // Sayfa yüklenirken id parametresini kontrol et
@@ -511,6 +521,17 @@ export default function TripDetailsPage() {
         }
         const travelPlan = await fetchTravelPlanById(tripId);
         setPlan(travelPlan);
+
+        // Bütçe bilgisini getir
+        try {
+          setLoadingBudget(true);
+          const budgetData = await getBudgetByTravelPlanId(tripId);
+          setBudget(budgetData as Budget);
+        } catch (budgetError) {
+          console.error("Bütçe bilgisi alınamadı:", budgetError);
+        } finally {
+          setLoadingBudget(false);
+        }
 
         // Hava durumu verilerini yükle
         if (travelPlan.destination && travelPlan.startDate) {
@@ -3071,6 +3092,249 @@ export default function TripDetailsPage() {
                   </Grid>
                 </Paper>
               )}
+
+              {/* Bütçe Bilgileri */}
+              {(() => {
+                if (budget) {
+                  // Toplam harcama miktarını hesapla
+                  const totalSpent = budget.categories?.reduce((total, category) => total + (category.spentAmount || 0), 0) || 0;
+
+                  // Bütçe kullanım yüzdesini hesapla
+                  const budgetUsagePercentage = budget.totalBudget ? Math.min(100, (totalSpent / budget.totalBudget) * 100) : 0;
+
+                  return (
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        p: 4,
+                        mt: 4,
+                        background: isDarkMode ? "rgba(17, 24, 39, 0.8)" : "rgba(255, 255, 255, 0.8)",
+                        backdropFilter: "blur(10px)",
+                        borderRadius: "16px",
+                        border: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"}`,
+                      }}
+                    >
+                      <Box sx={{ mb: 4, display: "flex", alignItems: "center", gap: 2, justifyContent: "center" }}>
+                        <Wallet size={28} style={{ color: isDarkMode ? "#93c5fd" : "#2563eb" }} />
+                        <Typography
+                          variant="h4"
+                          sx={{
+                            fontWeight: 800,
+                            fontSize: { xs: "1.75rem", md: "2rem" },
+                            letterSpacing: "-0.02em",
+                            lineHeight: 1.2,
+                            background: "linear-gradient(45deg, #2563eb, #7c3aed)",
+                            backgroundClip: "text",
+                            WebkitBackgroundClip: "text",
+                            WebkitTextFillColor: "transparent",
+                          }}
+                        >
+                          Bütçe Bilgileri
+                        </Typography>
+                      </Box>
+
+                      <Grid container spacing={3}>
+                        {/* Bütçe Özeti */}
+                        <Grid item xs={12} md={6}>
+                          <Card
+                            sx={{
+                              height: "100%",
+                              background: isDarkMode ? "rgba(17, 24, 39, 0.8)" : "rgba(255, 255, 255, 0.9)",
+                              borderRadius: "12px",
+                              border: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"}`,
+                            }}
+                          >
+                            <CardContent>
+                              <Typography variant="h6" sx={{ color: isDarkMode ? "#93c5fd" : "#2563eb", mb: 2 }}>
+                                Bütçe Özeti
+                              </Typography>
+
+                              <Box sx={{ mb: 3 }}>
+                                <Typography variant="body2" sx={{ color: isDarkMode ? "#e5e7eb" : "text.secondary", mb: 1 }}>
+                                  Toplam Bütçe: {CurrencyService.formatCurrency(budget.totalBudget, budget.currency)}
+                                </Typography>
+
+                                <Typography variant="body2" sx={{ color: isDarkMode ? "#e5e7eb" : "text.secondary", mb: 1 }}>
+                                  Harcanan: {CurrencyService.formatCurrency(totalSpent, budget.currency)} ({budgetUsagePercentage.toFixed(0)}%)
+                                </Typography>
+
+                                <Box sx={{ width: '100%', bgcolor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)', borderRadius: 1, mb: 2 }}>
+                                  <Box
+                                    sx={{
+                                      width: `${budgetUsagePercentage}%`,
+                                      bgcolor: budgetUsagePercentage > 90 ? '#ef4444' : budgetUsagePercentage > 70 ? '#f59e0b' : '#22c55e',
+                                      height: 8,
+                                      borderRadius: 1,
+                                    }}
+                                  />
+                                </Box>
+
+                                <Typography variant="body2" sx={{ color: isDarkMode ? "#e5e7eb" : "text.secondary", fontWeight: 'bold' }}>
+                                  Kalan: {CurrencyService.formatCurrency(budget.totalBudget - totalSpent, budget.currency)}
+                                </Typography>
+                              </Box>
+
+                              <Button
+                                variant="contained"
+                                onClick={() => router.push(`/budget/${budget.id}`)}
+                                sx={{
+                                  background: "linear-gradient(45deg, #2563eb, #7c3aed)",
+                                  borderRadius: "8px",
+                                  "&:hover": {
+                                    background: "linear-gradient(45deg, #1d4ed8, #6d28d9)",
+                                  },
+                                  width: '100%',
+                                }}
+                              >
+                                Bütçe Detaylarını Görüntüle
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+
+                        {/* Kategori Dağılımı */}
+                        <Grid item xs={12} md={6}>
+                          <Card
+                            sx={{
+                              height: "100%",
+                              background: isDarkMode ? "rgba(17, 24, 39, 0.8)" : "rgba(255, 255, 255, 0.9)",
+                              borderRadius: "12px",
+                              border: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"}`,
+                            }}
+                          >
+                            <CardContent>
+                              <Typography variant="h6" sx={{ color: isDarkMode ? "#93c5fd" : "#2563eb", mb: 2 }}>
+                                Kategori Dağılımı
+                              </Typography>
+
+                              {budget.categories && budget.categories.length > 0 ? (
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                  {budget.categories.map((category) => {
+                                    const categoryPercentage = totalSpent > 0 ? (category.spentAmount / totalSpent) * 100 : 0;
+
+                                    return (
+                                      <Box key={category.id}>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Box
+                                              sx={{
+                                                width: 12,
+                                                height: 12,
+                                                borderRadius: '50%',
+                                                bgcolor: category.color
+                                              }}
+                                            />
+                                            <Typography variant="body2" sx={{ color: isDarkMode ? "#e5e7eb" : "text.secondary" }}>
+                                              {category.name}
+                                            </Typography>
+                                          </Box>
+                                          <Typography variant="body2" sx={{ color: isDarkMode ? "#e5e7eb" : "text.secondary" }}>
+                                            {CurrencyService.formatCurrency(category.spentAmount, budget.currency)}
+                                          </Typography>
+                                        </Box>
+
+                                        <Box sx={{ width: '100%', bgcolor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)', borderRadius: 1 }}>
+                                          <Box
+                                            sx={{
+                                              width: `${categoryPercentage}%`,
+                                              bgcolor: category.color,
+                                              height: 6,
+                                              borderRadius: 1,
+                                            }}
+                                          />
+                                        </Box>
+                                      </Box>
+                                    );
+                                  })}
+                                </Box>
+                              ) : (
+                                <Typography variant="body2" sx={{ color: isDarkMode ? "#e5e7eb" : "text.secondary", textAlign: 'center', py: 2 }}>
+                                  Henüz kategori bulunmuyor
+                                </Typography>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                      </Grid>
+                    </Paper>
+                  );
+                } else if (loadingBudget) {
+                  return (
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        p: 4,
+                        mt: 4,
+                        background: isDarkMode ? "rgba(17, 24, 39, 0.8)" : "rgba(255, 255, 255, 0.8)",
+                        backdropFilter: "blur(10px)",
+                        borderRadius: "16px",
+                        border: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"}`,
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
+                        <CircularProgress size={40} />
+                      </Box>
+                    </Paper>
+                  );
+                } else {
+                  return (
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        p: 4,
+                        mt: 4,
+                        background: isDarkMode ? "rgba(17, 24, 39, 0.8)" : "rgba(255, 255, 255, 0.8)",
+                        backdropFilter: "blur(10px)",
+                        borderRadius: "16px",
+                        border: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"}`,
+                      }}
+                    >
+                      <Box sx={{ mb: 4, display: "flex", alignItems: "center", gap: 2, justifyContent: "center" }}>
+                        <Wallet size={28} style={{ color: isDarkMode ? "#93c5fd" : "#2563eb" }} />
+                        <Typography
+                          variant="h4"
+                          sx={{
+                            fontWeight: 800,
+                            fontSize: { xs: "1.75rem", md: "2rem" },
+                            letterSpacing: "-0.02em",
+                            lineHeight: 1.2,
+                            background: "linear-gradient(45deg, #2563eb, #7c3aed)",
+                            backgroundClip: "text",
+                            WebkitBackgroundClip: "text",
+                            WebkitTextFillColor: "transparent",
+                          }}
+                        >
+                          Bütçe Oluştur
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ textAlign: 'center', py: 2, mb: 4 }}>
+                        <Typography variant="body1" sx={{ color: isDarkMode ? "#e5e7eb" : "text.secondary", mb: 3 }}>
+                          Bu seyahat planı için henüz bir bütçe oluşturulmamış. Harcamalarınızı takip etmek için bir bütçe oluşturabilirsiniz.
+                        </Typography>
+
+                        <Button
+                          variant="contained"
+                          onClick={() => router.push(`/travel-plan/${resolvedParams.id}/create-budget`)}
+                          sx={{
+                            background: "linear-gradient(45deg, #2563eb, #7c3aed)",
+                            borderRadius: "8px",
+                            px: 4,
+                            py: 1.5,
+                            "&:hover": {
+                              background: "linear-gradient(45deg, #1d4ed8, #6d28d9)",
+                            },
+                          }}
+                        >
+                          Bütçe Oluştur
+                        </Button>
+                      </Box>
+                    </Paper>
+                  );
+                }
+
+                return null;
+              })()}
 
               {/* Vize ve Seyahat Bilgileri */}
               {(() => {
