@@ -15,7 +15,6 @@ import {
 
 import { db } from "../Service/firebaseConfig";
 import { TravelPlan, TripComment } from "../types/travel";
-import { Budget, Expense } from "../types/budget";
 
 // Koleksiyon referansları
 const TRAVEL_PLANS_COLLECTION = "travelPlans";

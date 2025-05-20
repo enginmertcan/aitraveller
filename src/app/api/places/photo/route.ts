@@ -7,7 +7,6 @@ export async function GET(request: NextRequest) {
     const photoReference = searchParams.get('photoReference');
     const maxwidth = searchParams.get('maxwidth') || 1200;
 
-    console.log('Fotoğraf isteği alındı:', photoReference);
 
     if (!photoReference) {
       console.error('Fotoğraf referansı eksik');

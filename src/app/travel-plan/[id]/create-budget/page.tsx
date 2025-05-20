@@ -1,43 +1,34 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   Container,
   FormControl,
   FormLabel,
   Grid,
   IconButton,
-  InputLabel,
   MenuItem,
   Paper,
   Select,
   Stack,
   TextField,
   Typography,
-  CircularProgress,
-  useTheme,
+  Skeleton,
 } from "@mui/material";
-import { ArrowLeft, Plus, Trash2, Wallet } from "lucide-react";
+import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { fetchTravelPlanById, createBudget, getBudgetByTravelPlanId } from "../../../Services/travel-plans";
 import { Budget, BudgetCategory, DEFAULT_BUDGET_CATEGORIES, SUPPORTED_CURRENCIES } from "../../../types/budget";
 import { TravelPlan } from "../../../types/travel";
-import { useThemeContext } from "../../../context/ThemeContext";
-import { Skeleton } from "@mui/material";
 
-import { use } from 'react';
-
-export default function CreateBudgetPage({ params }: { params: { id: string } }) {
-  const resolvedParams = use(params);
+export default function CreateBudgetPage() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
-  const theme = useTheme();
-  const { isDarkMode } = useThemeContext();
+  const params = useParams();
+  const travelPlanId = params?.id as string;
   const [travelPlan, setTravelPlan] = useState<TravelPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [existingBudget, setExistingBudget] = useState<Budget | null>(null);
@@ -62,7 +53,7 @@ export default function CreateBudgetPage({ params }: { params: { id: string } })
         setLoading(true);
 
         // Seyahat planını getir
-        const travelPlanData = await fetchTravelPlanById(resolvedParams.id);
+        const travelPlanData = await fetchTravelPlanById(travelPlanId);
 
         if (!travelPlanData) {
           alert("Hata: Seyahat planı bulunamadı");
@@ -76,7 +67,7 @@ export default function CreateBudgetPage({ params }: { params: { id: string } })
         setName(`${travelPlanData.destination} Seyahati Bütçesi`);
 
         // Bu seyahat planına ait bütçe var mı kontrol et
-        const existingBudgetData = await getBudgetByTravelPlanId(resolvedParams.id);
+        const existingBudgetData = await getBudgetByTravelPlanId(travelPlanId);
 
         if (existingBudgetData) {
           setExistingBudget(existingBudgetData as Budget);
@@ -94,7 +85,7 @@ export default function CreateBudgetPage({ params }: { params: { id: string } })
     };
 
     loadData();
-  }, [isLoaded, user, router, resolvedParams.id]);
+  }, [isLoaded, user, router, travelPlanId]);
 
   const handleAddCategory = () => {
     setCategories([
@@ -102,7 +93,7 @@ export default function CreateBudgetPage({ params }: { params: { id: string } })
       {
         name: "",
         icon: "circle",
-        color: "#" + Math.floor(Math.random() * 16777215).toString(16),
+        color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
         allocatedAmount: 0,
         spentAmount: 0
       }
@@ -174,7 +165,7 @@ export default function CreateBudgetPage({ params }: { params: { id: string } })
 
       alert("Başarılı: Bütçe başarıyla oluşturuldu");
 
-      router.push(`/trips/${resolvedParams.id}`);
+      router.push(`/trips/${travelPlanId}`);
     } catch (error) {
       console.error("Bütçe oluşturma hatası:", error);
       alert("Hata: Bütçe oluşturulurken bir hata oluştu");
@@ -251,7 +242,7 @@ export default function CreateBudgetPage({ params }: { params: { id: string } })
             </Button>
             <Button
               variant="outlined"
-              onClick={() => router.push(`/trips/${resolvedParams.id}`)}
+              onClick={() => router.push(`/trips/${travelPlanId}`)}
             >
               Seyahat Planına Dön
             </Button>

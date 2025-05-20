@@ -1,43 +1,35 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   Container,
   FormControl,
   FormLabel,
   Grid,
   IconButton,
-  InputLabel,
   MenuItem,
   Paper,
   Select,
-  Stack,
   TextField,
   Typography,
-  useTheme,
+  Skeleton,
 } from "@mui/material";
-import { ArrowLeft, Calendar, Upload } from "lucide-react";
+import { ArrowLeft, Calendar } from "lucide-react";
 import { getBudget, addExpense } from "../../../Services/travel-plans";
-import { Budget, BudgetCategory, Expense, SUPPORTED_CURRENCIES } from "../../../types/budget";
+import { SUPPORTED_CURRENCIES, Budget, Expense } from "../../../types/budget";
 import CurrencyService from "../../../Services/currency.service";
 import { format } from "date-fns";
-import { tr } from "date-fns/locale";
-import { Skeleton } from "@mui/material";
 import { useThemeContext } from "../../../context/ThemeContext";
 
-import { use } from 'react';
-
-export default function AddExpensePage({ params }: { params: { id: string } }) {
-  const resolvedParams = use(params);
+export default function AddExpensePage() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
-  const theme = useTheme();
+  const params = useParams();
+  const budgetId = params?.id as string;
   const { isDarkMode } = useThemeContext();
   const [budget, setBudget] = useState<Budget | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,7 +55,7 @@ export default function AddExpensePage({ params }: { params: { id: string } }) {
     const loadBudgetData = async () => {
       try {
         setLoading(true);
-        const budgetData = await getBudget(resolvedParams.id, user?.id);
+        const budgetData = await getBudget(budgetId, user?.id);
 
         if (!budgetData) {
           alert("Hata: Bütçe bulunamadı");
@@ -74,14 +66,15 @@ export default function AddExpensePage({ params }: { params: { id: string } }) {
         // Kullanıcı bütçe sahibi değilse, uyarı göster
         if (!budgetData.isOwner) {
           alert("Uyarı: Sadece bütçe sahibi harcama ekleyebilir");
-          router.push(`/budget/${resolvedParams.id}`);
+          router.push(`/budget/${budgetId}`);
           return;
         }
 
-        setBudget(budgetData as Budget);
+        setBudget(budgetData as unknown as Budget);
 
         // Varsayılan para birimini ayarla
-        setOriginalCurrency(budgetData.currency);
+        const typedBudget = budgetData as unknown as Budget;
+        setOriginalCurrency(typedBudget.currency || 'TRY');
       } catch (error) {
         console.error("Bütçe yükleme hatası:", error);
         alert("Hata: Bütçe yüklenirken bir hata oluştu");
@@ -91,7 +84,7 @@ export default function AddExpensePage({ params }: { params: { id: string } }) {
     };
 
     loadBudgetData();
-  }, [isLoaded, user, router, resolvedParams.id]);
+  }, [isLoaded, user, router, budgetId]);
 
   // Para birimi değiştiğinde otomatik dönüştürme
   useEffect(() => {
@@ -138,20 +131,25 @@ export default function AddExpensePage({ params }: { params: { id: string } }) {
         amount: parseFloat(amount),
         date: date?.toISOString(),
         location: location || undefined,
+      };
+
+      // Add notes as a custom property since it's not in the Expense interface
+      const expenseDataWithNotes = {
+        ...expenseData,
         notes: notes || undefined,
       };
 
       // Eğer farklı para birimi kullanıldıysa orijinal değerleri ekle
       if (originalCurrency && originalCurrency !== budget.currency && originalAmount) {
-        expenseData.originalCurrency = originalCurrency;
-        expenseData.originalAmount = parseFloat(originalAmount);
+        expenseDataWithNotes.originalCurrency = originalCurrency;
+        expenseDataWithNotes.originalAmount = parseFloat(originalAmount);
       }
 
-      await addExpense(expenseData, user.id);
+      await addExpense(expenseDataWithNotes, user.id);
 
       alert("Başarılı: Harcama başarıyla eklendi");
 
-      router.push(`/budget/${resolvedParams.id}`);
+      router.push(`/budget/${budgetId}`);
     } catch (error) {
       console.error("Harcama ekleme hatası:", error);
       alert("Hata: Harcama eklenirken bir hata oluştu");
@@ -318,7 +316,7 @@ export default function AddExpensePage({ params }: { params: { id: string } }) {
               type="date"
               value={date ? format(date, 'yyyy-MM-dd') : ''}
               onChange={(e) => {
-                const newDate = e.target.value ? new Date(e.target.value) : null;
+                const newDate = e.target.value ? new Date(e.target.value) : undefined;
                 setDate(newDate);
               }}
               fullWidth

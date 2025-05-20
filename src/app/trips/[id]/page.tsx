@@ -3276,7 +3276,10 @@ export default function TripDetailsPage() {
                       </Box>
                     </Paper>
                   );
-                } else {
+                }
+
+                // No budget exists, show create budget option
+                if (!budget && !loadingBudget) {
                   return (
                     <Paper
                       elevation={0}
@@ -3315,7 +3318,7 @@ export default function TripDetailsPage() {
 
                         <Button
                           variant="contained"
-                          onClick={() => router.push(`/travel-plan/${resolvedParams.id}/create-budget`)}
+                          onClick={() => router.push(`/travel-plan/${params.id}/create-budget`)}
                           sx={{
                             background: "linear-gradient(45deg, #2563eb, #7c3aed)",
                             borderRadius: "8px",

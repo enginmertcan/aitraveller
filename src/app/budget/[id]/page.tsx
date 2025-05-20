@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import {
   Box,
@@ -15,6 +15,7 @@ import {
   Tab,
   Tabs,
   Typography,
+  Skeleton,
 } from "@mui/material";
 import {
   PlusCircle,
@@ -39,11 +40,12 @@ import { Budget, Expense } from "../../types/budget";
 import CurrencyService from "../../Services/currency.service";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
-import { Skeleton } from "@mui/material";
 
-export default function BudgetDetailsPage({ params }: { params: { id: string } }) {
+export default function BudgetDetailsPage() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
+  const params = useParams();
+  const budgetId = params?.id as string;
   const [budget, setBudget] = useState<Budget | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +61,6 @@ export default function BudgetDetailsPage({ params }: { params: { id: string } }
   });
 
   useEffect(() => {
-    console.log("useEffect çalıştı, activeTab:", activeTab);
 
     if (!isLoaded) return;
     if (!user) {
@@ -70,7 +71,7 @@ export default function BudgetDetailsPage({ params }: { params: { id: string } }
     const loadBudgetData = async () => {
       try {
         setLoading(true);
-        const budgetData = await getBudget(params.id, user?.id);
+        const budgetData = await getBudget(budgetId, user?.id);
 
         if (!budgetData) {
           alert("Hata: Bütçe bulunamadı");
@@ -81,7 +82,7 @@ export default function BudgetDetailsPage({ params }: { params: { id: string } }
         setBudget(budgetData as unknown as Budget);
 
         // Harcamaları getir
-        const expensesData = await getExpensesByBudgetId(params.id, user?.id);
+        const expensesData = await getExpensesByBudgetId(budgetId, user?.id);
         console.log("Yüklenen harcamalar:", expensesData, "Toplam:", expensesData.length);
         setExpenses(expensesData as Expense[]);
       } catch (error) {
@@ -93,7 +94,7 @@ export default function BudgetDetailsPage({ params }: { params: { id: string } }
     };
 
     loadBudgetData();
-  }, [isLoaded, user, router, params.id]);
+  }, [isLoaded, user, router, budgetId]);
 
   // Harcamalar sekmesine geçildiğinde harcamaları yeniden yükle
   useEffect(() => {
@@ -102,8 +103,7 @@ export default function BudgetDetailsPage({ params }: { params: { id: string } }
 
       const loadExpenses = async () => {
         try {
-          const expensesData = await getExpensesByBudgetId(params.id, user?.id);
-          console.log("Harcamalar sekmesi için yüklenen harcamalar:", expensesData, "Toplam:", expensesData.length);
+          const expensesData = await getExpensesByBudgetId(budgetId, user?.id);
           setExpenses(expensesData as Expense[]);
         } catch (error) {
           console.error("Harcama yükleme hatası:", error);
@@ -112,7 +112,7 @@ export default function BudgetDetailsPage({ params }: { params: { id: string } }
 
       loadExpenses();
     }
-  }, [activeTab, budget, user, params.id]);
+  }, [activeTab, budget, user, budgetId]);
 
   // Yetki hatası modalını göster
   const showPermissionError = (action: string) => {
@@ -133,7 +133,7 @@ export default function BudgetDetailsPage({ params }: { params: { id: string } }
     }
 
     try {
-      const result = await deleteBudget(params.id, user?.id);
+      const result = await deleteBudget(budgetId, user?.id);
 
       if (!result) {
         showPermissionError("bütçeyi silme işlemi");
@@ -170,7 +170,7 @@ export default function BudgetDetailsPage({ params }: { params: { id: string } }
       alert("Başarılı: Harcama başarıyla silindi");
 
       // Bütçeyi yeniden yükle (kategori harcama miktarları güncellendi)
-      const updatedBudget = await getBudget(params.id, user?.id);
+      const updatedBudget = await getBudget(budgetId, user?.id);
       if (updatedBudget) {
         setBudget(updatedBudget as unknown as Budget);
       }
@@ -187,7 +187,7 @@ export default function BudgetDetailsPage({ params }: { params: { id: string } }
       return;
     }
 
-    router.push(`/budget/${params.id}/add-expense`);
+    router.push(`/budget/${budgetId}/add-expense`);
   };
 
   // Harcama düzenleme sayfasına yönlendirme
@@ -197,7 +197,7 @@ export default function BudgetDetailsPage({ params }: { params: { id: string } }
       return;
     }
 
-    router.push(`/budget/${params.id}/edit-expense/${expenseId}`);
+    router.push(`/budget/${budgetId}/edit-expense/${expenseId}`);
   };
 
   // Bütçe düzenleme sayfasına yönlendirme
@@ -207,7 +207,7 @@ export default function BudgetDetailsPage({ params }: { params: { id: string } }
       return;
     }
 
-    router.push(`/budget/${params.id}/edit`);
+    router.push(`/budget/${budgetId}/edit`);
   };
 
   // Toplam harcama miktarını hesapla
