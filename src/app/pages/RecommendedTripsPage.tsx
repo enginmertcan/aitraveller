@@ -27,43 +27,55 @@ import { useThemeContext } from "../context/ThemeContext";
 import { fetchRecommendedTravelPlans, toggleLike } from "../Services/travel-plans";
 import { Hotel, TravelPlan } from "../types/travel";
 
-const StyledCard = styled(Card)(({ theme }) => ({
-  height: "100%",
-  display: "flex",
-  flexDirection: "column",
-  background: theme.palette.mode === "dark" ? colors.dark.card : colors.light.card,
-  backdropFilter: "blur(10px)",
-  borderRadius: borderRadius.lg,
-  border: `1px solid ${theme.palette.mode === "dark" ? colors.dark.border : colors.light.border}`,
-  overflow: "hidden",
-  transition: "transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out",
-  "&:hover": {
-    transform: "translateY(-8px)",
-    boxShadow: theme.palette.mode === "dark" ? shadows.dark.lg : shadows.lg,
-  },
-  position: "relative",
-}));
-
-const RecommendationBadge = styled(Box)({
-  position: "absolute",
-  top: 16,
-  right: 16,
-  backgroundColor: "rgba(255, 215, 0, 0.9)",
-  color: "#000",
-  padding: "6px 12px",
-  borderRadius: borderRadius.md,
-  display: "flex",
-  alignItems: "center",
-  gap: "6px",
-  zIndex: 1,
-  fontWeight: 600,
-  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+const StyledCard = styled(Card)(({ theme }) => {
+  const isDarkMode = theme?.palette.mode === "dark";
+  return {
+    height: "100%",
+    display: "flex",
+    flexDirection: "column",
+    background: isDarkMode ? "rgba(30, 30, 30, 0.9)" : colors.light.card,
+    backdropFilter: "blur(10px)",
+    borderRadius: borderRadius.lg,
+    border: `1px solid ${isDarkMode ? "rgba(255, 255, 255, 0.1)" : colors.light.border}`,
+    overflow: "hidden",
+    transition: "transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out",
+    "&:hover": {
+      transform: "translateY(-8px)",
+      boxShadow: isDarkMode ? "0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4)" : shadows.lg,
+    },
+    position: "relative",
+  };
 });
 
-const StyledCardContent = styled(CardContent)(({ theme }) => ({
-  flexGrow: 1,
-  padding: theme.spacing(3),
-}));
+const RecommendationBadge = styled(Box)(({ theme }) => {
+  const isDarkMode = theme?.palette.mode === "dark";
+  return {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    backgroundColor: isDarkMode ? "rgba(255, 215, 0, 0.85)" : "rgba(255, 215, 0, 0.9)",
+    color: "#000",
+    padding: "6px 12px",
+    borderRadius: borderRadius.md,
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    zIndex: 1,
+    fontWeight: 600,
+    boxShadow: isDarkMode ? "0 2px 8px rgba(0, 0, 0, 0.4)" : "0 2px 8px rgba(0, 0, 0, 0.15)",
+    border: isDarkMode ? "1px solid rgba(255, 215, 0, 0.3)" : "none",
+  };
+});
+
+const StyledCardContent = styled(CardContent)(({ theme }) => {
+  const isDarkMode = theme?.palette.mode === "dark";
+  return {
+    flexGrow: 1,
+    padding: theme.spacing(3),
+    backgroundColor: isDarkMode ? "rgba(35, 35, 35, 0.95)" : "rgba(255, 255, 255, 0.95)",
+    borderTop: isDarkMode ? "1px solid rgba(255, 255, 255, 0.05)" : "none",
+  };
+});
 
 const ChipContainer = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -113,35 +125,46 @@ const formatDate = (dateString: string) => {
 };
 
 // Like Button Component
-const LikeButton = styled(IconButton)(({ isLiked }: { isLiked: boolean }) => ({
-  position: "absolute",
-  top: 16,
-  left: 16,
-  backgroundColor: isLiked ? "rgba(233, 30, 99, 0.1)" : "rgba(255, 255, 255, 0.2)",
-  color: isLiked ? "#e91e63" : "#fff",
-  zIndex: 2,
-  "&:hover": {
-    backgroundColor: isLiked ? "rgba(233, 30, 99, 0.2)" : "rgba(255, 255, 255, 0.3)",
-  },
-}));
+const LikeButton = styled(IconButton)(({ theme, isLiked }: { theme?: any, isLiked: boolean }) => {
+  const isDarkMode = theme?.palette.mode === "dark";
+  return {
+    position: "absolute",
+    top: 16,
+    left: 16,
+    backgroundColor: isLiked
+      ? isDarkMode ? "rgba(233, 30, 99, 0.2)" : "rgba(233, 30, 99, 0.1)"
+      : isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(255, 255, 255, 0.2)",
+    color: isLiked ? "#e91e63" : "#fff",
+    zIndex: 2,
+    "&:hover": {
+      backgroundColor: isLiked
+        ? isDarkMode ? "rgba(233, 30, 99, 0.3)" : "rgba(233, 30, 99, 0.2)"
+        : isDarkMode ? "rgba(255, 255, 255, 0.25)" : "rgba(255, 255, 255, 0.3)",
+    },
+  };
+});
 
 // Like Count Badge
-const LikeCountBadge = styled(Box)(() => ({
-  position: "absolute",
-  bottom: 16,
-  right: 16,
-  backgroundColor: "rgba(255, 255, 255, 0.9)",
-  color: "#000",
-  padding: "4px 8px",
-  borderRadius: borderRadius.md,
-  display: "flex",
-  alignItems: "center",
-  gap: "4px",
-  zIndex: 1,
-  fontWeight: 600,
-  fontSize: "0.75rem",
-  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-}));
+const LikeCountBadge = styled(Box)(({ theme }) => {
+  const isDarkMode = theme?.palette.mode === "dark";
+  return {
+    position: "absolute",
+    bottom: 16,
+    right: 16,
+    backgroundColor: isDarkMode ? "rgba(30, 30, 30, 0.85)" : "rgba(255, 255, 255, 0.9)",
+    color: isDarkMode ? "#ffffff" : "#000000",
+    padding: "4px 8px",
+    borderRadius: borderRadius.md,
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+    zIndex: 1,
+    fontWeight: 600,
+    fontSize: "0.75rem",
+    boxShadow: isDarkMode ? "0 2px 8px rgba(0, 0, 0, 0.4)" : "0 2px 8px rgba(0, 0, 0, 0.15)",
+    border: isDarkMode ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
+  };
+});
 
 export default function RecommendedTripsPage() {
   const [recommendedTrips, setRecommendedTrips] = useState<TravelPlan[]>([]);
@@ -264,7 +287,16 @@ export default function RecommendedTripsPage() {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
+    <Container
+      maxWidth="lg"
+      sx={{
+        mt: 4,
+        mb: 8,
+        backgroundColor: "transparent", // Arka plan rengini kaldırdık, body'nin arka plan rengi kullanılacak
+        minHeight: "calc(100vh - 120px)", // Navbar ve footer için alan bırakıyoruz
+        padding: { xs: 2, md: 4 },
+      }}
+    >
       <Box
         sx={{
           display: "flex",
@@ -366,7 +398,11 @@ export default function RecommendedTripsPage() {
                   {/* Like Count Badge */}
                   <LikeCountBadge>
                     <Heart size={14} color="#e91e63" fill="#e91e63" />
-                    <Typography variant="caption" fontWeight="bold">
+                    <Typography
+                      variant="caption"
+                      fontWeight="bold"
+                      sx={{ color: "inherit" }}
+                    >
                       {trip.likes || 0}
                     </Typography>
                   </LikeCountBadge>
@@ -481,7 +517,15 @@ export default function RecommendedTripsPage() {
                     <Box sx={{ mt: 2, mb: 2 }}>
                       <ImageList sx={{ width: "100%", height: 120, m: 0 }} cols={3} rowHeight={120} gap={4}>
                         {trip.hotelOptions.slice(0, 3).map((hotel: Hotel, hotelIndex: number) => (
-                          <ImageListItem key={hotelIndex} sx={{ overflow: "hidden", borderRadius: "8px" }}>
+                          <ImageListItem
+                            key={hotelIndex}
+                            sx={{
+                              overflow: "hidden",
+                              borderRadius: "8px",
+                              border: `1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                              boxShadow: isDarkMode ? shadows.dark.sm : shadows.sm,
+                            }}
+                          >
                             <img
                               src={hotel.hotelImageUrl || hotel.imageUrl || '/placeholder-hotel.jpg'}
                               alt={hotel.hotelName}
@@ -489,7 +533,8 @@ export default function RecommendedTripsPage() {
                               style={{
                                 width: "100%",
                                 height: "100%",
-                                objectFit: "cover"
+                                objectFit: "cover",
+                                opacity: isDarkMode ? 0.9 : 1, // Hafif opaklık ekleyerek dark mode'da daha iyi görünmesini sağlar
                               }}
                             />
                           </ImageListItem>

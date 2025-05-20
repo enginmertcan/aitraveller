@@ -29,6 +29,7 @@ export default function RootLayout({
           <ThemeProvider>
             <ThemeRegistry>
               <div
+                className="app-container"
                 style={{
                   minHeight: "100vh",
                   display: "flex",

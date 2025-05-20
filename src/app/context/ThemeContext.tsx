@@ -29,6 +29,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     localStorage.setItem("darkMode", JSON.stringify(isDarkMode));
+
+    // Body sınıfını güncelle
+    if (typeof document !== 'undefined') {
+      if (isDarkMode) {
+        document.body.classList.add('dark-mode');
+        document.body.classList.remove('light-mode');
+      } else {
+        document.body.classList.add('light-mode');
+        document.body.classList.remove('dark-mode');
+      }
+    }
   }, [isDarkMode]);
 
   const theme = createTheme({
